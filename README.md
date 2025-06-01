@@ -1,34 +1,80 @@
 # Terrain 3D
 
-A sophisticated 3D/2D Earth visualization application that delivers an immersive, interactive globe experience with seamless transitions between photorealistic 3D terrain and high-resolution satellite imagery.
+**Ecological Digital Twin Platform for Landscape Design**
 
-## Features
+Terrain 3D is a sophisticated 3D visualization platform that enables landscape designers to create photorealistic digital twins of landscapes and design native plant-based solutions that maximize ecosystem services. Part of [Ecodash](docs/ecodash-company-manifesto.md)'s computational ecology mission.
 
-### 🌍 Dual Visualization Modes
-- **3D Globe View**: Photorealistic Earth visualization powered by Cesium with Google Photorealistic 3D Tiles
-- **2D Satellite View**: High-resolution satellite imagery using Google Maps API
-- **Seamless Switching**: Maintain camera position and orientation when transitioning between views
+## 🌱 What Makes This Different
 
-### 🎯 Interactive Navigation
-- **Guided Tours**: Predefined sequences with smooth camera movements and contextual messaging
-- **Intuitive Controls**: Device-adaptive interface supporting touch, trackpad, and mouse interactions
-- **Camera Controls**: Tilt, rotate, and home positioning with precision controls
-- **Geolocation**: Automatic user location detection and positioning
+### Ecological Focus
+- **Native Plant Emphasis**: Prioritizes native species for maximum ecosystem function
+- **Scientific Integration**: Visualizes soil chemistry, microclimates, and ecological models as interactive 3D layers
+- **Pollinator Habitat**: Optimizes designs for bee and butterfly habitat across seasons
+- **Ecosystem Services**: Quantifies environmental benefits like carbon sequestration and stormwater management
 
-### 📱 Cross-Platform Compatibility
-- **Responsive Design**: Optimized for smartphones, tablets, laptops, and desktop computers
-- **Device Detection**: Automatic detection and adaptive UI instructions
-- **Touch-First**: Native support for touch gestures and multi-touch interactions
+### Photorealistic Precision
+- **"Enter the Matrix"**: Minimal visual difference between digital interface and reality
+- **3D Gaussian Splatting**: Advanced neural network reconstruction for lifelike rendering
+- **RTK Photography & LiDAR**: Geospatially accurate capture from drone and ground surveys
+- **Real-time Performance**: Zero-lag interaction for immersive design experience
 
-### 🛠 Developer-Friendly
-- **Vanilla JavaScript**: No framework dependencies, lightweight and fast
-- **Modular Architecture**: Clean separation of concerns with manager-based design
-- **Hot Reload**: Direct file editing with instant browser refresh
-- **Debug Tools**: Built-in camera position logging and view configuration tools
+## 🚀 Core Capabilities
 
-## Architecture
+### 3D Digital Twin Visualization
+- **Existing Landscapes**: Photorealistic 3D models of current site conditions
+- **Design Scenarios**: Interactive simulation of proposed landscape changes
+- **Plant Placement**: 3D models of native plants with seasonal growth simulation
+- **Export Tools**: High-resolution renders and technical documentation for implementation
 
-The application uses a manager-based architecture built with vanilla JavaScript:
+### Scientific Model Integration
+- **Soil Analysis**: pH, nitrogen, phosphorus, potassium mapping
+- **Microclimate**: Sunlight hours, moisture, wind exposure analysis  
+- **Risk Assessment**: Drought, flood, and extreme weather probability zones
+- **Habitat Quality**: Native plant compatibility and ecosystem service potential
+
+### Commercial Integration
+- **Native Plant Explorer**: Connect with local nursery inventory and availability
+- **Growth Contracting**: Custom plant production timelines and volumes
+- **One-Click Ordering**: Streamlined purchasing from native plant growers
+- **Supply Chain**: Logistics coordination for planting schedules
+
+## 📁 Documentation
+
+- **[Terrain3D.md](Terrain3D.md)**: Comprehensive technical specifications and implementation details
+- **[CLAUDE.md](CLAUDE.md)**: Development principles and essential values for AI-assisted coding
+- **[docs/ecodash-company-manifesto.md](docs/ecodash-company-manifesto.md)**: Company mission and ecological vision
+
+## 🛠 Quick Start
+
+### Prerequisites
+- Modern web browser with WebGL support
+- API keys for Cesium Ion, Google Maps, and IP Geolocation services
+
+### Installation
+```bash
+git clone https://github.com/legel/terrain-3d.git
+cd terrain-3d
+```
+
+### Run Locally
+```bash
+# Simply open app.html in your browser
+open app.html
+
+# Or serve locally
+python3 -m http.server 8000
+# Navigate to http://localhost:8000/app.html
+```
+
+### Development Workflow
+No build system required! Edit JavaScript files directly and refresh browser:
+1. **Edit** - Modify files in `/js`, `/css`, or `app.html`
+2. **Test** - Refresh browser to see changes
+3. **Debug** - Use `debug()` in console for camera position logging
+
+## 🏗 Architecture
+
+**Vanilla JavaScript** with manager-based architecture:
 
 ```
 ├── CesiumManager.js      # 3D globe rendering and controls
@@ -40,102 +86,37 @@ The application uses a manager-based architecture built with vanilla JavaScript:
 └── utilities.js          # Shared functions and UI components
 ```
 
-## Quick Start
+## 🔬 Technical Specifications
 
-### Prerequisites
-- Modern web browser with WebGL support
-- API keys for:
-  - Cesium Ion (embedded)
-  - Google Maps API (configured in GoogleMaps2DManager.js)
-  - IP Geolocation service (configured in UserManager.js)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/legel/terrain-3d.git
-   cd terrain-3d
-   ```
-
-2. **Open in browser**
-   ```bash
-   # Simply open app.html in your browser
-   open app.html
-   ```
-
-   Or serve locally:
-   ```bash
-   python3 -m http.server 8000
-   # Navigate to http://localhost:8000/app.html
-   ```
-
-### Development Workflow
-
-No build system required! Edit files directly and refresh your browser:
-
-1. **Edit JavaScript files** - Changes are reflected immediately
-2. **Test in browser** - Open `app.html` 
-3. **Debug with tools** - Use built-in camera position logger
-
-## Usage
-
-### Basic Navigation
-- **3D Mode**: Click and drag to rotate, scroll to zoom, right-click drag to pan
-- **2D Mode**: Standard Google Maps controls
-- **View Switch**: Click the "2D"/"3D" button to toggle between modes
-- **Home**: Click home button to return to default view
-- **Camera Controls**: Use tilt and rotation buttons for precise positioning
-
-### Guided Tours
-Tours are automatically available and provide contextual information about locations with smooth camera transitions.
-
-### Developer Tools
-- Press `debug()` in console to enable view configuration logging
-- Camera positions are logged in the format: `longitude, latitude, height, heading, pitch, roll`
-
-## API Configuration
-
-### Cesium Ion
-Update the access token in `js/CesiumManager.js`:
-```javascript
-Cesium.Ion.defaultAccessToken = 'your_cesium_token_here';
-```
-
-### Google Maps
-Configure your API key in `js/GoogleMaps2DManager.js`:
-```javascript
-const API_KEY = 'your_google_maps_key_here';
-```
-
-### IP Geolocation
-Set your API key in `js/UserManager.js`:
-```javascript
-const API_KEY = 'your_ipgeolocation_key_here';
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes
-4. Test thoroughly across different devices
-5. Commit with descriptive messages
-6. Push and create a Pull Request
-
-## Technical Specifications
-
-- **Rendering Engine**: Cesium.js 1.121
-- **2D Maps**: Google Maps JavaScript API
-- **Coordinate System**: WGS84 (EPSG:4326)
-- **Supported Browsers**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
+- **Rendering Engine**: Cesium.js 1.121 with 3D Gaussian Splatting support
+- **Data Sources**: PIX4Dmatic mesh tiles, .spz files, GIS layers
+- **Coordinate System**: WGS84 (EPSG:4326) with RTK precision
 - **Performance**: Optimized for 60fps on modern hardware
+- **Compatibility**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
 
-## License
+## 🌍 Mission Alignment
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Terrain 3D directly supports Ecodash's mission to **"Cultivate thriving ecosystems across the planet through computational ecology and human creativity"** by providing:
 
-## Acknowledgments
+- **Design Intelligence**: Tools that translate ecological science into actionable landscape design
+- **3D Ecological Digital Twins**: Photorealistic simulations showing landscapes across seasons
+- **Native Plant Network**: Connections between ecological knowledge and commercial availability
 
-- [Cesium](https://cesium.com/) for 3D globe rendering capabilities
-- [Google Maps Platform](https://developers.google.com/maps) for satellite imagery
-- Community contributors and testers
+## 🤝 Contributing
+
+1. **Read Documentation**: Start with [Terrain3D.md](Terrain3D.md) for technical details
+2. **Fork Repository**: Create your feature branch
+3. **Follow Principles**: Maintain ecological focus and visual fidelity standards
+4. **Test Thoroughly**: Verify across different devices and use cases
+5. **Submit PR**: Include clear description of ecological benefits
+
+## 📄 License
+
+Copyright Ecological Intelligence, Inc. - see LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- **[Cesium](https://cesium.com/)**: 3D globe rendering and geospatial accuracy
+- **[Google Maps Platform](https://developers.google.com/maps)**: Satellite imagery and mapping
+- **Native Plant Community**: Growers, researchers, and designers preserving genetic heritage
+- **Landscape Professionals**: Practitioners shaping millions of acres annually for ecological function

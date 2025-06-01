@@ -4,7 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Application Overview
 
-Terrain 3D is a 3D/2D Earth visualization application that provides an interactive globe experience. It uses Cesium for 3D photorealistic Earth visualization and Google Maps API for 2D satellite imagery, with seamless switching between views.
+Terrain 3D is a sophisticated 3D ecological digital twin platform designed to revolutionize landscape design through computational ecology. This application serves as the visualization and interaction layer for Ecodash's mission to maximize ecosystem services through native plant-based landscape design.
+
+### Core Mission
+Support landscape designers in creating ecologically functional and beautiful landscapes by providing:
+- Photorealistic 3D digital twins of existing landscapes
+- Interactive simulation of proposed design scenarios
+- Integration with scientific ecological models
+- Seamless connection to native plant supply chains
+
+### Primary Use Cases
+1. **3D Digital Twin Visualization**: Display geospatially-accurate 3D reconstructions from drone aerial surveys, ground LiDAR, and RTK photography
+2. **Ecological Modeling Interface**: Visualize scientific models (soil conditions, microclimates, pollinator habitat potential) as interactive 3D/GIS layers
+3. **Design Simulation**: Enable landscape designers to place and visualize native plants in realistic 3D environments
+4. **Commercial Integration**: Connect design decisions with native plant nursery inventory and availability
 
 ## Architecture
 
@@ -50,3 +63,56 @@ All positions use:
 - Longitude/Latitude in degrees
 - Height in meters above ground
 - Heading/Pitch/Roll in radians for camera orientation
+
+## Essential Development Principles
+
+### Visual Fidelity & Immersion
+- **"Enter the Matrix"**: Achieve minimal visual difference between the 3D interface and reality
+- **Photorealistic Rendering**: Support for 3D Gaussian Splatting (.spz files) and high-quality mesh tiles from PIX4Dmatic
+- **Geospatial Accuracy**: All 3D models must maintain precise Earth coordinates through ground control points
+
+### User Experience Philosophy
+- **Minimal UI Footprint**: Get out of the way of designers' creative visualization process
+- **Natural User Interface**: Fastest, most intuitive interaction patterns for 3D manipulation
+- **Zero Lag Tolerance**: Prioritize performance to maintain immersive experience
+- **Scientific Transparency**: Always expose accuracy and precision metadata for all models
+
+### Ecological Integration Requirements
+- **Native Plant Focus**: All plant selection and placement tools must prioritize native species
+- **Ecosystem Services Metrics**: Integrate quantifiable measures of ecological function
+- **Scientific Model Validation**: Implement automatic checks to prevent scientifically invalid data
+- **Actionable Intelligence**: Bias towards tools that directly improve landscape design execution
+
+### Data Integration Standards
+- **3D Gaussian Splats**: Prepare for integration with .spz file format and new Cesium standards
+- **GIS Layer Support**: Seamlessly blend scientific models (soil pH, moisture, sunlight) with 3D visualization
+- **Real-time Plant Models**: Support for 3D plant models with seasonal growth simulation
+- **Supply Chain Integration**: Connect design decisions with actual nursery inventory and availability
+
+### Development Workflow Priorities
+1. **Mesh-based rendering** (current phase): PIX4Dmatic integration with Cesium
+2. **Gaussian Splat integration** (future phase): Advanced photorealistic rendering
+3. **Ecological model overlay**: Scientific data visualization on 3D twins
+4. **Commercial platform features**: Native plant marketplace integration
+
+## Data Sources & Scientific Models
+
+### Environmental Data Layers
+- Soil chemistry (pH, N, P, K levels)
+- Microclimate conditions (sunlight hours, moisture, wind exposure)
+- Ecological risk factors (drought, flood, extreme weather probabilities)
+- Topographic analysis and water flow patterns
+
+### 3D Reconstruction Pipeline
+- RTK photography for precise positioning
+- GeoFusion ground LiDAR surveying
+- Drone aerial mapping
+- 3D Gaussian Splatting neural networks
+- Geospatially-tagged mesh tile export
+
+### Plant Database Requirements
+- Native species ecological niche data
+- 3D plant models with growth stages
+- Nursery inventory and availability
+- Regional ecotype tracking
+- Pollinator value and bloom timing data
