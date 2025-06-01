@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terrain 3D</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap" rel="stylesheet"> 
+
+    <!-- Cesium libraries -->
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
+
+    <!-- 3D View CSS library -->
+    <link href="/css/styles.css" rel="stylesheet">
+
+    <!-- 2D Map CSS -->
+    <link href="/css/GoogleMaps2D.css" rel="stylesheet">
+
+    <!-- Menu and View Switch CSS -->
+    <link href="/css/menu.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Cesium 3D Container -->
+    <div id="cesiumContainer"></div>
+
+    <!-- Google Maps 2D Container, hidden initially -->
+    <div id="map2D" style="display: none;"></div>
+
+    <!-- Terrain 3D Logo -->
+    <img id="logo" src="/images/ecodash_white_cropped.webp" alt="Terrain 3D Logo">
+    
+    <!-- Message Box -->
+    <div id="messageBox"></div>
+
+    <!-- Tilt 0 degrees button -->
+    <button id="tilt0Button" class="tilt-0-button"></button>
+
+    <!-- Tilt 45 degrees button -->
+    <button id="tilt45Button" class="tilt-45-button"></button>
+
+    <!-- Rotate right 90 degrees button -->
+    <button id="rotateRightButton" class="rotate-right-button"></button>
+
+    <!-- Rotate left 90 degrees button -->
+    <button id="rotateLeftButton" class="rotate-left-button"></button>
+
+    <!-- Home Button -->
+    <button id="homeButton" class="home-button"></button>
+
+    <!-- View Switch Button -->
+    <button id="viewSwitchButton" class="view-switch">2D</button>
+
+    <!-- Load the Cesium scripts after the DOM is ready -->
+    <script src="/js/CesiumManager.js"></script>
+    <script src="/js/utilities.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/main.js"></script>
+
+    <!-- Load the Google Maps API and its related script after the DOM is ready -->
+    <script src="/js/GoogleMaps2DManager.js"></script>
+
+    <!-- Load services for inferring user IP and device information -->
+    <script src="/js/UserManager.js"></script>
+
+    <!-- Load services for inferring user IP and device information -->
+    <script src="/js/narratives.js"></script>
+
+    <!-- Load the new scripts -->
+    <script src="/js/tilt.js"></script>
+    <script src="/js/orbit.js"></script>
+    <script src="/js/home.js"></script>
+    <script src="/js/viewTransform.js"></script>
+</body>
+</html>
+
+

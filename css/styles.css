@@ -1,0 +1,188 @@
+/* Ensure the Cesium container takes up the full viewport */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: 'Oxygen', sans-serif;
+}
+
+#cesiumContainer {
+    width: 100%;
+    height: 100vh; /* Make sure it takes the full height of the viewport */
+    display: block;
+}
+
+#saveViewButton {
+    position: absolute;
+    width: 200px;
+    height: 100px;
+    background-color: #072b2eff;
+    color: white;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 300;
+    text-align: center;
+    line-height: 100px;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: pointer;
+}
+
+#messageBox {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 26px;
+    background-color: rgba(7, 43, 46, 0.75); /* #072b2e with 75% alpha */
+    color: #ffffff; /* White font color */
+    padding: 12.5px; /* Padding for spacing around the text */
+    padding-top: 5px; 
+    padding-bottom: 5px; 
+    margin: 0px;
+    border-radius: 40px;
+    border: 1px solid #ffffff; /* White border */
+    display: none;
+    text-align: center;
+    font-family: 'Oxygen', sans-serif; /* Oxygen font */
+    box-sizing: border-box; /* Include padding and border in element's width and height */
+}
+
+#messageBox a {
+    color: #b9f9ff;
+    text-decoration: none; /* Remove underline */
+}
+
+#messageBox a:hover {
+    text-decoration: underline; /* Underline on hover */
+}
+
+/* Custom styles for Cesium buttons */
+.cesium-viewer-toolbar .cesium-button {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(7, 43, 46, 0.9); /* Apply the new background color */
+    color: white; /* Set icon color to white */
+    fill: white; /* Ensure the icon fill color is white */
+}
+
+/* Search input styling */
+.cesium-viewer-geocoderContainer .cesium-geocoder-input {
+    height: 50px;
+    width: 50px; /* Set the initial width to match the toolbar buttons */
+    font-size: 18px;
+    padding-left: 10px;
+    border-radius: 4px; /* Match border radius with the button */
+    background-color: rgba(7, 43, 46, 0.9); /* Apply the new background color */
+    color: white; /* Set input text color to white */
+    transition: width 0.3s ease; /* Smooth transition when expanding */
+}
+
+/* Expanded state of the search input */
+.cesium-viewer-geocoder-input-wide {
+    width: 200px !important; /* Width when expanded */
+}
+
+/* Placeholder text styling */
+.cesium-viewer-geocoderContainer .cesium-geocoder-input::placeholder {
+    color: rgba(255, 255, 255, 0.7); /* Light gray placeholder color */
+    opacity: 1;
+}
+
+.cesium-viewer-geocoderContainer .cesium-geocoder-searchButton {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(7, 43, 46, 0.9); /* Apply the new background color */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center the icon */
+}
+
+.cesium-viewer-geocoderContainer .cesium-svgPath-svg {
+    width: 50px !important; /* Ensure the icon size remains 50px */
+    height: 50px !important;
+    fill: white; /* Set icon color to white */
+}
+
+/* Logo positioning */
+#logo {
+    position: absolute;
+    top: 10px;
+    left: 10px; /* Adjust left padding */
+    height: 70px;
+    width: auto; /* Maintain aspect ratio */
+}
+
+/* Mobile-specific adjustments */
+@media screen and (max-width: 767px) {
+    #logo {
+        height: 50px;
+    }
+
+    #messageBox {
+        font-size: 16px;
+        top: 75px; /* Move down 25px from the original 50px */
+    }
+
+    #saveViewButton {
+        width: 150px;
+        height: 75px;
+        line-height: 75px;
+        font-size: 12px;
+        bottom: 30px; /* Adjusted for more space on mobile */
+    }
+
+    /* Adjustments to Cesium buttons for mobile */
+    .cesium-viewer-toolbar .cesium-button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .cesium-viewer-geocoderContainer .cesium-geocoder-input {
+        height: 40px;
+        width: 40px; /* Set the initial width to match the toolbar buttons */
+        font-size: 16px;
+    }
+
+    .cesium-viewer-geocoderContainer .cesium-geocoder-searchButton {
+        width: 40px;
+        height: 40px;
+    }
+
+    .cesium-viewer-geocoderContainer .cesium-svgPath-svg {
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+/* General button styles */
+.reusable-button {
+    position: absolute;
+    background-color: #072b2eff;
+    color: white;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0 20px; /* Add padding to accommodate the text and "x" button */
+}
+
+/* "x" sub-button styles */
+.close-button {
+    width: 25px;
+    height: 25px;
+    background-image: url('/images/x.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 50%;
+    border: 2px solid white; /* Circle border */
+    margin-left: 10px; /* Space between the "x" button and the main button text */
+    flex-shrink: 0; /* Ensure the "x" button doesn't shrink */
+    cursor: pointer;
+}

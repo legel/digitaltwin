@@ -1,0 +1,126 @@
+/* General button styles for desktop */
+.tilt-0-button,
+.tilt-45-button,
+.rotate-right-button,
+.rotate-left-button,
+.home-button,
+.view-switch {
+    position: absolute;
+    top: 10px;
+    width: 50px;
+    height: 50px;
+    background-color: rgba(7, 43, 46, 0.9);
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    z-index: 1000;
+    background-size: 30px 30px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tilt-0-button:hover,
+.tilt-45-button:hover,
+.rotate-right-button:hover,
+.rotate-left-button:hover,
+.home-button:hover,
+.view-switch:hover {
+    background-color: rgba(10, 60, 70, 0.9);
+}
+
+/* Individual button positioning for desktop */
+.tilt-0-button {
+    right: 310px;
+    background-image: url('/images/down_0_degrees.png');
+}
+
+.tilt-45-button {
+    right: 250px;
+    background-image: url('/images/down_45_degrees.png');
+}
+
+.rotate-right-button {
+    right: 190px;
+    background-image: url('/images/right_90_degrees.png');
+}
+
+.rotate-left-button {
+    right: 130px;
+    background-image: url('/images/left_90_degrees.png');
+}
+
+.home-button {
+    right: 70px;
+    background-image: url('/images/home.png');
+}
+
+.view-switch {
+    right: 10px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Responsive adjustments for mobile devices */
+@media screen and (max-width: 767px) {
+    /* Resize buttons for mobile */
+    .tilt-0-button,
+    .tilt-45-button,
+    .rotate-right-button,
+    .rotate-left-button,
+    .home-button,
+    .view-switch {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background-size: 24px 24px;
+    }
+
+    /* Reposition buttons to the bottom of the screen for mobile */
+    .tilt-0-button {
+        top: auto;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-145px); /* Adjusted for more spacing */
+    }
+
+    .tilt-45-button {
+        top: auto;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-95px); /* Adjusted for more spacing */
+    }
+
+    .rotate-right-button {
+        top: auto;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-45px);
+    }
+
+    .rotate-left-button {
+        top: auto;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(5px); /* Adjusted for more spacing */
+    }
+
+    .home-button {
+        top: auto;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(55px); /* Adjusted for more spacing */
+    }
+
+    .view-switch {
+        top: auto;
+        bottom: 20px; /* Aligned with other buttons */
+        left: 50%;
+        transform: translateX(105px); /* Positioned to the far left of the other buttons */
+        font-size: 16px;
+    }
+}
+
