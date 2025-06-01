@@ -4,7 +4,7 @@
 
 Terrain 3D is a sophisticated 3D visualization platform that enables landscape designers to create photorealistic digital twins of landscapes and design native plant-based solutions that maximize ecosystem services. Part of [Ecodash](docs/ecodash-company-manifesto.md)'s computational ecology mission.
 
-## 🦋 Key Differentiators
+## 🦋 Platform Overview
 
 ### Ecological Focus
 - **Native Plant Emphasis**: Prioritizes native species for maximum ecosystem function
