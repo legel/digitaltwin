@@ -4,7 +4,7 @@
 
 Terrain 3D is a sophisticated 3D visualization platform that enables landscape designers to create photorealistic digital twins of landscapes and design native plant-based solutions that maximize ecosystem services. Part of [Ecodash](docs/ecodash-company-manifesto.md)'s computational ecology mission.
 
-## 🌱 What Makes This Different
+## 🦋 Key Differentiators
 
 ### Ecological Focus
 - **Native Plant Emphasis**: Prioritizes native species for maximum ecosystem function
@@ -18,7 +18,7 @@ Terrain 3D is a sophisticated 3D visualization platform that enables landscape d
 - **RTK Photography & LiDAR**: Geospatially accurate capture from drone and ground surveys
 - **Real-time Performance**: Zero-lag interaction for immersive design experience
 
-## 🚀 Core Capabilities
+## 🌺 Core Capabilities
 
 ### 3D Digital Twin Visualization
 - **Existing Landscapes**: Photorealistic 3D models of current site conditions
@@ -58,11 +58,11 @@ cd terrain-3d
 
 ### Run Locally
 ```bash
-# Simply open app.html in your browser
-open app.html
+# Install Python dependencies
+pip install -r requirements.txt
 
-# Or serve locally
-python3 -m http.server 8000
+# Start Python server
+python3 server.py
 # Navigate to http://localhost:8000/app.html
 ```
 
@@ -112,7 +112,7 @@ Terrain 3D directly supports Ecodash's mission to **"Cultivate thriving ecosyste
 
 ## 📄 License
 
-Copyright Ecological Intelligence, Inc. - see LICENSE file for details.
+Copyright Ecological Intelligence, Inc.
 
 ## 🙏 Acknowledgments
 
