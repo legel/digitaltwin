@@ -11,6 +11,9 @@
     <!-- Cesium libraries -->
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
+    
+    <!-- Proj4js for proper coordinate conversion -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"></script>
 
     <!-- 3D View CSS library -->
     <link href="/css/styles.css" rel="stylesheet">
@@ -51,6 +54,13 @@
 
     <!-- View Switch Button -->
     <button id="viewSwitchButton" class="view-switch">2D</button>
+
+    <!-- Site Selector Dropdown -->
+    <div id="siteSelector" class="site-selector">
+        <select id="siteDropdown">
+            <option value="">Select a site...</option>
+        </select>
+    </div>
 
     <!-- Load the Cesium scripts after the DOM is ready -->
     <script src="/js/CesiumManager.js"></script>

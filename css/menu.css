@@ -64,6 +64,34 @@
     align-items: center;
 }
 
+.site-selector {
+    position: absolute;
+    top: 10px;
+    left: 100px;
+    z-index: 1000;
+}
+
+.site-selector select {
+    background-color: rgba(7, 43, 46, 0.9);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-family: 'Oxygen', sans-serif;
+    cursor: pointer;
+    min-width: 150px;
+}
+
+.site-selector select:hover {
+    background-color: rgba(10, 60, 70, 0.9);
+}
+
+.site-selector select option {
+    background-color: rgba(7, 43, 46, 1);
+    color: white;
+}
+
 /* Responsive adjustments for mobile devices */
 @media screen and (max-width: 767px) {
     /* Resize buttons for mobile */
@@ -121,6 +149,17 @@
         left: 50%;
         transform: translateX(105px); /* Positioned to the far left of the other buttons */
         font-size: 16px;
+    }
+
+    .site-selector {
+        top: 10px;
+        left: 70px;
+    }
+
+    .site-selector select {
+        padding: 8px 12px;
+        font-size: 12px;
+        min-width: 120px;
     }
 }
 
