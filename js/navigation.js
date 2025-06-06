@@ -1,13 +1,15 @@
 function flyToSequence(cesiumManager, flyTos, callback) {
     console.log("Starting flyToSequence");
 
-    let stopFlyThrough = false;  // Initialize stop flag at the start of each sequence
+    // Initialize stop flag at the start of each sequence and make it globally accessible
+    window.stopFlyThrough = false;
+    window.currentFlyThroughActive = true;  // Track if a flythrough is currently active
     let currentIndex = 0;  // Track the current index in the flyTo sequence
     const viewer = cesiumManager.getViewer();
 
     // Create the continuation button using the reusable button function
     const continueButton = createReusableButton("Continue discovery experience", () => {
-        stopFlyThrough = false;  // Reset the stop flag
+        window.stopFlyThrough = false;  // Reset the stop flag
         handler = addEventHandlers();  // Re-add event handlers for future interruptions
         continueFlythrough();  // Resume the flythrough
     }, {
@@ -24,7 +26,7 @@ function flyToSequence(cesiumManager, flyTos, callback) {
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
         handler.setInputAction(() => {
-            stopFlyThrough = true;
+            window.stopFlyThrough = true;
             console.log("Mouse interaction detected - stopping flythrough.");
             handler.destroy();  // Remove all handlers when stopping the flythrough
 
@@ -33,7 +35,7 @@ function flyToSequence(cesiumManager, flyTos, callback) {
         }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
 
         handler.setInputAction(() => {
-            if (stopFlyThrough) {
+            if (window.stopFlyThrough) {
                 handler.destroy();  // Clean up if the flythrough was stopped
             }
         }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
@@ -49,7 +51,7 @@ function flyToSequence(cesiumManager, flyTos, callback) {
         continueButton.style.display = "none";  // Hide the button when resuming
 
         while (currentIndex < flyTos.length) {
-            if (stopFlyThrough) {
+            if (window.stopFlyThrough) {
                 console.log("Flythrough stopped early by user.");
                 break;
             }
@@ -80,7 +82,7 @@ function flyToSequence(cesiumManager, flyTos, callback) {
             // Display the message after the specified delay
             if (message) {
                 setTimeout(() => {
-                    if (!stopFlyThrough) {
+                    if (!window.stopFlyThrough) {
                         displayMessage(message, fadeInTime, displayTime, fadeOutTime);
                     }
                 }, messageDelayStartTime * 1000);
@@ -97,12 +99,14 @@ function flyToSequence(cesiumManager, flyTos, callback) {
             currentIndex++;  // Move to the next waypoint in the sequence
         }
 
-        if (!stopFlyThrough) {
+        if (!window.stopFlyThrough) {
             handler.destroy();  // Clean up after the sequence completes without interruption
             if (callback) {
                 callback();  // Run the callback if provided
             }
         }
+        
+        window.currentFlyThroughActive = false;  // Mark flythrough as no longer active
     }
 
     // Start the flythrough sequence
