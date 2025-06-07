@@ -62,6 +62,23 @@
         </select>
     </div>
 
+    <!-- Parameter Filter Dropdown (hidden by default) -->
+    <div id="parameterFilter" class="parameter-filter" style="display: none;">
+        <select id="parameterDropdown">
+            <option value="">Filter by parameter...</option>
+            <option value="moisture">M1: Moisture Level</option>
+            <option value="lightHours">M2: Light Hours</option>
+            <option value="pH">M3: pH Level</option>
+            <option value="nitrogen">M4: Nitrogen (N)</option>
+            <option value="phosphorus">M5: Phosphorus (P)</option>
+            <option value="potassium">M6: Potassium (K)</option>
+            <option value="organic">M7: Organic Matter</option>
+            <option value="drought">M8: Drought Risk</option>
+            <option value="flood">M9: Flood Risk</option>
+            <option value="wind">M10: Wind Exposure</option>
+        </select>
+    </div>
+
     <!-- Load the Cesium scripts after the DOM is ready -->
     <script src="/js/CesiumManager.js"></script>
     <script src="/js/utilities.js"></script>

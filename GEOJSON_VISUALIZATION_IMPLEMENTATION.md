@@ -1,31 +1,51 @@
 # GeoJSON Visualization Implementation
 
 **Date**: December 6, 2024  
-**Status**: Completed  
+**Last Updated**: January 6, 2025  
+**Status**: Enhanced with Multi-Format Support & M1-M10 Parameter Filtering  
 
 ## Overview
 
-This document summarizes the implementation of a comprehensive GeoJSON visualization system for the Terrain 3D ecological digital twin platform. The system visualizes plantable and non-plantable areas with intelligent color coding, height differentiation, and rich ecological data tooltips.
+This document summarizes the implementation of a comprehensive GeoJSON visualization system for the Terrain 3D ecological digital twin platform. The system supports multiple GeoJSON formats, visualizes plantable and non-plantable areas with intelligent color coding, height differentiation, rich ecological data tooltips, and includes advanced parameter-based filtering for ecological analysis.
 
 ## Core Components Implemented
 
-### 1. Site Selection Dropdown
+### 1. Multi-Site Selection System
 
 **Location**: Top-left corner of UI (positioned to avoid logo overlap)
-**File Modified**: `app.html`, `css/menu.css`
+**Files Modified**: `app.html`, `css/menu.css`, `js/utilities.js`
 
-- Added dropdown selector for GeoJSON sites in data directory
+#### Site Dropdown
+- Multi-format GeoJSON site selector supporting both legacy and Boyd formats
+- Current sites: "Dix.Hite HQ" (legacy format) and "Scott Boyd Residence" (Boyd format)
 - Responsive design (100px left on desktop, 70px on mobile)
 - Integrates with tutorial interruption system
 - Automatically loads and parses available GeoJSON files
+- Format detection triggers appropriate UI elements
 
-### 2. Coordinate Conversion System
+#### Parameter Filter Dropdown (Boyd Format Only)
+- **Location**: Adjacent to site selector (320px left on desktop, below site selector on mobile)
+- **Visibility**: Automatically appears for Boyd format sites, hidden for legacy format
+- **Options**: Complete M1-M10 ecological parameter filtering
+  - M1: Moisture Level, M2: Light Hours, M3: pH Level
+  - M4: Nitrogen (N), M5: Phosphorus (P), M6: Potassium (K) 
+  - M7: Organic Matter, M8: Drought Risk, M9: Flood Risk, M10: Wind Exposure
+- **Reset Option**: "Filter by parameter..." returns to normal coloring
+
+### 2. Multi-Format Coordinate System Support
 
 **Library Added**: proj4js (CDN)
-**Function**: `utmToLatLng()`
+**Functions**: `utmToLatLng()`, `detectCoordinateFormat()`, `calculateBounds()`
 
-- Proper UTM Zone 17N (EPSG:32617) to WGS84 (EPSG:4326) conversion
-- Replaces simplified approximation with accurate projection transformation
+#### Automatic Format Detection
+- **Geographic Coordinates**: WGS84 lat/lng (Boyd format) - no conversion needed
+- **Projected Coordinates**: UTM Zone 17N (EPSG:32617) to WGS84 conversion (legacy format)
+- Automatic detection based on coordinate value ranges
+- Unified bounds calculation supporting both formats
+
+#### Coordinate Conversion
+- Proper UTM Zone 17N (EPSG:32617) to WGS84 (EPSG:4326) conversion for legacy format
+- Direct usage of geographic coordinates for Boyd format
 - Handles Florida area coordinates with precision
 - Includes fallback to simplified conversion if proj4js fails
 
@@ -230,4 +250,111 @@ Into structured data:
 ✅ Professional visual appearance  
 ✅ Performant rendering for site-level viewing  
 
-This implementation successfully transforms raw GeoJSON ecological survey data into an interactive, informative 3D visualization that supports landscape design decision-making.
+## Multi-Format Support & Advanced Features (January 2025 Updates)
+
+### Format Detection & Parsing
+
+#### Legacy Format (Dix.Hite HQ)
+- **Identification**: Features with `Layer` property (`Plantable_Layers` vs `NonPlantable_Layers`)
+- **Data Encoding**: Parameters embedded in feature names (e.g., `PA=1_SoilMoisture=Moderate_Light=2-4_pH=7.6-9.0`)
+- **Coordinate System**: Projected UTM coordinates requiring conversion
+- **Visualization**: Light-level based green color gradients
+
+#### Boyd Format (Scott Boyd Residence)
+- **Identification**: Rich metadata with M1-M10 ecological model in description field
+- **Data Encoding**: Structured `description` field containing "Ecodash.ai Ecological Niche Model v0.5"
+- **Feature Categories**: PA (plantable), NPA (non-plantable), numeric data points (filtered out)
+- **Coordinate System**: Geographic WGS84 coordinates (direct usage)
+- **Color System**: Original GeoJSON RGBA colors or parameter-based gradients
+
+### M1-M10 Parameter Filtering System
+
+#### Parameter-Based Color Mapping
+**Function**: `getParameterColor()` with RGB interpolation
+
+- **M1 Moisture**: Brown (dry) → Blue (wet)
+- **M2 Light Hours**: Dark yellow → Bright green
+- **M3 pH**: Red (acidic) → Blue (basic) 
+- **M4-M6 Nutrients (N/P/K)**: Purple → Green
+- **M7 Organic Matter**: Light brown → Dark brown
+- **M8-M9 Risk Factors**: Green (low risk) → Red (high risk)
+- **M10 Wind**: Light blue → Dark blue
+
+#### Intelligent Value Parsing
+**Function**: `parseParameterValue()`
+
+- **Numeric Ranges**: "4-6", "6.7-7.2" → average value
+- **Text Mappings**: "Dry-Moderate" → numeric scale
+- **Percentage Ranges**: "5-10%" → average percentage
+- **Dynamic Scaling**: Auto-calculates min/max across all features for optimal color distribution
+
+#### Visual Enhancement During Filtering
+- **Plantable Areas**: Parameter-based color gradients across full range
+- **Non-Plantable Areas**: Converted to grayscale for visual de-emphasis
+- **Data Points**: Filtered out completely to reduce visual noise
+- **Reset Function**: "Filter by parameter..." option returns to normal coloring
+
+### Advanced Visualization Features
+
+#### Multi-Format Rendering
+**Function**: `visualizeGeoJsonPolygons()` enhanced
+
+- **Format Detection**: Automatic identification of legacy vs Boyd format
+- **Coordinate Handling**: Seamless geographic vs projected coordinate processing
+- **Color Management**: Original GeoJSON colors, light-level gradients, or parameter-based gradients
+- **Feature Filtering**: Intelligent exclusion of reference/data points in Boyd format
+
+#### Enhanced Data Display
+- **Boyd Format Tooltips**: Full M1-M10 ecological parameter display with descriptive names
+- **Legacy Format Tooltips**: Original parameter format from embedded names  
+- **Unified Information**: Coordinates, elevations, and feature categorization for both formats
+- **Rich Metadata**: Creation dates, areas, perimeters (Boyd format)
+
+### Technical Implementation Details
+
+#### Key Functions Added
+- `detectGeoJsonFormat()` - Auto-format detection
+- `isPlantableFeature()` - Universal plantable/non-plantable determination
+- `parseBoydEcologicalData()` - M1-M10 parameter extraction from description
+- `parseBoydName()` - PA/NPA ID and description parsing
+- `getBoydFeatureCategory()` - Three-way categorization (plantable/non-plantable/data-point)
+- `normalizedArrayToCesiumColor()` - RGBA array to Cesium color conversion
+- `toggleParameterFilter()` - UI state management for parameter dropdown
+- `parseParameterValue()` - Universal parameter value extraction and normalization
+- `getParameterColor()` - RGB-based parameter-to-color mapping
+
+#### Performance Optimizations
+- **Lazy Loading**: Parameter filter UI only appears for applicable formats
+- **Real-time Updates**: Instant re-visualization on parameter filter changes
+- **Memory Management**: Global state tracking for current site data and active filters
+- **Efficient Filtering**: Single-pass data collection for min/max calculation
+
+### User Experience Enhancements
+
+#### Intuitive Interface Flow
+1. **Select Site** → Format automatically detected, appropriate UI appears
+2. **Boyd Format Sites** → Parameter filter dropdown appears automatically  
+3. **Choose Parameter** → Instant visualization update with color gradients
+4. **NPAs Turn Gray** → Focus attention on filtered plantable area data
+5. **Reset Filter** → Return to original GeoJSON colors
+6. **Switch Sites** → UI adapts automatically to new format
+
+#### Responsive Design
+- **Desktop**: Parameter filter positioned adjacent to site selector (320px left)
+- **Mobile**: Parameter filter positioned below site selector (stacked layout)
+- **Adaptive Spacing**: Accounts for longer site names ("Scott Boyd Residence")
+
+## Success Metrics - Updated
+
+✅ Multi-format GeoJSON support (legacy and Boyd formats)  
+✅ Automatic format detection and coordinate system handling  
+✅ M1-M10 parameter filtering with intuitive RGB color gradients  
+✅ Original GeoJSON color preservation when filtering is inactive  
+✅ Intelligent feature categorization and filtering  
+✅ Grayscale treatment of non-relevant features during parameter filtering  
+✅ Seamless UI adaptation based on site format  
+✅ Real-time parameter-based visualization updates  
+✅ Professional responsive design accommodating longer site names  
+✅ Comprehensive ecological data display for both formats  
+
+This enhanced implementation provides a sophisticated ecological analysis platform that seamlessly handles multiple data formats while offering advanced parameter-based filtering capabilities for in-depth landscape design analysis. The system successfully transforms complex ecological survey data into an intuitive, interactive 3D visualization tool that supports evidence-based landscape design decision-making.
