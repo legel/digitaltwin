@@ -11,6 +11,9 @@
     <!-- Cesium libraries -->
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
+    
+    <!-- Proj4js for proper coordinate conversion -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"></script>
 
     <!-- 3D View CSS library -->
     <link href="/css/styles.css" rel="stylesheet">
@@ -34,23 +37,50 @@
     <!-- Message Box -->
     <div id="messageBox"></div>
 
-    <!-- Tilt 0 degrees button -->
-    <button id="tilt0Button" class="tilt-0-button"></button>
+    <!-- Unified Control Panel -->
+    <div id="controlPanel" class="control-panel">
+        <!-- View Controls Group (buttons first) -->
+        <div class="control-group view-controls">
+            <!-- Tilt Controls -->
+            <button id="tilt0Button" class="control-button icon-button tilt-0-button" title="Top-down view"></button>
+            <button id="tilt45Button" class="control-button icon-button tilt-45-button" title="Angled view"></button>
 
-    <!-- Tilt 45 degrees button -->
-    <button id="tilt45Button" class="tilt-45-button"></button>
+            <!-- Rotation Controls -->
+            <button id="rotateLeftButton" class="control-button icon-button rotate-left-button" title="Rotate left 90°"></button>
+            <button id="rotateRightButton" class="control-button icon-button rotate-right-button" title="Rotate right 90°"></button>
 
-    <!-- Rotate right 90 degrees button -->
-    <button id="rotateRightButton" class="rotate-right-button"></button>
+            <!-- Navigation Controls -->
+            <button id="homeButton" class="control-button icon-button home-button" title="Go to my location"></button>
+            <button id="viewSwitchButton" class="control-button text-button view-switch">2D</button>
+        </div>
 
-    <!-- Rotate left 90 degrees button -->
-    <button id="rotateLeftButton" class="rotate-left-button"></button>
+        <!-- Data Controls Group (dropdowns below) -->
+        <div class="control-group data-controls">
+            <!-- Site Selector -->
+            <div id="siteSelector" class="control-item site-selector">
+                <select id="siteDropdown">
+                    <option value="">Select a site...</option>
+                </select>
+            </div>
 
-    <!-- Home Button -->
-    <button id="homeButton" class="home-button"></button>
-
-    <!-- View Switch Button -->
-    <button id="viewSwitchButton" class="view-switch">2D</button>
+            <!-- Parameter Filter (hidden by default) -->
+            <div id="parameterFilter" class="control-item parameter-filter" style="display: none;">
+                <select id="parameterDropdown">
+                    <option value="">Filter by parameter...</option>
+                    <option value="moisture">M1: Moisture Level</option>
+                    <option value="lightHours">M2: Light Hours</option>
+                    <option value="pH">M3: pH Level</option>
+                    <option value="nitrogen">M4: Nitrogen (N)</option>
+                    <option value="phosphorus">M5: Phosphorus (P)</option>
+                    <option value="potassium">M6: Potassium (K)</option>
+                    <option value="organic">M7: Organic Matter</option>
+                    <option value="drought">M8: Drought Risk</option>
+                    <option value="flood">M9: Flood Risk</option>
+                    <option value="wind">M10: Wind Exposure</option>
+                </select>
+            </div>
+        </div>
+    </div>
 
     <!-- Load the Cesium scripts after the DOM is ready -->
     <script src="/js/CesiumManager.js"></script>
