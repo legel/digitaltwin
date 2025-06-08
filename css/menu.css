@@ -1,126 +1,302 @@
-/* General button styles for desktop */
-.tilt-0-button,
-.tilt-45-button,
-.rotate-right-button,
-.rotate-left-button,
-.home-button,
-.view-switch {
-    position: absolute;
+/* ===================================
+   Unified Control Panel Styles
+   =================================== */
+
+/* Main control panel container */
+.control-panel {
+    position: fixed;
     top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+    pointer-events: none; /* Allow click-through except on actual controls */
+}
+
+/* Control groups */
+.control-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    pointer-events: auto; /* Re-enable pointer events for controls */
+}
+
+/* View controls specific styling - buttons in a row */
+.view-controls {
+    justify-content: flex-end;
+}
+
+/* Data controls specific styling - dropdowns stacked vertically */
+.data-controls {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+/* Base control item styling */
+.control-item {
+    display: flex;
+    align-items: center;
+}
+
+/* Dropdown container styling */
+.control-item select {
+    background-color: #072b2e;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-family: 'Oxygen', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    
+    /* Width to match 3 buttons + 2 gaps = 170px */
+    width: 170px;
+    
+    /* Elegant text handling */
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.control-item select:hover {
+    background-color: #0a3c46;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-item select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Style dropdown options */
+.control-item select option {
+    background-color: #072b2e;
+    color: white;
+    padding: 10px;
+}
+
+/* Base button styling */
+.control-button {
+    background-color: #072b2e;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-family: 'Oxygen', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-button:hover {
+    background-color: #0a3c46;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-button:active {
+    transform: translateY(0);
+}
+
+/* Icon buttons (circular) */
+.icon-button {
     width: 50px;
     height: 50px;
-    background-color: rgba(7, 43, 46, 0.9);
-    border: none;
     border-radius: 40px;
-    cursor: pointer;
-    z-index: 1000;
     background-size: 30px 30px;
     background-repeat: no-repeat;
     background-position: center;
 }
 
-.tilt-0-button:hover,
-.tilt-45-button:hover,
-.rotate-right-button:hover,
-.rotate-left-button:hover,
-.home-button:hover,
-.view-switch:hover {
-    background-color: rgba(10, 60, 70, 0.9);
+/* Text buttons (circular for 2D/3D) */
+.text-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 40px;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 0;
 }
 
-/* Individual button positioning for desktop */
+/* Individual icon button backgrounds */
 .tilt-0-button {
-    right: 310px;
     background-image: url('/images/down_0_degrees.png');
 }
 
 .tilt-45-button {
-    right: 250px;
     background-image: url('/images/down_45_degrees.png');
 }
 
 .rotate-right-button {
-    right: 190px;
     background-image: url('/images/right_90_degrees.png');
 }
 
 .rotate-left-button {
-    right: 130px;
     background-image: url('/images/left_90_degrees.png');
 }
 
 .home-button {
-    right: 70px;
     background-image: url('/images/home.png');
 }
 
-.view-switch {
-    right: 10px;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* Active state for toggle buttons */
+.control-button.active {
+    background-color: rgba(76, 175, 80, 0.9);
 }
 
-/* Responsive adjustments for mobile devices */
+.control-button.active:hover {
+    background-color: rgba(76, 175, 80, 1);
+}
+
+/* ===================================
+   Mobile Responsive Design
+   =================================== */
+
 @media screen and (max-width: 767px) {
-    /* Resize buttons for mobile */
-    .tilt-0-button,
-    .tilt-45-button,
-    .rotate-right-button,
-    .rotate-left-button,
-    .home-button,
-    .view-switch {
-        width: 40px;
-        height: 40px;
-        border-radius: 20px;
-        background-size: 24px 24px;
-    }
-
-    /* Reposition buttons to the bottom of the screen for mobile */
-    .tilt-0-button {
+    /* Move control panel to bottom */
+    .control-panel {
         top: auto;
         bottom: 20px;
         left: 50%;
-        transform: translateX(-145px); /* Adjusted for more spacing */
+        right: auto;
+        transform: translateX(-50%);
+        flex-direction: column-reverse; /* Buttons at bottom, dropdowns above */
+        max-width: calc(100vw - 20px);
+        gap: 15px;
     }
-
-    .tilt-45-button {
-        top: auto;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-95px); /* Adjusted for more spacing */
+    
+    /* Stack data controls vertically on mobile */
+    .data-controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
     }
-
-    .rotate-right-button {
-        top: auto;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-45px);
+    
+    /* Center view controls */
+    .view-controls {
+        justify-content: center;
     }
-
-    .rotate-left-button {
-        top: auto;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(5px); /* Adjusted for more spacing */
+    
+    /* Smaller buttons on mobile */
+    .icon-button,
+    .text-button {
+        width: 44px;
+        height: 44px;
+        background-size: 26px 26px;
     }
-
-    .home-button {
-        top: auto;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(55px); /* Adjusted for more spacing */
-    }
-
-    .view-switch {
-        top: auto;
-        bottom: 20px; /* Aligned with other buttons */
-        left: 50%;
-        transform: translateX(105px); /* Positioned to the far left of the other buttons */
+    
+    /* Adjust text button font */
+    .text-button {
         font-size: 16px;
     }
+    
+    /* Adjust dropdown sizing for mobile */
+    .control-item select {
+        padding: 10px 16px;
+        font-size: 13px;
+        width: 170px;
+    }
+    
+    /* Tighter gaps on mobile */
+    .control-group {
+        gap: 8px;
+    }
 }
 
+/* Small mobile devices */
+@media screen and (max-width: 480px) {
+    /* Even smaller sizing for very small screens */
+    .icon-button,
+    .text-button {
+        width: 40px;
+        height: 40px;
+        background-size: 24px 24px;
+    }
+    
+    .text-button {
+        font-size: 14px;
+    }
+    
+    .control-item select {
+        padding: 8px 14px;
+        font-size: 12px;
+        width: 150px; /* Slightly smaller for very small screens */
+    }
+    
+    /* Reduce gaps further */
+    .control-panel {
+        gap: 10px;
+    }
+    
+    .control-group {
+        gap: 6px;
+    }
+}
+
+/* ===================================
+   Animations and Transitions
+   =================================== */
+
+/* Smooth appearance animation */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.control-panel {
+    animation: fadeInDown 0.3s ease-out;
+}
+
+/* Loading state for dropdowns */
+.control-item select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Focus states for accessibility */
+.control-button:focus,
+.control-item select:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .control-button,
+    .control-item select {
+        border: 2px solid white;
+    }
+    
+    .control-button:hover,
+    .control-item select:hover {
+        border-color: #4CAF50;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .control-button,
+    .control-item select {
+        transition: none;
+    }
+    
+    .control-panel {
+        animation: none;
+    }
+}
+
+/* ===================================
+   Dark mode support (future)
+   =================================== */
+
+/* Dark mode inherits the same Ecodash brand colors */
