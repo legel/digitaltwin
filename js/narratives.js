@@ -74,7 +74,25 @@ function navigationTutorial() {
     flyToSequence(window.map3D, flyTos);
 }
 
+/**
+ * Introduction to Scott Boyd's residence site in Winter Garden, Florida.
+ * Simple 3-second zoom with welcome message.
+ */
+function introductionToScottBoydSite() {
+    // Define the sequence - single flyTo operation
+    // Center coordinates: -81.65699333, 28.52165138
+    // Height of 300m for good overview of the property
+    const flyTos = [
+        // longitude, latitude, height, heading, pitch, roll, duration, message, messageDelay, fadeIn, displayTime, fadeOut
+        [-81.65755485, 28.52085345, 90.24, 0.41942449, -0.66485765, 0.00000298, 3, "Welcome to Winter Garden, Florida!", 3.0, 0.5, 2.0, 0.5]
+    ];
+    
+    // Start the flyTo sequence
+    flyToSequence(window.map3D, flyTos);
+}
+
 // Expose the function globally
 window.introductionTutorialToVizcaya = introductionTutorialToVizcaya;
 window.navigationTutorial = navigationTutorial;
 window.introductionTutorialToDixHite = introductionTutorialToDixHite;
+window.introductionToScottBoydSite = introductionToScottBoydSite;

@@ -8,7 +8,7 @@ The CSS architecture provides styling for a full-screen 3D/2D visualization appl
 ### File Organization
 ```
 styles.css         → Core layout, containers, base styles
-menu.css          → Unified control panel (buttons + dropdowns)
+menu.css          → Unified control panel (buttons + dropdowns + layer controls)
 GoogleMaps2D.css  → Hides default Google Maps controls
 ```
 
@@ -92,7 +92,7 @@ Six circular buttons (50x50px) with icon backgrounds:
 ```
 
 ### Dropdown Styling
-Two dropdowns with 170px width (matches 3 buttons + 2 gaps):
+Site dropdown with 170px width (matches 3 buttons + 2 gaps):
 ```css
 .control-item select {
     width: 170px;
@@ -108,8 +108,76 @@ Two dropdowns with 170px width (matches 3 buttons + 2 gaps):
 }
 ```
 
-## M1-M10 Parameter Colors
+### Layer Control Styling
+Radio button groups with category headers:
+```css
+.layer-controls {
+    background-color: #072b2e;
+    border-radius: 10px;
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
 
+.layer-category {
+    margin-bottom: 15px;
+}
+
+.layer-category-header {
+    color: #4CAF50;
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.layer-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.layer-option:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Radio button custom styling */
+.layer-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #4CAF50;
+}
+
+/* Selected state */
+.layer-option.selected {
+    background-color: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4CAF50;
+}
+
+/* Zoom-to-feature animation */
+@keyframes pulseOutline {
+    0% { outline-width: 3px; }
+    50% { outline-width: 5px; }
+    100% { outline-width: 3px; }
+}
+```
+
+## Visualization Colors
+
+### Base Layer Colors
+```css
+/* PA/NPA default outlines */
+.plantable-outline { color: white; }
+.non-plantable-outline { color: #FF3333; }
+```
+
+### M1-M10 Parameter Colors
 Each ecological parameter has a specific gradient representing its range:
 ```css
 /* Color mappings match JavaScript interpolation */
@@ -122,7 +190,7 @@ M8-M9 Risk:    #33CC33 → #FF3333  (green to red)
 M10 Wind:      #B3E5FF → #1A5ACC  (light to dark blue)
 ```
 
-These colors are used in dropdown option backgrounds to provide visual context.
+These colors are applied dynamically when parameter layers are selected.
 
 ## Responsive Design
 
@@ -201,6 +269,9 @@ Small:      < 480px    → Further reduced (40px), tighter spacing
 - Message overlay is non-interactive by design
 - Logo has subtle drop shadow for visibility on varied backgrounds
 - Active button state uses green color (rgba(76, 175, 80, 0.9))
+- Radio buttons use native styling with accent color customization
+- Layer controls scroll when content exceeds 400px height
+- Selected layers highlighted with green border and background
 
 ## Future Enhancements
 1. CSS custom properties for theme management

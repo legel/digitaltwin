@@ -435,7 +435,50 @@ function parseParameterValue(paramValue, paramType) {
 }
 
 /**
- * Maps parameter value to color gradient using RGB interpolation
+ * Viridis colormap implementation
+ * @param {number} t - Value from 0 to 1
+ * @returns {Array} - RGB values [r, g, b] from 0 to 1
+ */
+function viridisColormap(t) {
+    // Clamp t to [0, 1]
+    t = Math.max(0, Math.min(1, t));
+    
+    // Viridis colormap values (sampled at key points)
+    const colors = [
+        [0.267004, 0.004874, 0.329415],
+        [0.282623, 0.140926, 0.457517],
+        [0.253935, 0.265254, 0.529983],
+        [0.206756, 0.371758, 0.553117],
+        [0.163625, 0.471133, 0.558148],
+        [0.127568, 0.566949, 0.550556],
+        [0.134692, 0.658636, 0.517649],
+        [0.266941, 0.748751, 0.440573],
+        [0.477504, 0.821444, 0.318195],
+        [0.741388, 0.873449, 0.149561],
+        [0.993248, 0.906157, 0.143936]
+    ];
+    
+    // Interpolate between colors
+    const index = t * (colors.length - 1);
+    const i = Math.floor(index);
+    const f = index - i;
+    
+    if (i >= colors.length - 1) {
+        return colors[colors.length - 1];
+    }
+    
+    const c1 = colors[i];
+    const c2 = colors[i + 1];
+    
+    return [
+        c1[0] + (c2[0] - c1[0]) * f,
+        c1[1] + (c2[1] - c1[1]) * f,
+        c1[2] + (c2[2] - c1[2]) * f
+    ];
+}
+
+/**
+ * Maps parameter value to color using Viridis colormap
  * @param {number} value - Numeric parameter value
  * @param {number} minVal - Minimum value in dataset
  * @param {number} maxVal - Maximum value in dataset
@@ -446,68 +489,23 @@ function getParameterColor(value, minVal, maxVal, paramType) {
     // Normalize value to 0-1 range
     const normalized = maxVal > minVal ? (value - minVal) / (maxVal - minVal) : 0.5;
     
-    let startColor, endColor;
-    
-    // Define RGB color pairs for each parameter type
-    switch (paramType) {
-        case 'lightHours':
-            // Dark yellow to bright green (more light = brighter)
-            startColor = [0.8, 0.8, 0.2]; // Dark yellow
-            endColor = [0.2, 1.0, 0.2];   // Bright green
-            break;
-            
-        case 'pH':
-            // Red (acidic) to blue (basic)
-            startColor = [1.0, 0.2, 0.2]; // Red
-            endColor = [0.2, 0.2, 1.0];   // Blue
-            break;
-            
-        case 'moisture':
-            // Brown (dry) to blue (wet)
-            startColor = [0.6, 0.4, 0.2]; // Brown
-            endColor = [0.2, 0.6, 1.0];   // Blue
-            break;
-            
-        case 'nitrogen':
-        case 'phosphorus':
-        case 'potassium':
-            // Dark purple to bright green (nutrients)
-            startColor = [0.5, 0.2, 0.8]; // Purple
-            endColor = [0.2, 0.8, 0.2];   // Green
-            break;
-            
-        case 'organic':
-            // Light brown to dark brown
-            startColor = [0.7, 0.5, 0.3]; // Light brown
-            endColor = [0.4, 0.2, 0.1];   // Dark brown
-            break;
-            
-        case 'drought':
-        case 'flood':
-            // Green (low risk) to red (high risk)
-            startColor = [0.2, 0.8, 0.2]; // Green
-            endColor = [1.0, 0.2, 0.2];   // Red
-            break;
-            
-        case 'wind':
-            // Light blue to dark blue
-            startColor = [0.7, 0.9, 1.0]; // Light blue
-            endColor = [0.1, 0.3, 0.8];   // Dark blue
-            break;
-            
-        default:
-            // Default light to dark green
-            startColor = [0.6, 1.0, 0.6]; // Light green
-            endColor = [0.1, 0.6, 0.1];   // Dark green
-            break;
+    // For categorical parameters, use discrete colors
+    if (paramType === 'moisture') {
+        const moistureColors = [
+            viridisColormap(0.1),  // dry
+            viridisColormap(0.3),  // dry-moderate
+            viridisColormap(0.5),  // moderate
+            viridisColormap(0.7),  // moderate-wet
+            viridisColormap(0.9)   // wet
+        ];
+        const colorIndex = Math.round(normalized * 4);
+        const rgb = moistureColors[Math.min(colorIndex, 4)];
+        return new Cesium.Color(rgb[0], rgb[1], rgb[2], 0.7);
     }
     
-    // Interpolate between start and end colors
-    const r = startColor[0] + (endColor[0] - startColor[0]) * normalized;
-    const g = startColor[1] + (endColor[1] - startColor[1]) * normalized;
-    const b = startColor[2] + (endColor[2] - startColor[2]) * normalized;
-    
-    return new Cesium.Color(r, g, b, 0.7);
+    // For continuous parameters, use Viridis colormap
+    const rgb = viridisColormap(normalized);
+    return new Cesium.Color(rgb[0], rgb[1], rgb[2], 0.7);
 }
 
 /**
@@ -529,24 +527,163 @@ function toggleParameterFilter(format) {
 }
 
 /**
+ * Creates a color legend for the current parameter
+ * @param {string} paramType - The parameter type
+ * @param {number} minVal - Minimum value in dataset
+ * @param {number} maxVal - Maximum value in dataset
+ */
+function createColorLegend(paramType, minVal, maxVal) {
+    // Remove existing legend if any
+    const existingLegend = document.getElementById('colorLegend');
+    if (existingLegend) {
+        existingLegend.remove();
+    }
+    
+    if (!paramType) {
+        return; // No legend for default view
+    }
+    
+    // Create legend container
+    const legend = document.createElement('div');
+    legend.id = 'colorLegend';
+    legend.style.cssText = `
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(7, 43, 46, 0.9);
+        border-radius: 25px;
+        padding: 15px 20px;
+        color: white;
+        font-family: 'Oxygen', sans-serif;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    
+    // Create gradient bar
+    const gradientBar = document.createElement('div');
+    gradientBar.style.cssText = `
+        width: 200px;
+        height: 20px;
+        border-radius: 10px;
+        border: 1px solid white;
+        position: relative;
+    `;
+    
+    // Create gradient or discrete colors
+    if (paramType === 'moisture') {
+        // Discrete colors for categorical data
+        const categories = ['Dry', 'Dry-Mod', 'Moderate', 'Mod-Wet', 'Wet'];
+        const segmentWidth = 100 / categories.length;
+        
+        categories.forEach((cat, i) => {
+            const segment = document.createElement('div');
+            const rgb = viridisColormap(i / (categories.length - 1));
+            segment.style.cssText = `
+                position: absolute;
+                left: ${i * segmentWidth}%;
+                width: ${segmentWidth}%;
+                height: 100%;
+                background: rgb(${Math.round(rgb[0] * 255)}, ${Math.round(rgb[1] * 255)}, ${Math.round(rgb[2] * 255)});
+                ${i === 0 ? 'border-radius: 10px 0 0 10px;' : ''}
+                ${i === categories.length - 1 ? 'border-radius: 0 10px 10px 0;' : ''}
+            `;
+            gradientBar.appendChild(segment);
+        });
+        
+        // Add category labels
+        const labelsDiv = document.createElement('div');
+        labelsDiv.style.cssText = 'display: flex; flex-direction: column; gap: 5px;';
+        labelsDiv.innerHTML = `
+            <div style="font-weight: 700;">${getParameterDisplayName(paramType)}</div>
+            <div style="font-size: 12px;">${categories.join(' | ')}</div>
+        `;
+        
+        legend.appendChild(gradientBar);
+        legend.appendChild(labelsDiv);
+    } else {
+        // Continuous gradient for numerical data
+        const gradientStops = [];
+        for (let i = 0; i <= 100; i += 10) {
+            const rgb = viridisColormap(i / 100);
+            gradientStops.push(`rgb(${Math.round(rgb[0] * 255)}, ${Math.round(rgb[1] * 255)}, ${Math.round(rgb[2] * 255)}) ${i}%`);
+        }
+        gradientBar.style.background = `linear-gradient(to right, ${gradientStops.join(', ')})`;
+        
+        // Add value labels
+        const labelsDiv = document.createElement('div');
+        labelsDiv.style.cssText = 'display: flex; flex-direction: column; gap: 5px;';
+        
+        // Format values based on parameter type
+        let minLabel = minVal.toFixed(1);
+        let maxLabel = maxVal.toFixed(1);
+        let unit = '';
+        
+        switch (paramType) {
+            case 'lightHours':
+                unit = ' hrs';
+                break;
+            case 'pH':
+                unit = '';
+                break;
+            case 'nitrogen':
+            case 'phosphorus':
+            case 'potassium':
+                unit = ' ppm';
+                break;
+            case 'organic':
+            case 'drought':
+            case 'flood':
+                unit = '%';
+                break;
+            case 'wind':
+                unit = ' (scale)';
+                break;
+        }
+        
+        labelsDiv.innerHTML = `
+            <div style="font-weight: 700;">${getParameterDisplayName(paramType)}</div>
+            <div style="font-size: 12px;">${minLabel}${unit} - ${maxLabel}${unit}</div>
+        `;
+        
+        legend.appendChild(gradientBar);
+        legend.appendChild(labelsDiv);
+    }
+    
+    document.body.appendChild(legend);
+}
+
+/**
+ * Gets display name for parameter
+ * @param {string} paramType - Parameter type
+ * @returns {string} - Display name
+ */
+function getParameterDisplayName(paramType) {
+    const names = {
+        'moisture': 'Soil Moisture',
+        'lightHours': 'Light Hours',
+        'pH': 'Soil pH',
+        'nitrogen': 'Nitrogen (N)',
+        'phosphorus': 'Phosphorus (P)',
+        'potassium': 'Potassium (K)',
+        'organic': 'Organic Matter',
+        'drought': 'Drought Risk',
+        'flood': 'Flood Risk',
+        'wind': 'Wind Exposure'
+    };
+    return names[paramType] || paramType;
+}
+
+/**
  * Initializes the parameter filter dropdown
  */
 function initializeParameterFilter() {
-    const parameterDropdown = document.getElementById('parameterDropdown');
-    if (!parameterDropdown) {
-        console.error('Parameter dropdown not found');
-        return;
-    }
-    
-    parameterDropdown.addEventListener('change', function() {
-        const selectedParameter = this.value;
-        window.currentParameterFilter = selectedParameter || null;
-        
-        // Re-visualize with the new filter
-        if (window.currentSiteData) {
-            visualizeGeoJsonPolygons(window.currentSiteData);
-        }
-    });
+    // This function is now replaced by the layer control system
+    // Keep it for compatibility but it doesn't do anything
+    console.log('Parameter filter replaced by layer control system');
 }
 
 /**
@@ -571,24 +708,92 @@ async function initializeSiteSelector() {
         siteDropdown.appendChild(option);
     });
     
+    // Set default selection to Scott Boyd Residence
+    const scottBoydOption = Array.from(siteDropdown.options).find(option => 
+        option.textContent === 'Scott Boyd Residence'
+    );
+    if (scottBoydOption) {
+        siteDropdown.value = scottBoydOption.value;
+        
+        // Since Scott Boyd site uses Boyd format, show the layer controls immediately
+        const layerControls = document.getElementById('layerControls');
+        if (layerControls) {
+            layerControls.style.display = 'block';
+        }
+        
+        // Manually load the default site to ensure proper initialization
+        const selectedOption = siteDropdown.options[siteDropdown.selectedIndex];
+        const bounds = JSON.parse(selectedOption.dataset.bounds);
+        
+        // Load the Scott Boyd site data
+        const scottBoydSite = sites.find(site => site.filename === scottBoydOption.value);
+        if (scottBoydSite) {
+            // Store the site data globally
+            window.currentSiteData = scottBoydSite.geoJson;
+            
+            // Initialize layer state with plantable areas checked by default
+            window.layerState = {
+                showPlantableAreas: true,
+                showEcologicalMetrics: false,
+                selectedMetric: null,
+                showNonPlantableAreas: false,
+                selectedPA: null,
+                selectedNPA: null,
+                npaCategories: new Map(),
+                paCategories: new Map(),
+                categorizedPAs: new Map()
+            };
+            
+            // Navigate to the site WITHOUT visualizing
+            navigateToSite(bounds, false);
+            
+            // Store current site data globally
+            window.currentSiteData = scottBoydSite.geoJson;
+            
+            // Detect format and initialize parameter filter
+            const format = scottBoydSite.geoJson.features.length > 0 ? 
+                detectGeoJsonFormat(scottBoydSite.geoJson.features[0]) : 'legacy';
+            
+            // Initialize layer controls after site is loaded
+            if (window.initializeLayerControls) {
+                window.initializeLayerControls();
+            }
+            
+            // Toggle parameter filter to analyze PA/NPA categories
+            if (window.toggleParameterFilter) {
+                window.toggleParameterFilter(format);
+            }
+            
+            // Trigger initial visualization with plantable areas
+            if (window.visualizeGeoJsonPolygonsWithLayers) {
+                window.visualizeGeoJsonPolygonsWithLayers(scottBoydSite.geoJson);
+            }
+        }
+    }
+    
     // Add event listener for site selection
     siteDropdown.addEventListener('change', function() {
         if (this.value) {
             const selectedOption = this.options[this.selectedIndex];
             const bounds = JSON.parse(selectedOption.dataset.bounds);
             
+            // Reset height offset for new site
+            window.currentHeightOffset = undefined;
+            window.lastHeightOffset = undefined;
+            console.log('Height offset reset for new site selection');
+            
             // Find the selected site to determine format
             loadSiteData().then(sites => {
                 const selectedSite = sites.find(site => site.filename === this.value);
                 if (selectedSite) {
+                    // Store current site data globally FIRST
+                    window.currentSiteData = selectedSite.geoJson;
+                    
                     const format = selectedSite.geoJson.features.length > 0 ? 
                         detectGeoJsonFormat(selectedSite.geoJson.features[0]) : 'legacy';
                     
-                    // Show/hide parameter filter based on format
+                    // Show/hide parameter filter based on format (now with data available)
                     toggleParameterFilter(format);
-                    
-                    // Store current site data globally for filter re-rendering
-                    window.currentSiteData = selectedSite.geoJson;
                 }
             });
             
@@ -597,6 +802,8 @@ async function initializeSiteSelector() {
             // Hide parameter filter when no site selected
             toggleParameterFilter('legacy');
             window.currentSiteData = null;
+            window.currentHeightOffset = undefined;
+            window.lastHeightOffset = undefined;
         }
     });
 }
@@ -899,8 +1106,24 @@ function visualizeGeoJsonPolygons(geoJsonData) {
     const viewer = window.map3D.viewer;
     
     // Clear any existing site entities (polygons and points)
-    const existingEntities = viewer.entities.values.filter(entity => entity.name?.startsWith('Site_'));
-    existingEntities.forEach(entity => viewer.entities.remove(entity));
+    // Use a more robust clearing method
+    const entitiesToRemove = [];
+    viewer.entities.values.forEach(entity => {
+        if (entity.name && (entity.name.startsWith('Site_') || 
+            entity.name.includes('PA') || 
+            entity.name.includes('NPA') ||
+            entity.polygon || 
+            entity.point)) {
+            entitiesToRemove.push(entity);
+        }
+    });
+    
+    // Remove entities after collecting them to avoid modification during iteration
+    entitiesToRemove.forEach(entity => {
+        viewer.entities.remove(entity);
+    });
+    
+    console.log(`Cleared ${entitiesToRemove.length} existing entities`);
     
     // Detect format from first feature
     const format = geoJsonData.features.length > 0 ? detectGeoJsonFormat(geoJsonData.features[0]) : 'legacy';
@@ -917,6 +1140,141 @@ function visualizeGeoJsonPolygons(geoJsonData) {
     }
     
     console.log(`Visualizing ${format} format GeoJSON with ${isGeographic ? 'geographic' : 'projected'} coordinates`);
+    
+    // Find the vertex with maximum altitude from the GeoJSON data
+    let maxAltitude = -Infinity;
+    let maxAltitudeCoord = null;
+    let minAltitude = Infinity;
+    let allAltitudes = [];
+    
+    geoJsonData.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+            feature.geometry.coordinates[0].forEach(coord => {
+                // Check if altitude (z) is provided
+                if (coord.length >= 3) {
+                    const altitude = coord[2];
+                    allAltitudes.push(altitude);
+                    if (altitude > maxAltitude) {
+                        maxAltitude = altitude;
+                        maxAltitudeCoord = coord;
+                    }
+                    if (altitude < minAltitude) {
+                        minAltitude = altitude;
+                    }
+                }
+            });
+        } else if (feature.geometry.type === 'Point' && feature.geometry.coordinates.length >= 3) {
+            const altitude = feature.geometry.coordinates[2];
+            allAltitudes.push(altitude);
+            if (altitude > maxAltitude) {
+                maxAltitude = altitude;
+                maxAltitudeCoord = feature.geometry.coordinates;
+            }
+            if (altitude < minAltitude) {
+                minAltitude = altitude;
+            }
+        }
+    });
+    
+    const avgAltitude = allAltitudes.length > 0 ? allAltitudes.reduce((a, b) => a + b, 0) / allAltitudes.length : 0;
+    console.log(`GeoJSON altitude stats: min=${minAltitude}m, max=${maxAltitude}m, avg=${avgAltitude.toFixed(2)}m`);
+    console.log(`Found maximum altitude in GeoJSON: ${maxAltitude}m at coordinates:`, maxAltitudeCoord);
+    
+    // If we found a max altitude coordinate, sample the Google 3D Tiles height at that location
+    let fixedHeight = maxAltitude + 0.1; // Default to GeoJSON altitude + 0.1m
+    
+    if (maxAltitudeCoord && window.currentHeightOffset === undefined) {
+        const [x, y] = maxAltitudeCoord;
+        let latLng;
+        
+        if (isGeographic) {
+            latLng = { lat: y, lng: x };
+        } else {
+            latLng = utmToLatLng(x, y);
+        }
+        
+        // Create multiple sample points around the max altitude location
+        const samplePoints = [];
+        const cartographic = Cesium.Cartographic.fromDegrees(latLng.lng, latLng.lat);
+        samplePoints.push(cartographic);
+        
+        // Add 4 more sample points in a small radius (about 5 meters)
+        const offsetDegrees = 0.00005; // Roughly 5 meters
+        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng + offsetDegrees, latLng.lat));
+        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng - offsetDegrees, latLng.lat));
+        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng, latLng.lat + offsetDegrees));
+        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng, latLng.lat - offsetDegrees));
+        
+        // Wait a frame to ensure scene is ready, then sample height
+        requestAnimationFrame(() => {
+            // Sample height from the scene (includes 3D tiles)
+            viewer.scene.sampleHeightMostDetailed(samplePoints).then(function(updatedPositions) {
+                if (updatedPositions && updatedPositions.length > 0) {
+                    // Get the median height from all samples
+                    const sampledHeights = updatedPositions
+                        .filter(pos => pos && pos.height !== undefined)
+                        .map(pos => pos.height);
+                    
+                    if (sampledHeights.length > 0) {
+                        sampledHeights.sort((a, b) => a - b);
+                        const medianHeight = sampledHeights[Math.floor(sampledHeights.length / 2)];
+                        
+                        // Calculate the offset between GeoJSON altitude and Google Earth height
+                        // Add a small additional offset to ensure polygons float above surface
+                        const heightOffset = medianHeight - maxAltitude + 0.5;
+                        console.log(`Height sampling results:`);
+                        console.log(`  Sampled heights: ${sampledHeights.map(h => h.toFixed(2)).join(', ')}`);
+                        console.log(`  Median Google Earth height: ${medianHeight.toFixed(2)}m`);
+                        console.log(`  GeoJSON max altitude: ${maxAltitude.toFixed(2)}m`);
+                        console.log(`  Calculated offset: ${heightOffset.toFixed(2)}m`);
+                        
+                        // Store the offset to apply to all vertices
+                        window.currentHeightOffset = heightOffset;
+                        
+                        // Trigger re-visualization with the new offset
+                        if (!window.lastHeightOffset || Math.abs(window.lastHeightOffset - heightOffset) > 0.01) {
+                            window.lastHeightOffset = heightOffset;
+                            visualizeGeoJsonPolygons(geoJsonData);
+                        }
+                    } else {
+                        console.warn('No valid heights sampled, using fallback');
+                        window.currentHeightOffset = 0;
+                    }
+                } else {
+                    // Fallback: no offset
+                    window.currentHeightOffset = 0;
+                    console.log(`Could not sample Google Earth height, using no offset`);
+                }
+            }).catch(function(error) {
+                console.error('Height sampling failed:', error);
+                // Fallback: use a reasonable offset based on typical Google Earth elevations
+                // For the sites in the data, ground level is typically around 5-15m
+                const estimatedGroundHeight = 10; // Reasonable estimate
+                window.currentHeightOffset = estimatedGroundHeight - maxAltitude + 0.5;
+                console.log(`Height sampling failed, using estimated offset: ${window.currentHeightOffset.toFixed(2)}m`);
+                
+                // Trigger re-visualization with fallback offset
+                if (!window.lastHeightOffset || Math.abs(window.lastHeightOffset - window.currentHeightOffset) > 0.01) {
+                    window.lastHeightOffset = window.currentHeightOffset;
+                    visualizeGeoJsonPolygons(geoJsonData);
+                }
+            });
+        });
+    } else if (window.currentHeightOffset !== undefined) {
+        console.log(`Using existing height offset: ${window.currentHeightOffset.toFixed(2)}m`);
+    } else {
+        // No altitude data available, use zero offset
+        window.currentHeightOffset = 0;
+        console.log('No altitude data available, using zero offset');
+    }
+    
+    // Check if we should show anything at all
+    if (!window.currentParameterFilter && !window.layerState?.showPlantableAreas && 
+        !window.layerState?.showNonPlantableAreas && !window.layerState?.showEcologicalMetrics) {
+        // No layers selected, don't show anything
+        console.log('No layers selected, skipping visualization');
+        return;
+    }
     
     // Collect parameter values for color mapping when filter is active
     let parameterValues = [];
@@ -945,6 +1303,12 @@ function visualizeGeoJsonPolygons(geoJsonData) {
         }
         
         console.log(`Parameter range: ${minParamValue} - ${maxParamValue}`);
+        
+        // Create color legend for the current parameter
+        createColorLegend(window.currentParameterFilter, minParamValue, maxParamValue);
+    } else {
+        // Remove legend when no filter is active
+        createColorLegend(null, 0, 0);
     }
     
     geoJsonData.features.forEach((feature, index) => {
@@ -954,6 +1318,19 @@ function visualizeGeoJsonPolygons(geoJsonData) {
             const category = getBoydFeatureCategory(feature);
             if (category === 'data-point') {
                 return; // Skip data points/reference features
+            }
+            
+            // Apply layer filtering for Boyd format
+            const isPlantable = category === 'plantable';
+            const isNonPlantable = category === 'non-plantable';
+            
+            // Check if we should show this feature based on layer settings
+            if (isPlantable && !window.layerState?.showPlantableAreas && !window.layerState?.temporaryShowPlantable) {
+                return; // Skip plantable areas if not showing them
+            }
+            
+            if (isNonPlantable && !window.layerState?.showNonPlantableAreas) {
+                return; // Skip non-plantable areas if not showing them
             }
         }
         
@@ -982,7 +1359,19 @@ function visualizeGeoJsonPolygons(geoJsonData) {
             
             let descriptionContent = '';
             
+            let entityName = `Site_Polygon_${index}`;  // Default name
+            
+            // Apply layer-specific settings
+            let polygonAlpha = window.debugSettings?.polygonAlpha || 0.1;
+            let outlineWidth = window.debugSettings?.outlineWidth || 2;
+            
             if (isPlantable) {
+                // Apply plantable area settings when showing plantable layer
+                if (window.layerState?.showPlantableAreas && !window.currentParameterFilter) {
+                    polygonAlpha = window.layerSettings?.plantableAreas.polygonAlpha || 0;
+                    outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
+                    outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
+                }
                 let lightLevel, measurements;
                 
                 if (format === 'boyd') {
@@ -990,6 +1379,9 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                     const parsed = parseBoydName(feature.properties.name);
                     const boydData = parseBoydEcologicalData(feature.properties.description || '');
                     lightLevel = getBoydLightLevel(boydData);
+                    
+                    // Use the description as the entity name
+                    entityName = parsed.description || parsed.id;
                     
                     descriptionContent = `
                         <div style="font-family: 'Oxygen', sans-serif;">
@@ -1016,25 +1408,37 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                             const numericValue = parseParameterValue(paramValue, window.currentParameterFilter);
                             polygonColor = getParameterColor(numericValue, minParamValue, maxParamValue, window.currentParameterFilter);
                             outlineColor = polygonColor.darken(0.3, new Cesium.Color());
+                            polygonAlpha = window.layerSettings?.ecologicalMetrics.polygonAlpha || 0.7;
+                            outlineWidth = window.layerSettings?.ecologicalMetrics.outlineWidth || 2;
                         } else {
-                            // No data for this parameter - use gray
-                            polygonColor = Cesium.Color.LIGHTGRAY.withAlpha(0.5);
-                            outlineColor = Cesium.Color.GRAY;
+                            // No data for this parameter - don't show polygon
+                            return; // Skip this polygon
                         }
+                    } else if (window.layerState?.showPlantableAreas) {
+                        // Check if this PA is selected
+                        const paName = parsed.description || parsed.id;
+                        if (paName && paName === window.layerState?.selectedPA) {
+                            // Use thicker outline for selected PA
+                            outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
+                            outlineWidth = window.layerSettings?.plantableAreas.selectedOutlineWidth || 10;
+                        } else {
+                            // Use thin white outline for unselected areas
+                            outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
+                            outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
+                        }
+                        polygonColor = Cesium.Color.TRANSPARENT;
+                        polygonAlpha = 0;
                     } else {
-                        // Use original GeoJSON color if available, otherwise use light-level based color
-                        if (feature.properties.color) {
-                            polygonColor = normalizedArrayToCesiumColor(feature.properties.color);
-                            outlineColor = polygonColor.darken(0.3, new Cesium.Color());
-                        } else {
-                            polygonColor = getGreenShadeByLight(lightLevel);
-                            outlineColor = getOutlineColorByLight(lightLevel);
-                        }
+                        // Don't show if no layer is active
+                        return;
                     }
                 } else {
                     // Parse legacy format data
                     lightLevel = extractLightLevel(feature.properties.name);
                     measurements = parsePlantableMeasurements(feature.properties.name);
+                    
+                    // Use the PA ID as the entity name for legacy format
+                    entityName = measurements.id;
                     
                     descriptionContent = `
                         <div style="font-family: 'Oxygen', sans-serif;">
@@ -1062,26 +1466,26 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                     const category = getBoydFeatureCategory(feature);
                     const parsed = parseBoydName(feature.properties.name);
                     
-                    // Use grayscale when parameter filter is active, otherwise use original colors
-                    if (window.currentParameterFilter) {
-                        // Make NPAs grayscale when filter is active
-                        polygonColor = Cesium.Color.GRAY.withAlpha(0.6);
-                        outlineColor = Cesium.Color.DARKGRAY;
-                    } else {
-                        // Use original GeoJSON color if available
-                        if (feature.properties.color) {
-                            polygonColor = normalizedArrayToCesiumColor(feature.properties.color);
-                            outlineColor = polygonColor.darken(0.3, new Cesium.Color());
+                    // Use the description as the entity name for non-plantable Boyd format
+                    entityName = parsed.description || parsed.id;
+                    
+                    // Apply NPA layer settings
+                    if (window.layerState?.showNonPlantableAreas) {
+                        const npaCategory = extractNPACategory(feature.properties.name);
+                        if (npaCategory && npaCategory === window.layerState?.selectedNPA) {
+                            // Use thicker outline for selected NPA
+                            outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
+                            outlineWidth = window.layerSettings?.nonPlantableAreas.selectedOutlineWidth || 10;
                         } else {
-                            // Fallback colors based on category
-                            if (category === 'data-point') {
-                                polygonColor = Cesium.Color.ORANGE.withAlpha(0.7);
-                                outlineColor = Cesium.Color.DARKORANGE;
-                            } else {
-                                polygonColor = Cesium.Color.RED.withAlpha(0.6);
-                                outlineColor = Cesium.Color.DARKRED;
-                            }
+                            // Use thin red outline for unselected NPAs
+                            outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
+                            outlineWidth = window.layerSettings?.nonPlantableAreas.outlineWidth || 2;
                         }
+                        polygonColor = Cesium.Color.TRANSPARENT;
+                        polygonAlpha = 0;
+                    } else {
+                        // Don't show if NPA layer is not active
+                        return;
                     }
                     
                     const typeLabel = category === 'data-point' ? 'Reference/Data Point' : 'Non-Plantable Area';
@@ -1098,6 +1502,9 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                     outlineColor = Cesium.Color.DARKRED;
                     
                     const parsed = parseNonPlantableName(feature.properties.name);
+                    
+                    // Use the description as the entity name for legacy non-plantable
+                    entityName = parsed.description || parsed.id;
                     descriptionContent = `
                         <div style="font-family: 'Oxygen', sans-serif;">
                             <h3>${parsed.id}</h3>
@@ -1108,51 +1515,67 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 }
             }
             
-        // Set heights based on polygon type - non-plantable areas are taller for easy clicking
-        let baseHeight, extrudedHeight, outlineWidth, polygonAlpha;
-        
-        if (isPlantable) {
-            // Plantable areas at base level
-            baseHeight = 5.5;
-            extrudedHeight = 6.0;
-            outlineWidth = 2;
-            polygonAlpha = 0.7;
-        } else {
-            // Non-plantable areas elevated to stick out above plantable areas
-            baseHeight = 6.5;
-            extrudedHeight = 7;
-            outlineWidth = 3;
-            polygonAlpha = 0.8;
+        // Set appearance based on polygon type if not already set
+        if (!outlineWidth) {
+            if (isPlantable) {
+                // Plantable areas
+                outlineWidth = 2;
+            } else {
+                // Non-plantable areas
+                outlineWidth = 3;
+            }
         }
         
-        // Create ground-level polygon for classification (plantable areas only)
-        if (isPlantable) {
-            viewer.entities.add({
-                name: `Site_Polygon_Ground_${index}`,
-                polygon: {
-                    hierarchy: Cesium.Cartesian3.fromDegreesArray(flatCoords),
-                    material: polygonColor.withAlpha(0.3),
-                    height: 0,
-                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                    classificationType: Cesium.ClassificationType.BOTH,
-                    show: true
+        // Create polygon with vertices at their relative heights
+        // First, create an array of positions with individual heights
+        const positions = [];
+        const heightOffset = window.currentHeightOffset || 0;
+        
+        for (let i = 0; i < feature.geometry.coordinates[0].length - 1; i++) { // Skip last point (duplicate of first)
+            const coord = feature.geometry.coordinates[0][i];
+            const [x, y, z] = coord;
+            let latLng;
+            
+            if (isGeographic) {
+                latLng = { lat: y, lng: x };
+            } else {
+                latLng = utmToLatLng(x, y);
+            }
+            
+            // Calculate this vertex's height
+            let vertexHeight;
+            if (coord.length >= 3 && z !== undefined && maxAltitude !== -Infinity) {
+                // Preserve the relative height differences from the GeoJSON
+                // The height offset aligns the max altitude point with Google Earth
+                vertexHeight = z + heightOffset;
+                
+                // Ensure minimum height above ground
+                const minHeightAboveGround = 0.1;
+                if (vertexHeight < minHeightAboveGround) {
+                    console.warn(`Vertex height ${vertexHeight.toFixed(2)}m adjusted to minimum ${minHeightAboveGround}m`);
+                    vertexHeight = minHeightAboveGround;
                 }
-            });
+            } else {
+                // No altitude data, use the base height
+                vertexHeight = maxAltitude + heightOffset;
+            }
+            
+            positions.push(Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, vertexHeight));
         }
         
-        // Create the main clickable polygon
+        // Create polygon with individual vertex heights
         viewer.entities.add({
-            name: `Site_Polygon_${index}`,
+            name: entityName,
             polygon: {
-                hierarchy: Cesium.Cartesian3.fromDegreesArray(flatCoords),
-                material: polygonColor.withAlpha(polygonAlpha),
-                outline: true,
+                hierarchy: new Cesium.PolygonHierarchy(positions),
+                material: (window.debugSettings?.showFill !== false) ? 
+                    polygonColor.withAlpha(polygonAlpha) : 
+                    Cesium.Color.TRANSPARENT,
+                outline: window.debugSettings?.showOutline !== false,
                 outlineColor: outlineColor,
                 outlineWidth: outlineWidth,
-                extrudedHeight: extrudedHeight,
-                height: baseHeight,
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                disableDepthTestDistance: 2000
+                perPositionHeight: true, // Use individual heights for each vertex
+                disableDepthTestDistance: Number.POSITIVE_INFINITY // Always visible
             },
             description: descriptionContent
         });
@@ -1228,7 +1651,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 
                 viewer.entities.add({
                     name: `Site_Point_${index}`,
-                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, 12.0), // Above plantable polygons
+                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat),
                     point: {
                         pixelSize: 15,
                         color: pointColor,
@@ -1282,9 +1705,9 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 
                 viewer.entities.add({
                     name: `Site_Point_${index}`,
-                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, 12.0), // Above non-plantable polygons
+                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, 1.0),
                     cylinder: {
-                        length: 6.5,
+                        length: 2.0,
                         topRadius: 0.3,
                         bottomRadius: 0.3,
                         material: cylinderColor,
@@ -1300,6 +1723,44 @@ function visualizeGeoJsonPolygons(geoJsonData) {
     });
     
     console.log(`Visualized ${geoJsonData.features.length} features from GeoJSON`);
+}
+
+/**
+ * Extracts NPA category from name
+ * @param {string} name - NPA feature name
+ * @returns {string|null} - Category name or null
+ */
+function extractNPACategory(name) {
+    // Parse names like "NPA7='Utilities'" or "NPA15_Tree"
+    const match = name.match(/NPA\d+[=_]['"]?([^'"]+)['"]?/);
+    if (match) {
+        let category = match[1];
+        // Clean up category name
+        category = category
+            .replace(/_/g, ' ')
+            .replace(/([A-Z])/g, ' $1')
+            .trim();
+        return category;
+    }
+    return null;
+}
+
+/**
+ * Manually adjust the height offset for debugging
+ * @param {number} adjustment - Amount to adjust the height offset by
+ */
+function adjustHeightOffset(adjustment) {
+    if (window.currentHeightOffset === undefined) {
+        window.currentHeightOffset = 0;
+    }
+    
+    window.currentHeightOffset += adjustment;
+    console.log(`Height offset adjusted to: ${window.currentHeightOffset.toFixed(2)}m`);
+    
+    // Re-visualize with new offset
+    if (window.currentSiteData) {
+        visualizeGeoJsonPolygons(window.currentSiteData);
+    }
 }
 
 /**
@@ -1333,8 +1794,9 @@ function stopActiveTutorial() {
 /**
  * Navigates the camera to the selected site bounds
  * @param {Object} bounds - Site bounds {minLat, maxLat, minLng, maxLng}
+ * @param {boolean} visualize - Whether to visualize the site data (default true)
  */
-function navigateToSite(bounds) {
+function navigateToSite(bounds, visualize = true) {
     if (!window.map3D || !window.map3D.viewer) {
         console.error('Cesium viewer not available');
         return;
@@ -1371,7 +1833,9 @@ function navigateToSite(bounds) {
             Math.abs(site.bounds.maxLng - bounds.maxLng) < 0.001
         );
         
-        if (selectedSite && selectedSite.geoJson) {
+        if (selectedSite && selectedSite.geoJson && visualize) {
+            // Store the site data globally so parameter filter changes work
+            window.currentSiteData = selectedSite.geoJson;
             visualizeGeoJsonPolygons(selectedSite.geoJson);
         }
     });
@@ -1394,9 +1858,24 @@ async function allSystemsGo() {
     // Instantiate the UserManager and store it globally
     window.user = new UserManager(window.map3D);
     
-    // Initialize the site selector and parameter filter
-    await initializeSiteSelector();
+    // Initialize layer state early
+    window.layerState = {
+        showPlantableAreas: true,
+        showEcologicalMetrics: false,
+        selectedMetric: null,
+        showNonPlantableAreas: false,
+        selectedPA: null,
+        selectedNPA: null,
+        npaCategories: new Map(),
+        paCategories: new Map(),
+        categorizedPAs: new Map()
+    };
+    
+    // Initialize the parameter filter (now does nothing but kept for compatibility)
     initializeParameterFilter();
+    
+    // Then initialize the site selector which will trigger the default site load
+    await initializeSiteSelector();
 }
 
 // Expose the functions globally
@@ -1431,3 +1910,8 @@ window.parseParameterValue = parseParameterValue;
 window.getParameterColor = getParameterColor;
 window.toggleParameterFilter = toggleParameterFilter;
 window.initializeParameterFilter = initializeParameterFilter;
+window.adjustHeightOffset = adjustHeightOffset;
+window.viridisColormap = viridisColormap;
+window.createColorLegend = createColorLegend;
+window.getParameterDisplayName = getParameterDisplayName;
+window.extractNPACategory = extractNPACategory;

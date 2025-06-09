@@ -50,7 +50,7 @@ The application is a single-page app served via `app.html`. It loads external li
             <button id="viewSwitchButton" class="control-button text-button view-switch">2D</button>
         </div>
         
-        <!-- Data controls (dropdowns) -->
+        <!-- Data controls -->
         <div class="control-group data-controls">
             <div id="siteSelector" class="control-item site-selector">
                 <select id="siteDropdown">
@@ -58,12 +58,30 @@ The application is a single-page app served via `app.html`. It loads external li
                 </select>
             </div>
             
-            <div id="parameterFilter" class="control-item parameter-filter" style="display: none;">
-                <select id="parameterDropdown">
-                    <option value="">Filter by parameter...</option>
-                    <option value="moisture">M1: Moisture Level</option>
-                    <!-- M2-M10 options... -->
-                </select>
+            <!-- Layer controls (Boyd format only) -->
+            <div id="layerControls" class="control-item layer-controls" style="display: none;">
+                <!-- PA/NPA Category -->
+                <div class="layer-category">
+                    <div class="layer-category-header">Plantable/Non-Plantable Areas</div>
+                    <label class="layer-option">
+                        <input type="radio" name="layer" value="pa">
+                        <span>PA (Plantable Areas)</span>
+                    </label>
+                    <label class="layer-option">
+                        <input type="radio" name="layer" value="npa">
+                        <span>NPA (Non-Plantable Areas)</span>
+                    </label>
+                </div>
+                
+                <!-- M1-M10 Parameters Category -->
+                <div class="layer-category">
+                    <div class="layer-category-header">Ecological Parameters</div>
+                    <label class="layer-option">
+                        <input type="radio" name="layer" value="moisture">
+                        <span>M1: Moisture Level</span>
+                    </label>
+                    <!-- M2-M10 radio options... -->
+                </div>
             </div>
         </div>
     </div>
@@ -119,7 +137,10 @@ The application requires specific loading sequence due to dependencies:
 
 ### Data Controls
 - `siteDropdown` - Select survey location
-- `parameterDropdown` - Filter by M1-M10 (Boyd format only)
+- `layerControls` - Container for layer radio buttons (Boyd format only)
+  - Radio inputs with `name="layer"` for mutual exclusion
+  - Category headers for visual grouping
+  - Values: 'pa', 'npa', 'moisture', 'light', 'pH', etc.
 
 ## Dynamic Behavior
 
@@ -135,10 +156,12 @@ sites.forEach(site => {
 });
 ```
 
-### Parameter Filter Visibility
+### Layer Controls Visibility
 - Hidden by default
 - Shown only when Boyd format site is selected
 - Hidden when switching back to Legacy format site
+- Radio buttons ensure only one layer active at a time
+- Headers provide category context without "All" options
 
 ### View Switch Button
 - Shows "2D" when in 3D mode
@@ -185,6 +208,12 @@ sites.forEach(site => {
 <!-- ARIA for buttons -->
 <button aria-label="Top-down view" id="tilt0Button">
 
+<!-- Radio button labels -->
+<fieldset role="radiogroup" aria-label="Visualization layers">
+    <legend class="sr-only">Select visualization layer</legend>
+    <!-- Radio options with proper labels -->
+</fieldset>
+
 <!-- Landmarks -->
 <main role="main" aria-label="3D visualization">
 <nav role="navigation" aria-label="View controls">
@@ -226,3 +255,9 @@ sites.forEach(site => {
    - Web Components for controls
    - CSS custom properties
    - Dynamic imports for code splitting
+
+5. **Layer Control Enhancements**
+   - Keyboard navigation for radio buttons
+   - Screen reader announcements for layer changes
+   - Visual feedback for polygon selection
+   - Touch-optimized interaction for mobile

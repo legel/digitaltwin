@@ -27,11 +27,12 @@
     justify-content: flex-end;
 }
 
-/* Data controls specific styling - dropdowns stacked vertically */
+/* Data controls specific styling - parameter filter positioned below site selector */
 .data-controls {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
+    position: relative;
+    justify-content: flex-end;
+    margin-left: auto; /* Push to right side */
+    width: 290px; /* Match expanded layer controls width */
 }
 
 /* Base control item styling */
@@ -46,25 +47,38 @@
     color: white;
     border: none;
     border-radius: 25px;
-    padding: 12px 20px;
+    height: 50px; /* Match circular button height */
+    padding: 0 20px;
+    padding-right: 40px; /* Make room for arrow in circular area */
     font-size: 14px;
     font-family: 'Oxygen', sans-serif;
     cursor: pointer;
     transition: all 0.3s ease;
     white-space: nowrap;
     
-    /* Width to match 3 buttons + 2 gaps = 170px */
-    width: 170px;
+    /* Width to match 4 buttons + 3 gaps = 230px */
+    width: 230px;
     
     /* Elegant text handling */
     text-overflow: ellipsis;
     overflow: hidden;
+    
+    /* Custom dropdown arrow styling */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ffffff' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center; /* Center in the circular right area */
+    background-size: 12px 8px;
 }
 
 .control-item select:hover {
     background-color: #0a3c46;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Arrow stays white on hover */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ffffff' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
 }
 
 .control-item select:focus {
@@ -77,6 +91,17 @@
     background-color: #072b2e;
     color: white;
     padding: 10px;
+    font-style: normal; /* Reset italic for option elements */
+}
+
+/* Site selector - heavier font weight */
+.site-selector select {
+    font-weight: 600;
+}
+
+/* Parameter filter - italic text */
+.parameter-filter select {
+    font-style: italic;
 }
 
 /* Base button styling */
@@ -169,11 +194,11 @@
         gap: 15px;
     }
     
-    /* Stack data controls vertically on mobile */
+    /* Keep data controls aligned on mobile */
     .data-controls {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
+        width: 100%;
+        margin-left: 0;
+        justify-content: center;
     }
     
     /* Center view controls */
@@ -196,9 +221,11 @@
     
     /* Adjust dropdown sizing for mobile */
     .control-item select {
-        padding: 10px 16px;
+        height: 44px; /* Match reduced button height */
+        padding: 0 16px;
+        padding-right: 36px; /* Room for arrow */
         font-size: 13px;
-        width: 170px;
+        width: 230px;
     }
     
     /* Tighter gaps on mobile */
@@ -222,9 +249,11 @@
     }
     
     .control-item select {
-        padding: 8px 14px;
+        height: 40px; /* Match reduced button height */
+        padding: 0 14px;
+        padding-right: 34px; /* Room for arrow */
         font-size: 12px;
-        width: 150px; /* Slightly smaller for very small screens */
+        width: 200px; /* Proportionally smaller for very small screens */
     }
     
     /* Reduce gaps further */
@@ -300,3 +329,327 @@
    =================================== */
 
 /* Dark mode inherits the same Ecodash brand colors */
+
+/* ===================================
+   Layer Controls Styles
+   =================================== */
+
+/* Layer controls container */
+.layer-controls {
+    background: rgba(7, 43, 46, 0.95);
+    border-radius: 25px;
+    padding: 15px;
+    width: 290px; /* Width of 5 circular buttons (50*5 + 4*10 gaps) */
+    margin-top: 10px;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom scrollbar for layer controls */
+.layer-controls::-webkit-scrollbar {
+    width: 6px;
+}
+
+.layer-controls::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.layer-controls::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    transition: background 0.2s;
+}
+
+.layer-controls::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Firefox scrollbar */
+.layer-controls {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.layer-section {
+    margin-bottom: 12px;
+}
+
+.layer-section:last-child {
+    margin-bottom: 0;
+}
+
+.layer-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    color: white;
+    user-select: none;
+}
+
+.layer-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.layer-toggle-arrow {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid white;
+    transition: transform 0.2s;
+    margin-left: 10px;
+}
+
+.layer-toggle.expanded .layer-toggle-arrow {
+    transform: rotate(180deg);
+}
+
+.layer-checkbox span {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sub-options {
+    margin-left: 12px;
+    margin-top: 4px;
+}
+
+.sub-checkbox {
+    font-size: 13px;
+}
+
+.sub-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+.metrics-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+    margin-left: 30px;
+}
+
+.metric-radio {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+    color: white;
+}
+
+.metric-radio:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.metric-radio input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin-right: 6px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.metric-radio input[type="radio"]:checked {
+    background-color: white;
+}
+
+.metric-radio input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #072b2e;
+}
+
+/* NPA category styles */
+.npa-category {
+    display: flex;
+    align-items: center;
+    padding: 3px 6px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background-color 0.2s;
+    color: white;
+}
+
+.npa-category:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.npa-category input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin-right: 8px;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    border: 2px solid #FF6B6B;
+    border-radius: 50%;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.npa-category input[type="radio"]:checked {
+    background-color: #FF6B6B;
+}
+
+.npa-category input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #072b2e;
+    animation: radioSelect 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Plantable area category styles */
+.pa-category {
+    display: flex;
+    align-items: center;
+    padding: 3px 6px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background-color 0.2s;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pa-category:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.pa-category input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin-right: 8px;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pa-category input[type="radio"]:checked {
+    background-color: white;
+}
+
+.pa-category input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #072b2e;
+    animation: radioSelect 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes radioSelect {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.pa-number {
+    font-weight: 600;
+    margin-right: 4px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* PA category grouping */
+.pa-category-group {
+    margin-bottom: 8px;
+}
+
+.pa-category-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 2px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pa-category-group .pa-category {
+    margin-left: 6px;
+}
+
+.npa-color-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Ensure layer controls are visible */
+#layerControls {
+    display: none; /* Hidden by default, shown when Boyd site selected */
+}
+
+/* Mobile adjustments for layer controls */
+@media screen and (max-width: 767px) {
+    .layer-controls {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .metrics-options {
+        grid-template-columns: 1fr;
+    }
+}
