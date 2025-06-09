@@ -163,10 +163,10 @@
       "type": "Feature",
       "id": "e87a5ae4-2c7b-4d12-bfab-0cf96d46f0fb",
       "properties": {
-        "name": "PA2=\"Field\"",
+        "name": "PA2=\"South Field\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 8-12\nM3: pH (0-14)                 = 4.8-6.8\nM4: N (ppm)                   = 1.0-3.0\nM5: P (ppm)                   = 93-99\nM6: K (ppm)                   = 22-28\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5 - 10       \nM9: Flood (Risk %)        = 5 - 10\nM10: Wind                      = 0 - 5",
         "created": "2025-05-23T19:43:05.610Z",
-        "modified": "2025-05-28T16:54:28.676Z",
+        "modified": "2025-06-09T05:07:28.400Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -381,10 +381,10 @@
       "type": "Feature",
       "id": "41cfd92a-bf3f-4e89-816c-ec4e9bb5ef86",
       "properties": {
-        "name": "PA3=\"Left of Front Door foundation\"",
+        "name": "PA3=\"Southwest Front Door Foundation\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 0-4\nM3: pH (0-14)                 = 5.2-7.2\nM4: N (ppm)                   = 1.35-3.35\nM5: P (ppm)                   = 31-37\nM6: K (ppm)                   = 87-93\nM7: Organic (%)             = 6-10\nM8: Drought (Risk %)    = 0-5       \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 3",
         "created": "2025-05-23T19:44:46.094Z",
-        "modified": "2025-05-28T16:54:28.589Z",
+        "modified": "2025-06-09T05:07:48.230Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -454,10 +454,10 @@
       "type": "Feature",
       "id": "a2e5890a-3e87-48b9-ba5c-de687edff145",
       "properties": {
-        "name": "PA4=\"Right of Front Door foundation\"",
+        "name": "PA4=\"Southeast Front Door Foundation\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 1-4\nM3: pH (0-14)                 = 5.2-7.2\nM4: N (ppm)                   = 1.35-3.35\nM5: P (ppm)                   = 31-37\nM6: K (ppm)                   = 87-93\nM7: Organic (%)             = 6-10\nM8: Drought (Risk %)    = 0-5       \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 3\n",
         "created": "2025-05-23T19:47:04.506Z",
-        "modified": "2025-05-28T16:54:26.388Z",
+        "modified": "2025-06-09T05:07:39.448Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -695,10 +695,10 @@
       "type": "Feature",
       "id": "0b24332a-26b5-4f25-8b4a-171300fcb9bb",
       "properties": {
-        "name": "PA6=\"Eastside foundation of the house\"",
+        "name": "PA6=\"Eastside Foundation of the House\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 1-7\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 11-15\nM5: P (ppm)                   = 110-114\nM6: K (ppm)                   = 18-22\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10     \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 3\n",
         "created": "2025-05-23T19:52:04.579Z",
-        "modified": "2025-05-28T16:54:24.116Z",
+        "modified": "2025-06-09T05:04:42.425Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -778,10 +778,10 @@
       "type": "Feature",
       "id": "f5b5aaa1-73ab-4d96-8c40-f501209800e3",
       "properties": {
-        "name": "PA7=\"North east side foundation of house\"",
+        "name": "PA7=\"Northeast Side Foundation of House\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 5-8\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 2-4\nM5: P (ppm)                   = 57-61\nM6: K (ppm)                   = 8-12\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10     \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 5",
         "created": "2025-05-23T19:54:27.965Z",
-        "modified": "2025-05-28T16:54:24.087Z",
+        "modified": "2025-06-09T05:04:36.294Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -911,10 +911,10 @@
       "type": "Feature",
       "id": "9dad46e7-66ea-462b-b3cf-2041f8bd8d73",
       "properties": {
-        "name": "PA8=\"Northside Planting bed\"",
+        "name": "PA8=\"Northside Planting Bed\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 5-8\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 2-4\nM5: P (ppm)                   = 57-61\nM6: K (ppm)                   = 8-12\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10     \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 5",
         "created": "2025-05-23T19:57:01.223Z",
-        "modified": "2025-05-28T16:54:24.057Z",
+        "modified": "2025-06-09T05:04:10.189Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -999,10 +999,10 @@
       "type": "Feature",
       "id": "a947ed86-198b-46ab-bb7b-dd0e437d6449",
       "properties": {
-        "name": "PA9=\"Southside of pool\"",
+        "name": "PA9=\"Southside of Pool\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 5-8\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 2-4\nM5: P (ppm)                   = 57-61\nM6: K (ppm)                   = 8-12\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10     \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 5",
         "created": "2025-05-23T19:58:05.678Z",
-        "modified": "2025-05-28T16:54:21.903Z",
+        "modified": "2025-06-09T05:04:01.892Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -1192,10 +1192,10 @@
       "type": "Feature",
       "id": "194fba8f-d2d1-45c6-a494-6b40b3a5621f",
       "properties": {
-        "name": "PA10=\"North west side foundation of house\"",
+        "name": "PA10=\"Northwest Side Foundation of House\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 1-10\nM3: pH (0-14)                 = 5.1-7.1\nM4: N (ppm)                   = 2-6\nM5: P (ppm)                   = 72-77\nM6: K (ppm)                   = 23-27\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10     \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 5",
         "created": "2025-05-23T20:00:27.604Z",
-        "modified": "2025-05-28T16:54:21.885Z",
+        "modified": "2025-06-09T05:03:55.792Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -1330,10 +1330,10 @@
       "type": "Feature",
       "id": "590dffcd-d755-4b61-8520-6b3a7d7e366d",
       "properties": {
-        "name": "PA11=\"West side foundation of house\"",
+        "name": "PA11=\"West Side Foundation of House\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 2-4\nM3: pH (0-14)                 = 6.1-8.1\nM4: N (ppm)                   = 5-9\nM5: P (ppm)                   = 55-61\nM6: K (ppm)                   = 60-66\nM7: Organic (%)             = 4-8\nM8: Drought (Risk %)    = 0-5    \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0 - 5",
         "created": "2025-05-23T20:23:13.376Z",
-        "modified": "2025-05-28T16:54:21.850Z",
+        "modified": "2025-06-09T05:04:23.764Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -1413,10 +1413,10 @@
       "type": "Feature",
       "id": "fbf5763c-d842-43e8-8e71-09407847a66f",
       "properties": {
-        "name": "PA12=\"Southwest of House open area\"",
+        "name": "PA12=\"Southwest of House Open Area\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 2-10\nM3: pH (0-14)                 = 6.1-8.1\nM4: N (ppm)                   = 5-9\nM5: P (ppm)                   = 55-61\nM6: K (ppm)                   = 60-66\nM7: Organic (%)             = 4-8\nM8: Drought (Risk %)    = 5-10    \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 5-10",
         "created": "2025-05-23T20:28:06.376Z",
-        "modified": "2025-05-28T16:54:21.874Z",
+        "modified": "2025-06-09T05:37:21.779Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -1486,10 +1486,10 @@
       "type": "Feature",
       "id": "872abb13-3b9f-46ab-8f60-5b43bb9e87e2",
       "properties": {
-        "name": "PA13=\"Southeast open field\"",
+        "name": "PA13=\"Southeast Open Field\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 7-12\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 10-16\nM5: P (ppm)                   = 109-115\nM6: K (ppm)                   = 17-23\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10    \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 5-10",
         "created": "2025-05-23T20:29:59.097Z",
-        "modified": "2025-05-28T16:54:21.807Z",
+        "modified": "2025-06-09T04:58:24.346Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -1574,10 +1574,10 @@
       "type": "Feature",
       "id": "076a7f4d-3dc6-42a5-b85a-c8abdb2585c8",
       "properties": {
-        "name": "PA14=\"forested\"",
+        "name": "PA14=\"Southeast Forested\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 0-3\nM3: pH (0-14)                 = 4.8-6.8\nM4: N (ppm)                   = 2-5\nM5: P (ppm)                   = 52-56\nM6: K (ppm)                   = 15-19\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 0-5  \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0-3",
         "created": "2025-05-23T21:20:47.253Z",
-        "modified": "2025-05-28T16:54:19.529Z",
+        "modified": "2025-06-09T05:07:03.652Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -1697,10 +1697,10 @@
       "type": "Feature",
       "id": "fb8fb2b6-3b0f-4dd9-b111-faf956d02dfd",
       "properties": {
-        "name": "PA15=\"Forested\"",
+        "name": "PA15=\"Southwest Forested\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 0-3\nM3: pH (0-14)                 = 5.2-7.2\nM4: N (ppm)                   = 1-5\nM5: P (ppm)                   = 52-56\nM6: K (ppm)                   = 39-43\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 0-5   \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0-5",
         "created": "2025-05-23T21:21:44.538Z",
-        "modified": "2025-05-28T16:54:19.583Z",
+        "modified": "2025-06-09T05:06:46.497Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -1830,10 +1830,10 @@
       "type": "Feature",
       "id": "4ed7ef3e-e509-48c0-bf35-12856d92a001",
       "properties": {
-        "name": "PA16=\"semiforested\"",
+        "name": "PA16=\"South Semiforested\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 9-12\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 1-4\nM5: P (ppm)                   = 103-109\nM6: K (ppm)                   = 25-29\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10   \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 5-10",
         "created": "2025-05-23T21:25:22.089Z",
-        "modified": "2025-05-28T16:54:19.578Z",
+        "modified": "2025-06-09T05:06:37.253Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -2049,10 +2049,10 @@
       "type": "Feature",
       "id": "cad668aa-1911-4a1d-8304-6ac7ca800e5e",
       "properties": {
-        "name": "PA19=\"Forested\"",
+        "name": "PA19=\"West Forested\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 0-2\nM3: pH (0-14)                 = 6.1-8.1\nM4: N (ppm)                   = 6-8\nM5: P (ppm)                   = 56-60\nM6: K (ppm)                   = 61-65\nM7: Organic (%)             = 4-7\nM8: Drought (Risk %)    = 0-5   \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0-3",
         "created": "2025-05-23T21:29:49.870Z",
-        "modified": "2025-05-28T16:54:17.366Z",
+        "modified": "2025-06-09T05:06:24.738Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -2127,10 +2127,10 @@
       "type": "Feature",
       "id": "90169335-c170-4139-9e0d-d5d8d389f8e6",
       "properties": {
-        "name": "PA20=\"semiforested\"",
+        "name": "PA20=\"East Semiforested\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 2-5\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 11-15\nM5: P (ppm)                   = 110-114\nM6: K (ppm)                   = 18-22\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 0-5   \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0-3",
         "created": "2025-05-23T21:31:06.483Z",
-        "modified": "2025-05-28T16:54:17.294Z",
+        "modified": "2025-06-09T05:06:18.869Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -2250,10 +2250,10 @@
       "type": "Feature",
       "id": "fcf8fd37-4c12-4038-923d-d070c6592502",
       "properties": {
-        "name": "PA21=\"Open\"",
+        "name": "PA21=\"Northeast Open\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 8-12\nM3: pH (0-14)                 = 4.9-6.9\nM4: N (ppm)                   = 11-15\nM5: P (ppm)                   = 110-114\nM6: K (ppm)                   = 18-22\nM7: Organic (%)             = 1-3\nM8: Drought (Risk %)    = 5-10\nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 3-5",
         "created": "2025-05-23T21:33:21.572Z",
-        "modified": "2025-05-28T16:54:17.372Z",
+        "modified": "2025-06-09T05:05:58.816Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -2546,10 +2546,10 @@
       "type": "Feature",
       "id": "2d6da0ab-d4d7-4704-9d94-8054cb29a85e",
       "properties": {
-        "name": "PA23=\"Semiforested\"",
+        "name": "PA23=\"Northeast Semiforested\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 8-10\nM3: pH (0-14)                 = 4.6-6.6\nM4: N (ppm)                   = 1-4\nM5: P (ppm)                   = 33-37\nM6: K (ppm)                   = 9-13\nM7: Organic (%)             = 1-4\nM8: Drought (Risk %)    = 0-5\nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 3-5",
         "created": "2025-05-23T21:36:27.284Z",
-        "modified": "2025-05-28T16:54:15.206Z",
+        "modified": "2025-06-09T05:05:50.009Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -2659,10 +2659,10 @@
       "type": "Feature",
       "id": "5d1c34f4-d338-4ec0-95cf-f76594b9c5b6",
       "properties": {
-        "name": "PA24=\"Forested\"",
+        "name": "PA24=\"Northwest Forested\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 8-10\nM3: pH (0-14)                 = 4.6-6.6\nM4: N (ppm)                   = 1-4\nM5: P (ppm)                   = 33-37\nM6: K (ppm)                   = 9-13\nM7: Organic (%)             = 1-4\nM8: Drought (Risk %)    = 0-5\nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 3-5",
         "created": "2025-05-23T21:37:18.311Z",
-        "modified": "2025-05-28T16:54:15.221Z",
+        "modified": "2025-06-09T05:05:43.250Z",
         "tags": [],
         "color": [
           0.7137254901960784,
@@ -3927,10 +3927,10 @@
       "type": "Feature",
       "id": "cae0a730-bbbc-45fd-9ab2-ab9634484d38",
       "properties": {
-        "name": "NPA11=\"North Driveway\"",
+        "name": "NPA11=\"Lakeside\"",
         "description": "",
         "created": "2025-05-23T20:31:57.652Z",
-        "modified": "2025-05-23T20:32:18.895Z",
+        "modified": "2025-06-09T05:00:36.973Z",
         "tags": [],
         "color": [
           1,
@@ -4100,10 +4100,10 @@
       "type": "Feature",
       "id": "392c792a-23d7-41c6-a7a0-d02ea78904e8",
       "properties": {
-        "name": "NPA12=\"tree\"",
+        "name": "NPA12=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:49:42.634Z",
-        "modified": "2025-05-23T20:50:07.616Z",
+        "modified": "2025-06-09T05:03:23.826Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4188,10 +4188,10 @@
       "type": "Feature",
       "id": "cc249ad6-6cc9-4e70-bea9-6d6baeabf37b",
       "properties": {
-        "name": "NPA13=\"tree\"",
+        "name": "NPA13=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:50:24.115Z",
-        "modified": "2025-05-23T20:50:33.166Z",
+        "modified": "2025-06-09T05:03:17.726Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4271,10 +4271,10 @@
       "type": "Feature",
       "id": "914db234-2544-4666-89ef-855beed70c04",
       "properties": {
-        "name": "NPA14=\"tree\"",
+        "name": "NPA14=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:50:52.879Z",
-        "modified": "2025-05-23T20:50:55.462Z",
+        "modified": "2025-06-09T05:03:15.061Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4349,10 +4349,10 @@
       "type": "Feature",
       "id": "8ff259bf-4318-44d6-8eae-2fde12177858",
       "properties": {
-        "name": "NPA15=\"tree\"",
+        "name": "NPA15=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:51:11.853Z",
-        "modified": "2025-05-23T20:51:17.014Z",
+        "modified": "2025-06-09T05:03:10.233Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4422,10 +4422,10 @@
       "type": "Feature",
       "id": "3a693d2a-1310-4ce1-a56c-faaeb010fee8",
       "properties": {
-        "name": "NPA16=\"tree\"",
+        "name": "NPA16=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:51:34.080Z",
-        "modified": "2025-05-23T20:51:38.820Z",
+        "modified": "2025-06-09T05:03:07.589Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4495,10 +4495,10 @@
       "type": "Feature",
       "id": "e0cc7573-86b4-403a-9316-0b383acc09e3",
       "properties": {
-        "name": "NPA17=\"tree\"",
+        "name": "NPA17=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:51:52.562Z",
-        "modified": "2025-05-23T20:51:57.967Z",
+        "modified": "2025-06-09T05:03:01.650Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4573,10 +4573,10 @@
       "type": "Feature",
       "id": "91550109-8027-4681-895b-e00fdc007eb7",
       "properties": {
-        "name": "NPA18=\"tree and pants\"",
+        "name": "NPA18=\"Tree and Plants\"",
         "description": "",
         "created": "2025-05-23T20:52:17.609Z",
-        "modified": "2025-05-23T20:52:40.196Z",
+        "modified": "2025-06-09T05:00:17.969Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4656,10 +4656,10 @@
       "type": "Feature",
       "id": "64840465-5147-448b-99b1-00ec84665236",
       "properties": {
-        "name": "NPA19=\"tree\"",
+        "name": "NPA19=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:53:00.189Z",
-        "modified": "2025-05-23T20:53:05.603Z",
+        "modified": "2025-06-09T05:02:54.245Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4734,10 +4734,10 @@
       "type": "Feature",
       "id": "c94d4a2c-c672-4fb7-b579-6b70afa28269",
       "properties": {
-        "name": "NPA20=\"trees\"",
+        "name": "NPA20=\"Trees\"",
         "description": "",
         "created": "2025-05-23T20:53:46.652Z",
-        "modified": "2025-05-23T20:54:09.110Z",
+        "modified": "2025-06-09T05:02:47.699Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4877,10 +4877,10 @@
       "type": "Feature",
       "id": "78216dc0-dede-494b-8fbb-c852ad0fbd85",
       "properties": {
-        "name": "NPA21=\" palmtree\"",
+        "name": "NPA21=\" Palmtree\"",
         "description": "",
         "created": "2025-05-23T20:55:03.193Z",
-        "modified": "2025-05-23T20:55:13.825Z",
+        "modified": "2025-06-09T05:02:44.984Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -4945,10 +4945,10 @@
       "type": "Feature",
       "id": "5809fbab-1e25-4dd1-8266-a81f696b7aad",
       "properties": {
-        "name": "NPA22=\"tree\"",
+        "name": "NPA22=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:55:31.187Z",
-        "modified": "2025-05-23T20:55:36.881Z",
+        "modified": "2025-06-09T05:02:39.857Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5023,10 +5023,10 @@
       "type": "Feature",
       "id": "eb313d69-c17d-4f86-bc9b-72ea7f510e9d",
       "properties": {
-        "name": "NPA23=\"tree\"",
+        "name": "NPA23=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:56:01.487Z",
-        "modified": "2025-05-23T20:56:03.992Z",
+        "modified": "2025-06-09T05:02:33.994Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5101,10 +5101,10 @@
       "type": "Feature",
       "id": "22701fee-5c48-41ca-b1bc-08dec7afcad7",
       "properties": {
-        "name": "NPA24=\"tree\"",
+        "name": "NPA24=\"Tree\"",
         "description": "",
         "created": "2025-05-23T20:56:22.620Z",
-        "modified": "2025-05-23T20:56:33.159Z",
+        "modified": "2025-06-09T05:02:31.401Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5407,10 +5407,10 @@
       "type": "Feature",
       "id": "48f18ad3-9909-4b9a-a7a4-33e98cfc6828",
       "properties": {
-        "name": "NPA26=\"tree\"",
+        "name": "NPA26=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:04:44.591Z",
-        "modified": "2025-05-23T21:05:19.517Z",
+        "modified": "2025-06-09T05:02:28.799Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5510,10 +5510,10 @@
       "type": "Feature",
       "id": "75536dc5-aa37-43f8-b477-fb51e1a3a32a",
       "properties": {
-        "name": "NPA27=\"tree\"",
+        "name": "NPA27=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:05:37.155Z",
-        "modified": "2025-05-23T21:05:42.365Z",
+        "modified": "2025-06-09T05:02:22.601Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5588,10 +5588,10 @@
       "type": "Feature",
       "id": "df581936-635b-4811-8007-9b35476b9ae5",
       "properties": {
-        "name": "NPA28=\"tree\"",
+        "name": "NPA28=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:06:06.880Z",
-        "modified": "2025-05-23T21:06:14.568Z",
+        "modified": "2025-06-09T05:02:19.927Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5681,10 +5681,10 @@
       "type": "Feature",
       "id": "06a8e80f-a6fe-42dd-b83e-56c1b4f40c42",
       "properties": {
-        "name": "NPA29=\"trees\"",
+        "name": "NPA29=\"Trees\"",
         "description": "",
         "created": "2025-05-23T21:06:35.462Z",
-        "modified": "2025-05-23T21:06:42.927Z",
+        "modified": "2025-06-09T05:02:13.837Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5769,10 +5769,10 @@
       "type": "Feature",
       "id": "313c808e-8542-4ed2-b746-1ff8f3f4b4a5",
       "properties": {
-        "name": "NPA30=\"trees\"",
+        "name": "NPA30=\"Trees\"",
         "description": "",
         "created": "2025-05-23T21:06:56.324Z",
-        "modified": "2025-05-23T21:07:08.045Z",
+        "modified": "2025-06-09T05:02:12.729Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5852,10 +5852,10 @@
       "type": "Feature",
       "id": "1a168e5a-90da-43ce-8867-f66053d5e94f",
       "properties": {
-        "name": "NPA31=\"trees\"",
+        "name": "NPA31=\"Trees\"",
         "description": "",
         "created": "2025-05-23T21:07:27.186Z",
-        "modified": "2025-05-23T21:07:32.346Z",
+        "modified": "2025-06-09T05:02:03.444Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -5930,10 +5930,10 @@
       "type": "Feature",
       "id": "3b03e819-5f99-4172-868f-74a275a4d0e0",
       "properties": {
-        "name": "NPA32=\"trees\"",
+        "name": "NPA32=\"Trees\"",
         "description": "",
         "created": "2025-05-23T21:07:50.257Z",
-        "modified": "2025-05-23T21:08:03.285Z",
+        "modified": "2025-06-09T05:02:00.601Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6018,10 +6018,10 @@
       "type": "Feature",
       "id": "1a19d46f-2b7c-4fcb-afe3-9d8c0894ef9b",
       "properties": {
-        "name": "NPA33=\"tree\"",
+        "name": "NPA33=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:08:44.765Z",
-        "modified": "2025-05-23T21:09:04.061Z",
+        "modified": "2025-06-09T05:01:53.930Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6106,10 +6106,10 @@
       "type": "Feature",
       "id": "46e9f411-ed0a-468e-9bbf-a6ed3b375aaf",
       "properties": {
-        "name": "NPA34=\"tree\"",
+        "name": "NPA34=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:09:23.933Z",
-        "modified": "2025-05-23T21:09:28.815Z",
+        "modified": "2025-06-09T05:01:51.065Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6179,10 +6179,10 @@
       "type": "Feature",
       "id": "7f3295c9-918c-4cae-aac2-292a93d72de5",
       "properties": {
-        "name": "NPA35=\"tree\"",
+        "name": "NPA35=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:10:44.894Z",
-        "modified": "2025-05-23T21:10:53.475Z",
+        "modified": "2025-06-09T05:01:44.544Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6262,10 +6262,10 @@
       "type": "Feature",
       "id": "18a0c09f-0ce6-40fc-925c-a74b16227487",
       "properties": {
-        "name": "NPA36=\"tree\"",
+        "name": "NPA36=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:11:13.576Z",
-        "modified": "2025-05-23T21:11:19.880Z",
+        "modified": "2025-06-09T05:01:38.926Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6340,10 +6340,10 @@
       "type": "Feature",
       "id": "5b02a5f4-ee17-4082-bc5e-976d45b42d13",
       "properties": {
-        "name": "NPA37=\"tree\"",
+        "name": "NPA37=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:11:58.585Z",
-        "modified": "2025-05-23T21:12:11.025Z",
+        "modified": "2025-06-09T05:01:36.269Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6398,10 +6398,10 @@
       "type": "Feature",
       "id": "9f5b4a63-5e82-4a38-81c7-1b042bf290f6",
       "properties": {
-        "name": "NPA38=\"tree\"",
+        "name": "NPA38=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:12:21.149Z",
-        "modified": "2025-05-23T21:12:35.211Z",
+        "modified": "2025-06-09T05:01:31.346Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6466,10 +6466,10 @@
       "type": "Feature",
       "id": "c97c8cec-d2c3-4a2a-83b0-5eac4704a1d1",
       "properties": {
-        "name": "NPA39=\"tree\"",
+        "name": "NPA39=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:13:03.387Z",
-        "modified": "2025-05-23T21:13:47.147Z",
+        "modified": "2025-06-09T05:01:28.733Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6544,10 +6544,10 @@
       "type": "Feature",
       "id": "2ed6bc82-df45-48c2-9f0d-ee9b619ec5a8",
       "properties": {
-        "name": "NPA40=\"tree\"",
+        "name": "NPA40=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:13:33.813Z",
-        "modified": "2025-05-23T21:13:44.865Z",
+        "modified": "2025-06-09T05:01:25.992Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6617,10 +6617,10 @@
       "type": "Feature",
       "id": "594b7da5-cfb4-4abb-b14e-1be2d98e948f",
       "properties": {
-        "name": "NPA41=\"tree\"",
+        "name": "NPA41=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:14:17.608Z",
-        "modified": "2025-05-23T21:14:22.508Z",
+        "modified": "2025-06-09T05:01:17.066Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6690,10 +6690,10 @@
       "type": "Feature",
       "id": "e1d80dda-9629-4394-82fb-639553939d05",
       "properties": {
-        "name": "NPA42=\"trees\"",
+        "name": "NPA42=\"Trees\"",
         "description": "",
         "created": "2025-05-23T21:14:53.398Z",
-        "modified": "2025-05-23T21:15:16.570Z",
+        "modified": "2025-06-09T05:01:14.273Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6763,10 +6763,10 @@
       "type": "Feature",
       "id": "40dc11c1-9dfc-4b86-9697-342db90c2117",
       "properties": {
-        "name": "NPA43=\"tree\"",
+        "name": "NPA43=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:15:39.648Z",
-        "modified": "2025-05-23T21:15:47.726Z",
+        "modified": "2025-06-09T05:01:09.025Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6846,10 +6846,10 @@
       "type": "Feature",
       "id": "7a549cdb-2ba9-448d-b607-b52f0f61b6e8",
       "properties": {
-        "name": "NPA44=\"trees\"",
+        "name": "NPA44=\"Trees\"",
         "description": "",
         "created": "2025-05-23T21:16:30.105Z",
-        "modified": "2025-05-23T21:16:40.325Z",
+        "modified": "2025-06-09T05:01:06.286Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -6944,10 +6944,10 @@
       "type": "Feature",
       "id": "9ff30ca4-727b-4535-91b8-e22a23547c2d",
       "properties": {
-        "name": "NPA45=\"tree\"",
+        "name": "NPA45=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:17:39.255Z",
-        "modified": "2025-05-23T21:17:43.958Z",
+        "modified": "2025-06-09T05:01:00.442Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -7022,10 +7022,10 @@
       "type": "Feature",
       "id": "f1615881-f822-4cf6-9b5a-b6448a94f664",
       "properties": {
-        "name": "NPA46=\"tree\"",
+        "name": "NPA46=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:17:59.619Z",
-        "modified": "2025-05-23T21:18:22.826Z",
+        "modified": "2025-06-09T05:00:57.586Z",
         "tags": [],
         "color": [
           0.26666666666666666,
@@ -7100,10 +7100,10 @@
       "type": "Feature",
       "id": "d4990413-a9a1-4100-b424-a6fa03aca129",
       "properties": {
-        "name": "NPA47=\"tree\"",
+        "name": "NPA47=\"Tree\"",
         "description": "",
         "created": "2025-05-23T21:18:55.669Z",
-        "modified": "2025-05-23T21:19:01.915Z",
+        "modified": "2025-06-09T05:00:55.045Z",
         "tags": [],
         "color": [
           0.26666666666666666,

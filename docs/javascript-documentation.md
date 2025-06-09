@@ -38,7 +38,7 @@ async function allSystemsGo() {
     window.user = new UserManager(window.map3D);
     
     await initializeSiteSelector();  // Populate site dropdown
-    initializeParameterFilter();     // Setup M1-M10 filter
+    initializeLayerControls();       // Setup layer-based visualization controls
 }
 ```
 
@@ -69,9 +69,12 @@ function detectGeoJsonFormat(feature) {
 3. **Format Detection** → Determine Boyd vs Legacy
 4. **Coordinate Conversion** → UTM to WGS84 via proj4js
 5. **Entity Creation** → Cesium polygons with height separation:
-   - Plantable areas: 5.5-6m height (green shades)
-   - Non-plantable: 6.5-7m height (red/gray)
-6. **Parameter Filtering** → Dynamic recoloring based on M1-M10 selection
+   - Plantable areas: 5.5-6m height (white outlines by default)
+   - Non-plantable: 6.5-7m height (red outlines)
+6. **Layer-Based Filtering** → Dynamic visualization based on selected layer:
+   - PA/NPA categorization with radio button selection
+   - M1-M10 parameter visualization with gradient colors
+   - Mutual exclusion between layers (one active at a time)
 
 ### M1-M10 Parameter System
 Scientific ecological parameters with specific color gradients:
@@ -90,12 +93,17 @@ M10: Wind Exposure    (light → dark blue)  Protected to exposed
 visualizeGeoJsonPolygons(geoJsonData) {
     // 1. Clear existing entities
     // 2. Detect format (Boyd/Legacy)
-    // 3. Calculate parameter ranges if filter active
-    // 4. Process each feature:
+    // 3. Check active layer selection
+    // 4. Calculate parameter ranges if parameter layer active
+    // 5. Process each feature:
     //    - Convert coordinates (UTM→WGS84)
-    //    - Determine plantable/non-plantable
-    //    - Apply colors (base or parameter-filtered)
+    //    - Determine plantable/non-plantable category
+    //    - Apply visualization based on active layer:
+    //      * Default: White (PA) or Red (NPA) outlines
+    //      * PA/NPA layers: Highlight matching polygons
+    //      * M1-M10 layers: Apply gradient colors
     //    - Create Cesium entities with proper heights
+    //    - Add click handlers for zoom-to-feature
 }
 
 getParameterColor(value, minVal, maxVal, paramType) {
@@ -103,6 +111,12 @@ getParameterColor(value, minVal, maxVal, paramType) {
     // Select color gradient based on parameter type
     // Interpolate RGB values
     // Return Cesium.Color with 0.7 alpha
+}
+
+handlePolygonClick(entity) {
+    // Zoom to polygon with 30m minimum height
+    // Center polygon in view
+    // Maintain current heading/pitch
 }
 ```
 
@@ -113,16 +127,19 @@ getParameterColor(value, minVal, maxVal, paramType) {
 window.map3D                  // CesiumManager instance
 window.map2D                  // GoogleMaps2DManager instance  
 window.user                   // UserManager instance
-window.currentParameterFilter // Active M1-M10 filter (null or 'moisture', 'pH', etc.)
+window.currentLayerSelection  // Active layer (null, 'pa', 'npa', 'moisture', 'pH', etc.)
 window.currentSiteData        // Loaded GeoJSON for re-rendering
 window.stopFlyThrough         // Tour interruption flag
 window.currentFlyThroughActive // Tour active state
 ```
 
 ### Event Flow
-1. **Site Selection**: Dropdown change → Load GeoJSON → Detect format → Show/hide parameter filter → Navigate camera → Render entities
-2. **Parameter Filter**: Dropdown change → Store filter → Re-render with new colors
-3. **Tour Interruption**: Mouse click → Set stopFlyThrough → Show continue button → Cancel camera animation
+1. **Site Selection**: Dropdown change → Load GeoJSON → Detect format → Show/hide layer controls → Navigate camera → Render entities
+2. **Layer Selection**: Radio button click → Store active layer → Re-render with appropriate visualization:
+   - PA/NPA: Highlight matching polygons
+   - M1-M10: Apply parameter gradient colors
+3. **Polygon Interaction**: Click polygon → Zoom to feature with 30m minimum height → Center in view
+4. **Tour Interruption**: Mouse click → Set stopFlyThrough → Show continue button → Cancel camera animation
 
 ## Manager Classes
 
@@ -174,6 +191,58 @@ flyToSequence(cesiumManager, flyTos, callback) {
 - **Single-Pass Calculation**: Collect all parameter values, then calculate min/max once
 - **Height Separation**: Prevents z-fighting between layers
 
+## Layer Control System
+
+### Layer Categories
+The application organizes visualization layers into two main categories:
+1. **Base Layers** (PA/NPA)
+   - PA (Plantable Areas): White outline visualization
+   - NPA (Non-Plantable Areas): Red outline visualization
+   - Headers act as implicit "All" selection (no explicit "All" option)
+
+2. **Parameter Layers** (M1-M10)
+   - Each parameter visualized with specific gradient colors
+   - Scientific ecological data visualization
+   - Only available for Boyd format sites
+
+### Radio Button Implementation
+```javascript
+initializeLayerControls() {
+    // Create radio buttons for each layer
+    // Group by category (PA/NPA vs M1-M10)
+    // Implement mutual exclusion
+    // Add click handlers for layer activation
+}
+
+handleLayerSelection(layerType) {
+    window.currentLayerSelection = layerType;
+    if (window.currentSiteData) {
+        visualizeGeoJsonPolygons(window.currentSiteData);
+    }
+}
+```
+
+### Zoom-to-Feature
+```javascript
+// Polygon click handler with 30m minimum height
+entity.polygon.outline = true;
+entity.polygon.outlineWidth = 3;
+entity.onClick = () => {
+    const boundingSphere = Cesium.BoundingSphere.fromPoints(positions);
+    const radius = boundingSphere.radius;
+    const height = Math.max(radius * 2, 30); // 30m minimum
+    
+    viewer.camera.flyToBoundingSphere(boundingSphere, {
+        offset: new Cesium.HeadingPitchRange(
+            viewer.camera.heading,
+            viewer.camera.pitch,
+            height
+        ),
+        duration: 1.5
+    });
+};
+```
+
 ## Critical Issues
 1. **Security**: API keys exposed in client code
 2. **Performance**: No bundling, 15MB initial load
@@ -184,5 +253,8 @@ flyToSequence(cesiumManager, flyTos, callback) {
 ## Development Notes
 - Tour starts automatically - can conflict with user interaction
 - Site selector interrupts active tours via `stopActiveTutorial()`
-- Parameter filter only shows for Boyd format sites
+- Layer controls only show for Boyd format sites
 - Coordinate conversion has hardcoded fallback for Florida area
+- Radio buttons ensure only one layer active at a time
+- Polygon click interaction works in 3D scene with zoom functionality
+- Headers in layer controls act as category separators (no "All" option needed)

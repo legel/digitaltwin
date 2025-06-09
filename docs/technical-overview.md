@@ -31,7 +31,7 @@ Window Object (Global State)
 ├── map3D (CesiumManager)      → 3D visualization
 ├── map2D (GoogleMaps2DManager) → 2D satellite view  
 ├── user (UserManager)          → Device/location info
-├── currentParameterFilter      → Active M1-M10 filter
+├── currentLayerSelection      → Active layer (PA/NPA/M1-M10)
 ├── currentSiteData            → Loaded GeoJSON
 └── Tour flags                 → stopFlyThrough, etc.
 ```
@@ -49,6 +49,7 @@ app.html loads
 → main.js DOMContentLoaded
 → allSystemsGo() creates managers
 → Site selector populated
+→ Layer controls initialized
 → Default tour starts after 2s
 ```
 
@@ -59,20 +60,30 @@ app.html loads
 Dropdown change
 → loadSiteData() fetches GeoJSON
 → detectGeoJsonFormat() (Boyd vs Legacy)
-→ Show/hide parameter filter
+→ Show/hide layer controls (Boyd only)
 → stopActiveTutorial() cancels tours
 → navigateToSite() flies camera
 → visualizeGeoJsonPolygons() renders
 ```
 
-**Parameter Filtering:**
+**Layer Selection:**
 ```
-Filter dropdown change
-→ Store in window.currentParameterFilter
+Radio button click
+→ Store in window.currentLayerSelection
 → Re-run visualizeGeoJsonPolygons()
-→ Calculate min/max values
-→ Apply gradient colors
+→ Apply layer-specific visualization:
+  - PA/NPA: Highlight matching areas
+  - M1-M10: Calculate ranges & gradient colors
 → Update all entities
+```
+
+**Polygon Interaction:**
+```
+Click polygon in 3D view
+→ Calculate bounding sphere
+→ Ensure 30m minimum height
+→ Fly camera to center polygon
+→ Maintain current view angles
 ```
 
 ## Data System
@@ -104,19 +115,27 @@ M10: Wind Exposure    - Wind stress level
 ```
 
 ### Visualization Rules
-- **Plantable Areas (PA)**: Green shades, 5.5-6m height
-- **Non-Plantable (NPA)**: Red/gray, 6.5-7m height
+- **Plantable Areas (PA)**: White outlines (default), 5.5-6m height
+- **Non-Plantable (NPA)**: Red outlines, 6.5-7m height
 - **Points**: Green dots (plantable) or red cylinders (obstacles)
-- **Parameter Colors**: Gradient interpolation based on value range
+- **Layer-Based Colors**:
+  - PA/NPA selection: Highlights matching polygons
+  - M1-M10 selection: Gradient interpolation based on value range
+- **Interactive**: All polygons clickable with zoom-to-feature
 
 ## UI System
 
 ### Control Panel Layout
 - **Desktop**: Top-right corner (10px offset)
 - **Mobile**: Bottom-center with transform
-- **Structure**: 6 buttons + 2 dropdowns
+- **Structure**: 6 buttons + site dropdown + layer controls
 - **Buttons**: Tilt (2), Rotate (2), Home, 2D/3D toggle
-- **Dropdowns**: Site selector, Parameter filter (Boyd only)
+- **Site Dropdown**: Location selector
+- **Layer Controls** (Boyd format only):
+  - Radio buttons grouped by category
+  - PA/NPA section with header
+  - M1-M10 parameters section with header
+  - Mutual exclusion between all layers
 
 ### Responsive Behavior
 - 1024px+: Full desktop layout
@@ -168,10 +187,13 @@ terrain-3d/
 
 ## Development Gotchas
 1. Tour auto-starts and can conflict with user interaction
-2. Parameter filter only appears for Boyd format sites
+2. Layer controls only appear for Boyd format sites
 3. Coordinate conversion has Florida-specific fallback
 4. No error boundaries - crashes stop everything
 5. Global state makes testing difficult
+6. Radio buttons require manual mutual exclusion handling
+7. Polygon click events need proper 3D scene integration
+8. 30m minimum zoom height prevents too-close views
 
 ## Future Requirements (from CLAUDE.md)
 1. **3D Gaussian Splatting**: Support .spz photorealistic files

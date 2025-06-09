@@ -39,7 +39,7 @@
 
     <!-- Unified Control Panel -->
     <div id="controlPanel" class="control-panel">
-        <!-- View Controls Group (buttons first) -->
+        <!-- Top row: buttons + site selector -->
         <div class="control-group view-controls">
             <!-- Tilt Controls -->
             <button id="tilt0Button" class="control-button icon-button tilt-0-button" title="Top-down view"></button>
@@ -52,32 +52,55 @@
             <!-- Navigation Controls -->
             <button id="homeButton" class="control-button icon-button home-button" title="Go to my location"></button>
             <button id="viewSwitchButton" class="control-button text-button view-switch">2D</button>
-        </div>
 
-        <!-- Data Controls Group (dropdowns below) -->
-        <div class="control-group data-controls">
-            <!-- Site Selector -->
+            <!-- Site Selector (inline with buttons) -->
             <div id="siteSelector" class="control-item site-selector">
                 <select id="siteDropdown">
-                    <option value="">Select a site...</option>
+                    <!-- Options populated by JavaScript -->
                 </select>
             </div>
+        </div>
 
-            <!-- Parameter Filter (hidden by default) -->
-            <div id="parameterFilter" class="control-item parameter-filter" style="display: none;">
-                <select id="parameterDropdown">
-                    <option value="">Filter by parameter...</option>
-                    <option value="moisture">M1: Moisture Level</option>
-                    <option value="lightHours">M2: Light Hours</option>
-                    <option value="pH">M3: pH Level</option>
-                    <option value="nitrogen">M4: Nitrogen (N)</option>
-                    <option value="phosphorus">M5: Phosphorus (P)</option>
-                    <option value="potassium">M6: Potassium (K)</option>
-                    <option value="organic">M7: Organic Matter</option>
-                    <option value="drought">M8: Drought Risk</option>
-                    <option value="flood">M9: Flood Risk</option>
-                    <option value="wind">M10: Wind Exposure</option>
-                </select>
+        <!-- Bottom row: layer controls -->
+        <div class="control-group data-controls">
+            <!-- Layer Controls -->
+            <div id="layerControls" class="layer-controls" style="display: none;">
+                <div class="layer-section">
+                    <div class="layer-toggle" id="plantableAreasToggle">
+                        <span>Plantable Areas</span>
+                        <div class="layer-toggle-arrow"></div>
+                    </div>
+                    <div id="plantableSubOptions" class="sub-options" style="display: none;">
+                        <!-- Dynamically populated PA categories -->
+                    </div>
+                </div>
+                <div class="layer-section">
+                    <div class="layer-toggle" id="nonPlantableAreasToggle">
+                        <span>Non-Plantable Areas</span>
+                        <div class="layer-toggle-arrow"></div>
+                    </div>
+                    <div id="nonPlantableSubOptions" class="sub-options" style="display: none;">
+                        <!-- Dynamically populated NPA categories -->
+                    </div>
+                </div>
+                <div class="layer-section">
+                    <div class="layer-toggle" id="ecologicalMetricsToggle">
+                        <span>Ecological Niche Metrics</span>
+                        <div class="layer-toggle-arrow"></div>
+                    </div>
+                    <div id="metricsOptions" class="metrics-options" style="display: none;">
+                        <label class="metric-radio"><input type="radio" name="metric" value="moisture"> Moisture Level</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="lightHours"> Light Hours</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="pH"> Soil pH</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="nitrogen"> Nitrogen (N)</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="phosphorus"> Phosphorus (P)</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="potassium"> Potassium (K)</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="organic"> Organic Matter</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="drought"> Drought Risk</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="flood"> Flood Risk</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="wind"> Wind Exposure</label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -102,6 +125,12 @@
     <script src="/js/orbit.js"></script>
     <script src="/js/home.js"></script>
     <script src="/js/viewTransform.js"></script>
+    
+    <!-- Debug controls (only loads when #debug in URL) -->
+    <script src="/js/debugControls.js"></script>
+    
+    <!-- Layer controls -->
+    <script src="/js/layerControls.js"></script>
 </body>
 </html>
 
