@@ -692,3 +692,33 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Full-width site selector when buttons are hidden */
+.view-controls {
+    width: 100%;
+    justify-content: stretch \!important;
+}
+
+.site-selector {
+    width: 100%;
+    flex: 1;
+}
+
+.site-selector select,
+.control-item select {
+    width: 100% \!important;
+    max-width: none \!important;
+}
+
+/* Override mobile widths too */
+@media screen and (max-width: 767px) {
+    .control-item select {
+        width: 100% \!important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .control-item select {
+        width: 100% \!important;
+    }
+}
