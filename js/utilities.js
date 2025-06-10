@@ -236,7 +236,6 @@ async function loadSiteData() {
     
     // Define the GeoJSON files to load
     const files = [
-        { filename: '4.18.2025-layers.geojson', name: 'Dix.Hite HQ' },
         { filename: 'Boyd_Residence_Aerial_and_Ground.geojson', name: 'Scott Boyd Residence' }
     ];
     
