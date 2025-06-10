@@ -19,25 +19,52 @@ Support landscape designers in creating ecologically functional and beautiful la
 3. **Design Simulation**: Enable landscape designers to place and visualize native plants in realistic 3D environments
 4. **Commercial Integration**: Connect design decisions with native plant nursery inventory and availability
 
-## Architecture
+## Architecture - AI Agent Guide
 
-The application is built with vanilla JavaScript (no framework) and uses a manager-based architecture:
+### Critical Understanding
+1. **No build system** - Edit files directly, refresh browser to test
+2. **Global state on window** - All managers and state accessible via `window.X`
+3. **Manager pattern** - Each domain has a dedicated manager class
+4. **Event-driven UI** - Layer controls drive visualization through state changes
 
-- **CesiumManager.js**: Controls the 3D globe viewer using Cesium with Google Photorealistic 3D Tiles
-- **GoogleMaps2DManager.js**: Controls the 2D satellite map view using Google Maps API
-- **UserManager.js**: Handles device detection (smartphone/laptop/desktop) and geolocation
-- **navigation.js**: Manages guided tour sequences with camera movements and contextual messages
-- **viewTransform.js**: Handles seamless switching between 2D/3D views while maintaining position
+### File Hierarchy (by importance)
+1. **utilities.js** (1700+ lines) - Core visualization logic, do NOT refactor without understanding all dependencies
+2. **layerControls.js** - UI state management, complex event handling for PA/NPA/metrics
+3. **CesiumManager.js** - 3D rendering, includes polygon click → PA selection logic
+4. **focusPanel.js** + **metricChart.js** - Work together for ecological metrics display
+5. **main.js** - Simple but critical bootstrap sequence
+
+### Common Pitfalls
+- Tour auto-starts and conflicts with user actions
+- Layer controls only show for Boyd format sites
+- Polygon alpha must be ≥ 0.01 for Cesium picking
+- Height adjustment system uses global `currentHeightOffset`
+- All visualization re-renders through `visualizeGeoJsonPolygons()`
+
+### CSS Gotchas
+- **Z-index hierarchy**: Focus panel (998) < Layer controls (1000) < Connection line (1002)
+- **Glass effect**: Uses `backdrop-filter` - check browser support
+- **Dropdown width**: Should be 170px (3 buttons), not 230px
+- **Unused styles**: styles.css has dead Cesium UI styles
+- **Mobile**: Controls relocate to bottom at 767px breakpoint
+
+### Critical Data Flow
+```
+Site Selection (dropdown) 
+→ loadSiteData() 
+→ detectGeoJsonFormat() ['boyd'|'legacy']
+→ if boyd: toggleParameterFilter() → analyzePA/NPACategories()
+→ visualizeGeoJsonPolygons() [main rendering function]
+→ Layer controls become interactive
+→ User clicks PA/layer → updateVisualization() → visualizeGeoJsonPolygons() again
+```
 
 ## Development Commands
 
-This is a static JavaScript application with no build system. Development workflow:
-
-1. Edit JavaScript files directly
-2. Test by opening `app.html` in a browser
-3. All assets are served statically
-
-No npm/yarn commands, webpack, or build steps required.
+1. Start server: `python server.py`
+2. Open browser: `http://localhost:5001`
+3. Edit any JS/CSS file
+4. Refresh browser (no build needed)
 
 ## Key Implementation Details
 
@@ -76,6 +103,10 @@ All positions use:
 - **Natural User Interface**: Fastest, most intuitive interaction patterns for 3D manipulation
 - **Zero Lag Tolerance**: Prioritize performance to maintain immersive experience
 - **Scientific Transparency**: Always expose accuracy and precision metadata for all models
+- **Glass Morphism Design**: Light greenhouse glass aesthetic with soft diffuse lighting for data visualization
+- **Viridis Color Science**: Consistent scientific color mapping for ecological metrics
+- **Focus Panel Integration**: Slide-out detailed metrics panel with visual connection to selected areas
+- **Smart Camera Positioning**: Automatically frames selected areas at 25% from left edge of screen
 
 ### Ecological Integration Requirements
 - **Native Plant Focus**: All plant selection and placement tools must prioritize native species
@@ -94,6 +125,63 @@ All positions use:
 2. **Gaussian Splat integration** (future phase): Advanced photorealistic rendering
 3. **Ecological model overlay**: Scientific data visualization on 3D twins
 4. **Commercial platform features**: Native plant marketplace integration
+
+## Recent Implementations
+
+### Advanced Focus Panel Animation System
+A sophisticated animation sequence for the focus panel that provides smooth visual transitions:
+
+#### Animation Sequence (Opening)
+1. **Oval highlight** appears around selected PA row
+2. **Connection line** extends leftward from the oval (40px, 300ms)
+3. **Vertical edge** appears and expands at line end (300ms)
+4. **Focus panel** expands from edge with content reveal (400ms)
+
+#### Animation Sequence (Closing)
+1. **Panel collapses** to vertical edge (300ms)
+2. **Vertical edge shrinks** to connection point (300ms)
+3. **Connection line retracts** to PA row (300ms)
+4. **Panel DOM removed** to prevent ghost panels
+
+#### Technical Implementation
+- **Orchestrated animations** with callbacks ensure proper sequencing
+- **Fixed positioning** ensures consistent animation regardless of screen size
+- **DOM lifecycle management** - panels are destroyed and recreated
+- **Smooth transitions** between different PA selections
+
+### Camera Positioning System
+Simplified zoom system for both PA and NPA selections:
+- **Center calculation**: Average of all polygon vertices
+- **Radius determination**: Maximum distance between any two vertices
+- **Height calculation**: Radius fills 50% of screen height
+- **Direct positioning**: Camera centered above polygon/category
+
+### UI Interaction Rules
+- **Single dropdown rule**: Only one dropdown open at a time
+- **Auto-close behavior**: Opening any dropdown closes others and focus panel
+- **Focus panel persistence**: Remains open while exploring 3D scene
+- **Multiple close methods**: X button, Escape key, dropdown switching
+
+### Polygon Click Integration
+- **Direct interaction**: Click polygons in 3D scene to select
+- **Automatic synchronization**: Updates layer controls UI
+- **Alpha transparency**: 0.01 for picking while maintaining visuals
+
+## Recent UI Enhancements
+
+### Focus Panel Visual Design
+- **Greenhouse Glass Effect**: Light, almost transparent white background with soft blur effect
+- **Visual Connection**: White border around selected PA with connecting line to focus panel
+- **Smart Positioning**: Panel slides in from right side, flush with layer controls
+- **Typography Updates**: 
+  - Metric interpretations: 20px, 300 weight, italic (matching metric names)
+  - Increased x-axis labels and "probability" text for better readability
+  - 5px additional spacing between chart and metric headers
+
+### Camera Positioning Algorithm
+- **25% Rule**: Selected polygons are positioned at 25% from left edge of screen
+- **50% Width Constraint**: Automatically zooms out if polygon exceeds 50% of screen width
+- **Smart Offset Calculation**: Dynamic adjustment based on polygon size and screen dimensions
 
 ## Data Sources & Scientific Models
 

@@ -343,7 +343,9 @@
     margin-top: 10px;
     max-height: calc(100vh - 150px);
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: visible; /* Allow selected items to extend outside */
+    position: relative; /* Ensure proper stacking context */
+    z-index: 1000; /* Above focus panel */
 }
 
 /* Custom scrollbar for layer controls */
@@ -374,6 +376,8 @@
 
 .layer-section {
     margin-bottom: 12px;
+    position: relative;
+    overflow: visible; /* Allow selected items to extend */
 }
 
 .layer-section:last-child {
@@ -418,6 +422,8 @@
 .sub-options {
     margin-left: 12px;
     margin-top: 4px;
+    overflow: visible; /* Allow selected items to show outside */
+    position: relative;
 }
 
 .sub-checkbox {
@@ -556,6 +562,25 @@
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* Selected PA highlighting with connection indicator */
+.pa-category.selected {
+    position: relative;
+    z-index: 10; /* Higher z-index to prevent clipping */
+    margin: 2px 4px; /* Add horizontal margin to prevent clipping */
+}
+
+.pa-category.selected::before {
+    content: '';
+    position: fixed; /* Use fixed positioning to escape overflow container */
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid white;
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: 1001; /* Above layer controls */
+}
+
+/* We'll set the position dynamically via JavaScript since we need getBoundingClientRect */
+
 .pa-category input[type="radio"] {
     appearance: none;
     -webkit-appearance: none;
@@ -613,6 +638,8 @@
 /* PA category grouping */
 .pa-category-group {
     margin-bottom: 8px;
+    position: relative; /* Create stacking context */
+    z-index: 1; /* Base z-index */
 }
 
 .pa-category-group-title {
@@ -629,6 +656,11 @@
     margin-left: 6px;
 }
 
+/* Ensure selected group is on top */
+.pa-category-group:has(.pa-category.selected) {
+    z-index: 100;
+}
+
 .npa-color-indicator {
     width: 12px;
     height: 12px;
@@ -640,6 +672,13 @@
 /* Ensure layer controls are visible */
 #layerControls {
     display: none; /* Hidden by default, shown when Boyd site selected */
+}
+
+/* Allow selected items to extend outside containers */
+#plantableSubOptions,
+#nonPlantableSubOptions {
+    overflow: visible !important;
+    position: relative;
 }
 
 /* Mobile adjustments for layer controls */

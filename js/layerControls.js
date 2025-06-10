@@ -70,6 +70,64 @@ const paCategoryColors = [
 ];
 
 /**
+ * Closes other dropdowns and any focus views
+ * @param {string} currentDropdown - The dropdown being opened ('plantable', 'nonplantable', 'metrics')
+ */
+function closeOtherDropdowns(currentDropdown) {
+    // Close plantable areas if not current
+    if (currentDropdown !== 'plantable') {
+        const plantableToggle = document.getElementById('plantableAreasToggle');
+        const plantableSubOptions = document.getElementById('plantableSubOptions');
+        if (plantableToggle && plantableSubOptions) {
+            plantableSubOptions.style.display = 'none';
+            plantableToggle.classList.remove('expanded');
+            
+            // Clear any focus view and connection
+            if (window.clearPAConnection) {
+                window.clearPAConnection();
+            }
+            
+            // Reset plantable state if no specific PA selected
+            if (!window.layerState.selectedPA) {
+                window.layerState.showPlantableAreas = false;
+            }
+        }
+    }
+    
+    // Close non-plantable areas if not current
+    if (currentDropdown !== 'nonplantable') {
+        const nonPlantableToggle = document.getElementById('nonPlantableAreasToggle');
+        const nonPlantableSubOptions = document.getElementById('nonPlantableSubOptions');
+        if (nonPlantableToggle && nonPlantableSubOptions) {
+            nonPlantableSubOptions.style.display = 'none';
+            nonPlantableToggle.classList.remove('expanded');
+            
+            // Reset non-plantable state if no specific NPA selected
+            if (!window.layerState.selectedNPA) {
+                window.layerState.showNonPlantableAreas = false;
+            }
+        }
+    }
+    
+    // Close ecological metrics if not current
+    if (currentDropdown !== 'metrics') {
+        const ecologicalToggle = document.getElementById('ecologicalMetricsToggle');
+        const metricsOptions = document.getElementById('metricsOptions');
+        if (ecologicalToggle && metricsOptions) {
+            metricsOptions.style.display = 'none';
+            ecologicalToggle.classList.remove('expanded');
+            
+            // Reset metrics state
+            if (window.layerState.showEcologicalMetrics) {
+                window.layerState.showEcologicalMetrics = false;
+                window.layerState.selectedMetric = null;
+                document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
+            }
+        }
+    }
+}
+
+/**
  * Initializes the layer control system
  */
 function initializeLayerControls() {
@@ -175,11 +233,15 @@ function setupPlantableAreaControls() {
         const isExpanded = updatedSubOptions.style.display === 'block';
         console.log('Current expanded state:', isExpanded);
         
-        updatedSubOptions.style.display = isExpanded ? 'none' : 'block';
-        this.classList.toggle('expanded', !isExpanded);
-        
         if (!isExpanded) {
-            // Opening dropdown - show all plantable areas by default
+            // Opening dropdown - close other dropdowns first
+            closeOtherDropdowns('plantable');
+            
+            // Show this dropdown
+            updatedSubOptions.style.display = 'block';
+            this.classList.add('expanded');
+            
+            // Show all plantable areas by default
             window.layerState.showPlantableAreas = true;
             window.layerState.selectedPA = null;
             
@@ -193,9 +255,17 @@ function setupPlantableAreaControls() {
             // Reset any selected radio
             document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
         } else {
-            // Closing dropdown - hide plantable areas only if no specific PA is selected
+            // Closing dropdown
+            updatedSubOptions.style.display = 'none';
+            this.classList.remove('expanded');
+            
+            // Hide plantable areas only if no specific PA is selected
             if (!window.layerState.selectedPA) {
                 window.layerState.showPlantableAreas = false;
+            }
+            // Hide focus panel and clear connection when closing dropdown
+            if (window.clearPAConnection) {
+                window.clearPAConnection();
             }
         }
         
@@ -230,11 +300,15 @@ function setupNonPlantableAreaControls() {
         const isExpanded = updatedSubOptions.style.display === 'block';
         console.log('Current expanded state:', isExpanded);
         
-        updatedSubOptions.style.display = isExpanded ? 'none' : 'block';
-        this.classList.toggle('expanded', !isExpanded);
-        
         if (!isExpanded) {
-            // Opening dropdown - show all non-plantable areas by default
+            // Opening dropdown - close other dropdowns first
+            closeOtherDropdowns('nonplantable');
+            
+            // Show this dropdown
+            updatedSubOptions.style.display = 'block';
+            this.classList.add('expanded');
+            
+            // Show all non-plantable areas by default
             window.layerState.showNonPlantableAreas = true;
             window.layerState.selectedNPA = null;
             
@@ -248,7 +322,11 @@ function setupNonPlantableAreaControls() {
             // Reset any selected radio
             document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
         } else {
-            // Closing dropdown - hide non-plantable areas only if no specific NPA is selected
+            // Closing dropdown
+            updatedSubOptions.style.display = 'none';
+            this.classList.remove('expanded');
+            
+            // Hide non-plantable areas only if no specific NPA is selected
             if (!window.layerState.selectedNPA) {
                 window.layerState.showNonPlantableAreas = false;
             }
@@ -279,8 +357,19 @@ function setupEcologicalMetricsControls() {
     newToggle.addEventListener('click', function(e) {
         e.stopPropagation();
         const isExpanded = metricsOptions.style.display === 'block';
-        metricsOptions.style.display = isExpanded ? 'none' : 'block';
-        newToggle.classList.toggle('expanded', !isExpanded);
+        
+        if (!isExpanded) {
+            // Opening dropdown - close other dropdowns first
+            closeOtherDropdowns('metrics');
+            
+            // Show this dropdown
+            metricsOptions.style.display = 'block';
+            newToggle.classList.add('expanded');
+        } else {
+            // Closing dropdown
+            metricsOptions.style.display = 'none';
+            newToggle.classList.remove('expanded');
+        }
     });
     
     // Metric radio buttons
@@ -434,6 +523,19 @@ function populatePACategories(categories, categorizedPAs) {
                     updateVisualization();
                     // Zoom to the selected PA
                     zoomToFeature(name, 'PA');
+                    
+                    // Orchestrate the focus panel animation sequence
+                    if (window.focusPanel && window.currentSiteData) {
+                        const paFeature = window.currentSiteData.features.find(f => {
+                            const parsed = parseBoydName(f.properties.name);
+                            return (parsed.description || parsed.id) === name;
+                        });
+                        if (paFeature) {
+                            // Update highlighting is now done inside the animation
+                            updateSelectedPAHighlight(name);
+                            orchestrateFocusAnimation(label, name, paFeature);
+                        }
+                    }
                 }
             });
             
@@ -474,15 +576,24 @@ function analyzeNPACategories(geoJsonData) {
  */
 function parseBoydName(name) {
     // Extract PA/NPA number and description
-    const match = name.match(/((?:N)?PA)(\d+)(?:=\"([^\"]+)\")?/);
+    // Handle both single and double quotes
+    const match = name.match(/((?:N)?PA)(\d+)(?:=[\"']([^\"']+)[\"'])?/);
     if (match) {
         const prefix = match[1];
         const number = match[2];
         let description = match[3] || '';
         
-        // Special case: rename "Unknown" to "Southeast Driveway Entrance"
-        if (!description || description === 'Unknown') {
-            description = 'Southeast Driveway Entrance';
+        // If no description in quotes, check if there's an equals sign without quotes
+        if (!description && name.includes('=')) {
+            const parts = name.split('=');
+            if (parts.length > 1) {
+                description = parts[1].trim();
+            }
+        }
+        
+        // If still no description, use the full name
+        if (!description) {
+            description = name;
         }
         
         return {
@@ -491,7 +602,10 @@ function parseBoydName(name) {
             number: parseInt(number)
         };
     }
-    return { id: name, description: 'Southeast Driveway Entrance', number: 0 };
+    
+    // For names that don't match the pattern (like "Southeast Front Door Entrance"),
+    // return the name as both id and description
+    return { id: name, description: name, number: 0 };
 }
 
 /**
@@ -723,53 +837,61 @@ function zoomToFeature(featureName, featureType) {
         return;
     }
     
-    // Calculate bounds of the polygon
-    let minLat = 90, maxLat = -90;
-    let minLng = 180, maxLng = -180;
-    
-    feature.geometry.coordinates[0].forEach(coord => {
+    // Calculate polygon center
+    let sumLat = 0, sumLng = 0;
+    const coords = feature.geometry.coordinates[0];
+    coords.forEach(coord => {
         const [lng, lat] = coord;
-        minLat = Math.min(minLat, lat);
-        maxLat = Math.max(maxLat, lat);
-        minLng = Math.min(minLng, lng);
-        maxLng = Math.max(maxLng, lng);
+        sumLat += lat;
+        sumLng += lng;
     });
+    const centerLat = sumLat / coords.length;
+    const centerLng = sumLng / coords.length;
     
-    // Calculate center
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
-    
-    // Calculate the span in meters
-    const latSpan = (maxLat - minLat) * 111320; // Approximate meters per degree latitude
-    const lonSpan = (maxLng - minLng) * 111320 * Math.cos(centerLat * Math.PI / 180);
-    
-    // Get the viewport aspect ratio
-    const aspectRatio = viewer.canvas.width / viewer.canvas.height;
-    
-    // Calculate height based on vertical constraint (50% of screen height)
-    const fov = viewer.camera.frustum.fov;
-    const verticalHeight = (latSpan * 2) / Math.tan(fov / 2); // *2 for 50% vertical
-    
-    // Check if horizontal span would exceed screen width at this height
-    const horizontalFOV = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
-    const maxHorizontalSpan = 2 * verticalHeight * Math.tan(horizontalFOV / 2);
-    
-    // If horizontal span would exceed screen width, adjust height based on horizontal constraint
-    let height = verticalHeight;
-    if (lonSpan > maxHorizontalSpan) {
-        height = lonSpan / (2 * Math.tan(horizontalFOV / 2));
+    // Calculate maximum distance between any two vertices (radius)
+    let maxDistance = 0;
+    for (let i = 0; i < coords.length; i++) {
+        for (let j = i + 1; j < coords.length; j++) {
+            const [lng1, lat1] = coords[i];
+            const [lng2, lat2] = coords[j];
+            
+            // Haversine formula for distance between two points
+            const R = 6371000; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lng2 - lng1) * Math.PI / 180;
+            
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            
+            maxDistance = Math.max(maxDistance, distance);
+        }
     }
+    const radius = maxDistance / 2;
     
-    // Add 20% padding for better framing
-    height = height * 1.2;
+    // Calculate height where radius appears as 50% of screen height
+    const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
+    const targetCoverage = 0.5; // 50% of screen height
+    const height = radius / (targetCoverage * Math.tan(fov / 2));
     
     // Apply minimum height constraint
-    const minHeight = 30; // 30 meters minimum
-    height = Math.max(height, minHeight);
+    const minHeight = 100; // 100 meters minimum
+    const finalHeight = Math.max(height, minHeight);
+    
+    console.log('Camera positioning:', {
+        center: { lat: centerLat, lng: centerLng },
+        radius: radius,
+        calculatedHeight: height,
+        finalHeight: finalHeight
+    });
     
     // Animate to position with camera facing straight down
     viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, height),
+        destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
         orientation: {
             heading: 0.0,  // North
             pitch: -Math.PI / 2,  // Looking straight down
@@ -803,57 +925,70 @@ function zoomToNPACategory(categoryName) {
         return;
     }
     
-    // Calculate bounds of all NPAs in this category
-    let minLat = 90, maxLat = -90;
-    let minLng = 180, maxLng = -180;
+    // Calculate combined polygon center (average of all vertices)
+    let sumLat = 0, sumLng = 0, vertexCount = 0;
+    const allCoords = [];
     
     npaFeatures.forEach(feature => {
         if (feature.geometry.type === 'Polygon') {
             feature.geometry.coordinates[0].forEach(coord => {
                 const [lng, lat] = coord;
-                minLat = Math.min(minLat, lat);
-                maxLat = Math.max(maxLat, lat);
-                minLng = Math.min(minLng, lng);
-                maxLng = Math.max(maxLng, lng);
+                sumLat += lat;
+                sumLng += lng;
+                vertexCount++;
+                allCoords.push(coord);
             });
         }
     });
     
-    // Calculate center
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
+    const centerLat = sumLat / vertexCount;
+    const centerLng = sumLng / vertexCount;
     
-    // Calculate the span in meters
-    const latSpan = (maxLat - minLat) * 111320; // Approximate meters per degree latitude
-    const lonSpan = (maxLng - minLng) * 111320 * Math.cos(centerLat * Math.PI / 180);
-    
-    // Get the viewport aspect ratio
-    const aspectRatio = viewer.canvas.width / viewer.canvas.height;
-    
-    // Calculate height based on vertical constraint (50% of screen height)
-    const fov = viewer.camera.frustum.fov;
-    const verticalHeight = (latSpan * 2) / Math.tan(fov / 2); // *2 for 50% vertical
-    
-    // Check if horizontal span would exceed screen width at this height
-    const horizontalFOV = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
-    const maxHorizontalSpan = 2 * verticalHeight * Math.tan(horizontalFOV / 2);
-    
-    // If horizontal span would exceed screen width, adjust height based on horizontal constraint
-    let height = verticalHeight;
-    if (lonSpan > maxHorizontalSpan) {
-        height = lonSpan / (2 * Math.tan(horizontalFOV / 2));
+    // Calculate maximum distance between any two vertices (radius)
+    let maxDistance = 0;
+    for (let i = 0; i < allCoords.length; i++) {
+        for (let j = i + 1; j < allCoords.length; j++) {
+            const [lng1, lat1] = allCoords[i];
+            const [lng2, lat2] = allCoords[j];
+            
+            // Haversine formula for distance between two points
+            const R = 6371000; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lng2 - lng1) * Math.PI / 180;
+            
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            
+            maxDistance = Math.max(maxDistance, distance);
+        }
     }
+    const radius = maxDistance / 2;
     
-    // Add 20% padding for better framing
-    height = height * 1.2;
+    // Calculate height where radius appears as 50% of screen height
+    const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
+    const targetCoverage = 0.5; // 50% of screen height
+    const height = radius / (targetCoverage * Math.tan(fov / 2));
     
     // Apply minimum height constraint
-    const minHeight = 30; // 30 meters minimum
-    height = Math.max(height, minHeight);
+    const minHeight = 100; // 100 meters minimum
+    const finalHeight = Math.max(height, minHeight);
+    
+    console.log('NPA Camera positioning:', {
+        category: categoryName,
+        center: { lat: centerLat, lng: centerLng },
+        radius: radius,
+        calculatedHeight: height,
+        finalHeight: finalHeight
+    });
     
     // Animate to position with camera facing straight down
     viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, height),
+        destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
         orientation: {
             heading: 0.0,  // North
             pitch: -Math.PI / 2,  // Looking straight down
@@ -874,6 +1009,435 @@ if (document.readyState === 'loading') {
     initializeLayerControls();
 }
 
+/**
+ * Updates the selected PA visual highlight
+ * @param {string} selectedName - Name of selected PA
+ */
+function updateSelectedPAHighlight(selectedName) {
+    // Remove previous selections and dynamic styles
+    document.querySelectorAll('.pa-category.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Remove any existing dynamic style
+    const existingStyle = document.getElementById('selected-pa-style');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+    
+    // Add selection to current PA
+    const labels = document.querySelectorAll('.pa-category');
+    labels.forEach(label => {
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio && radio.value === selectedName) {
+            label.classList.add('selected');
+            
+            // Create dynamic style for the oval border positioning
+            const rect = label.getBoundingClientRect();
+            const style = document.createElement('style');
+            style.id = 'selected-pa-style';
+            style.textContent = `
+                .pa-category.selected::before {
+                    left: ${rect.left - 4}px;
+                    top: ${rect.top - 4}px;
+                    width: ${rect.width + 8}px;
+                    height: ${rect.height + 8}px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    });
+}
+
+// Global state for animation management
+let currentAnimationState = {
+    selectedLabel: null,
+    selectedPA: null,
+    isAnimating: false,
+    animationTimeline: null
+};
+
+/**
+ * Orchestrates the complete focus panel animation sequence
+ * @param {HTMLElement} label - The PA label that was clicked
+ * @param {string} paName - The name of the PA
+ * @param {Object} paFeature - The GeoJSON feature data
+ */
+function orchestrateFocusAnimation(label, paName, paFeature) {
+    // If currently animating, queue this after current animation
+    if (currentAnimationState.isAnimating) {
+        // First reverse current animation
+        reverseCurrentAnimation(() => {
+            // Then start new animation
+            startFocusAnimation(label, paName, paFeature);
+        });
+    } else if (currentAnimationState.selectedLabel && currentAnimationState.selectedLabel !== label) {
+        // If different PA selected, reverse current then start new
+        reverseCurrentAnimation(() => {
+            startFocusAnimation(label, paName, paFeature);
+        });
+    } else {
+        // Fresh start
+        startFocusAnimation(label, paName, paFeature);
+    }
+}
+
+/**
+ * Starts the focus animation sequence
+ */
+function startFocusAnimation(label, paName, paFeature) {
+    currentAnimationState.isAnimating = true;
+    currentAnimationState.selectedLabel = label;
+    currentAnimationState.selectedPA = paName;
+    
+    // Ensure the label has the selected class for the oval to appear
+    label.classList.add('selected');
+    
+    // Wait for oval to render (CSS transition time)
+    setTimeout(() => {
+        // Phase 1: Extend connection line
+        createAnimatedConnectionLine(label, () => {
+            // Phase 2: Create vertical edge line
+            createVerticalEdge(() => {
+                // Phase 3: Expand edge to oval and reveal content
+                expandToFocusPanel(paName, paFeature, () => {
+                    currentAnimationState.isAnimating = false;
+                });
+            });
+        });
+    }, 100); // Small delay to ensure oval CSS has rendered
+}
+
+/**
+ * Reverses the current animation
+ */
+function reverseCurrentAnimation(callback) {
+    if (!currentAnimationState.selectedLabel) {
+        if (callback) callback();
+        return;
+    }
+    
+    currentAnimationState.isAnimating = true;
+    
+    // Phase 1: Collapse focus panel to edge
+    collapseFocusPanel(() => {
+        // Phase 2: Collapse vertical edge
+        collapseVerticalEdge(() => {
+            // Phase 3: Retract connection line
+            retractConnectionLine(() => {
+                currentAnimationState.selectedLabel = null;
+                currentAnimationState.selectedPA = null;
+                currentAnimationState.isAnimating = false;
+                if (callback) callback();
+            });
+        });
+    });
+}
+
+/**
+ * Creates animated connection line extending from PA label
+ */
+function createAnimatedConnectionLine(paLabel, callback) {
+    const paRect = paLabel.getBoundingClientRect();
+    const layerControlsPanel = document.getElementById('layerControls');
+    const panelRect = layerControlsPanel.getBoundingClientRect();
+    
+    // The oval extends 4px outside the label bounds
+    const ovalPadding = 4;
+    const startY = paRect.top + paRect.height / 2;
+    
+    // The selected::before pseudo-element creates an oval that's 4px outside the PA label
+    // For precise alignment, get the actual PA label position within the panel
+    const labelOffsetFromPanel = paRect.left - panelRect.left;
+    const ovalLeftEdge = paRect.left - ovalPadding;
+    
+    // Fixed connection line length - shorter for cleaner look
+    const connectionLineLength = 40; // Reduced to 40px for better visual balance
+    
+    // Line position and dimensions
+    const lineLeft = ovalLeftEdge - connectionLineLength;
+    const lineWidth = connectionLineLength;
+    
+    // Create line element
+    const line = document.createElement('div');
+    line.className = 'connection-line animated';
+    line.style.left = `${lineLeft}px`;
+    line.style.top = `${startY - 1}px`; // Center on 2px height
+    line.style.width = '0px';
+    line.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    line.style.transformOrigin = 'right center'; // Grow from right edge (oval side)
+    line.style.opacity = '1'; // Make sure it's visible
+    line.style.background = 'white'; // Ensure white color
+    line.style.height = '2px'; // Ensure height
+    line.style.zIndex = '1002'; // Ensure it's above other elements
+    
+    document.body.appendChild(line);
+    
+    // Store reference for later phases
+    currentAnimationState.connectionLine = line;
+    currentAnimationState.lineEndX = lineLeft; // Where the line ends (left side)
+    currentAnimationState.lineStartX = ovalLeftEdge; // Where the line starts (oval side)
+    currentAnimationState.lineY = startY;
+    
+    console.log('Creating connection line:', {
+        ovalLeftEdge,
+        lineY: startY,
+        lineLeft,
+        lineWidth: connectionLineLength,
+        lineEndX: lineLeft
+    });
+    
+    // Animate line extension
+    requestAnimationFrame(() => {
+        line.style.width = `${lineWidth}px`;
+        setTimeout(callback, 300);
+    });
+}
+
+/**
+ * Creates vertical edge at the end of connection line
+ */
+function createVerticalEdge(callback) {
+    const edge = document.createElement('div');
+    edge.className = 'focus-edge animated';
+    edge.style.position = 'fixed';
+    edge.style.left = `${currentAnimationState.lineEndX}px`; // Left end of connection line
+    edge.style.top = `${currentAnimationState.lineY}px`;
+    edge.style.width = '2px';
+    edge.style.height = '0px';
+    edge.style.background = 'white';
+    edge.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    edge.style.zIndex = '999';
+    
+    document.body.appendChild(edge);
+    currentAnimationState.verticalEdge = edge;
+    
+    // Animate edge expansion (from center outward)
+    requestAnimationFrame(() => {
+        const targetHeight = window.innerHeight - 200; // 100px margins
+        edge.style.height = `${targetHeight}px`;
+        edge.style.top = '100px';
+        setTimeout(callback, 300);
+    });
+}
+
+/**
+ * Expands vertical edge into full focus panel
+ */
+function expandToFocusPanel(paName, paFeature, callback) {
+    // Remove the vertical edge
+    if (currentAnimationState.verticalEdge) {
+        currentAnimationState.verticalEdge.remove();
+    }
+    
+    // Ensure focus panel exists (recreate if it was removed)
+    if (!window.focusPanel.panel || !document.body.contains(window.focusPanel.panel)) {
+        window.focusPanel.init();
+    }
+    
+    // Get focus panel reference
+    const panel = window.focusPanel.panel;
+    
+    // Temporarily remove visible class to prevent ghost appearance
+    panel.classList.remove('visible');
+    panel.classList.add('animating-in');
+    
+    // Position panel at the connection line end point
+    // Panel width is 420px, so its right edge should be at lineEndX
+    const panelWidth = 420;
+    const panelLeft = currentAnimationState.lineEndX - panelWidth;
+    
+    // Hide panel initially to prevent position jump
+    panel.style.visibility = 'hidden';
+    panel.style.opacity = '1'; // Keep opacity for the scale animation
+    
+    // Override default CSS position temporarily
+    panel.style.left = `${panelLeft}px`;
+    panel.style.right = 'auto';
+    panel.style.transform = 'scaleX(0)';
+    panel.style.transformOrigin = 'right center';
+    
+    // Populate panel content without triggering visibility
+    window.focusPanel.currentPA = paName;
+    window.focusPanel.displayMetrics(paFeature);
+    window.focusPanel.isVisible = true;
+    
+    // Update header
+    const headerHTML = `
+        <div>
+            <h3 class="pa-name">${paName.toUpperCase()}</h3>
+            <p class="pa-subtitle">Ecological Niche Metrics</p>
+        </div>
+        <button class="close-button" aria-label="Close panel">×</button>
+    `;
+    panel.querySelector('.focus-panel-header').innerHTML = headerHTML;
+    
+    // Re-attach close button listener to trigger full animation
+    const closeBtn = panel.querySelector('.close-button');
+    closeBtn.addEventListener('click', () => {
+        if (window.clearPAConnection) {
+            window.clearPAConnection();
+        }
+    });
+    
+    // Make panel visible and animate expansion in next frame
+    requestAnimationFrame(() => {
+        panel.style.visibility = 'visible';
+        panel.classList.add('visible'); // Add visible class now that positioning is set
+        panel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        requestAnimationFrame(() => {
+            panel.style.transform = 'scaleX(1)';
+        });
+        
+        setTimeout(() => {
+            panel.classList.remove('animating-in');
+            // Reset to default CSS positioning
+            panel.style.left = '';
+            panel.style.right = '';
+            panel.style.transform = '';
+            panel.style.transformOrigin = '';
+            panel.style.transition = '';
+            panel.style.visibility = '';
+            if (callback) callback();
+        }, 400);
+    });
+}
+
+/**
+ * Collapses focus panel back to edge
+ */
+function collapseFocusPanel(callback) {
+    const panel = window.focusPanel.panel;
+    if (!panel || (!panel.classList.contains('visible') && !panel.classList.contains('animating-in'))) {
+        if (callback) callback();
+        return;
+    }
+    
+    // Remove visible class immediately to prevent ghost
+    panel.classList.remove('visible');
+    
+    // Position panel at the connection line end point for collapse
+    if (currentAnimationState.lineEndX) {
+        const panelWidth = 420;
+        const panelLeft = currentAnimationState.lineEndX - panelWidth;
+        panel.style.left = `${panelLeft}px`;
+        panel.style.right = 'auto';
+    }
+    
+    panel.classList.add('animating-out');
+    panel.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    panel.style.transformOrigin = 'right center';
+    panel.style.transform = 'scaleX(0)';
+    
+    setTimeout(() => {
+        // Call hide to update state
+        window.focusPanel.hide();
+        
+        // Remove the panel element completely to prevent ghost
+        if (panel && panel.parentNode) {
+            panel.parentNode.removeChild(panel);
+            window.focusPanel.panel = null; // Clear the reference
+        }
+        
+        // Create vertical edge in its place
+        createVerticalEdgeForCollapse(callback);
+    }, 300);
+}
+
+/**
+ * Creates vertical edge during collapse animation
+ */
+function createVerticalEdgeForCollapse(callback) {
+    const edge = document.createElement('div');
+    edge.className = 'focus-edge animated';
+    edge.style.position = 'fixed';
+    edge.style.left = `${currentAnimationState.lineEndX}px`; // Same position as expansion
+    edge.style.top = '100px';
+    edge.style.width = '2px';
+    edge.style.height = `${window.innerHeight - 200}px`;
+    edge.style.background = 'white';
+    edge.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    edge.style.zIndex = '999';
+    
+    document.body.appendChild(edge);
+    
+    // Animate collapse
+    requestAnimationFrame(() => {
+        edge.style.height = '0px';
+        edge.style.top = `${currentAnimationState.lineY}px`;
+        
+        setTimeout(() => {
+            edge.remove();
+            if (callback) callback();
+        }, 300);
+    });
+}
+
+/**
+ * Collapses vertical edge (called from reverseCurrentAnimation)
+ */
+function collapseVerticalEdge(callback) {
+    // Since we create the edge during collapse, we just call the callback
+    // The actual edge collapse happens in createVerticalEdgeForCollapse
+    if (callback) callback();
+}
+
+/**
+ * Retracts connection line
+ */
+function retractConnectionLine(callback) {
+    const line = currentAnimationState.connectionLine;
+    if (!line) {
+        if (callback) callback();
+        return;
+    }
+    
+    line.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+    line.style.width = '0px';
+    line.style.opacity = '0';
+    
+    setTimeout(() => {
+        line.remove();
+        currentAnimationState.connectionLine = null;
+        
+        // Clear PA selection highlight
+        document.querySelectorAll('.pa-category.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
+        if (callback) callback();
+    }, 300);
+}
+
+/**
+ * Creates visual connection between selected PA and focus panel (simplified for non-animated use)
+ */
+function createPAConnection(paLabel) {
+    // This function is now replaced by the animation orchestrator
+    // Kept for backwards compatibility but does nothing
+}
+
+// Clean up connection when closing dropdown or deselecting
+function clearPAConnection() {
+    // Use the animation system if there's an active connection
+    if (currentAnimationState.selectedLabel) {
+        reverseCurrentAnimation();
+    } else {
+        // Fallback for direct cleanup
+        const line = document.querySelector('.connection-line');
+        if (line) {
+            line.classList.remove('visible');
+            setTimeout(() => line.remove(), 500);
+        }
+        
+        // Remove selected class
+        document.querySelectorAll('.pa-category.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+    }
+}
+
 // Expose functions globally
 window.initializeLayerControls = initializeLayerControls;
 window.updateVisualization = updateVisualization;
@@ -881,3 +1445,7 @@ window.visualizeGeoJsonPolygonsWithLayers = visualizeGeoJsonPolygonsWithLayers;
 window.layerSettings = layerSettings;
 window.parseBoydName = parseBoydName;
 window.extractNPACategory = extractNPACategory;
+window.updateSelectedPAHighlight = updateSelectedPAHighlight;
+window.createPAConnection = createPAConnection;
+window.clearPAConnection = clearPAConnection;
+window.orchestrateFocusAnimation = orchestrateFocusAnimation;

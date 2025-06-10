@@ -1,4 +1,4 @@
-# Terrain 3D: Ecological Digital Twin Platform
+# Terrain 3D: Functional Requirements & Specifications
 
 ## Executive Overview
 
@@ -66,7 +66,35 @@ For every plantable area within a site, the platform provides comprehensive ecol
 - **Climate Resilience**: Drought, flood, and wind exposure probabilities
 - **Habitat Quality**: Native plant compatibility and ecosystem service potential
 
-#### 2.3 Scientific Accuracy & Validation
+#### 2.3 Focus Panel - Detailed Ecological Data Visualization
+The platform features an elegant focus panel that provides landscape architects with detailed ecological metrics for each selected plantable area:
+
+**Glass-Effect Interface Design**:
+- **Semi-transparent Panel**: Glass greenhouse aesthetic with backdrop blur effect
+- **Slide-out Animation**: Smooth 0.4s cubic-bezier transition from bottom-left
+- **Dark Glass Background**: Ecodash blue-tinted glass (rgba(7, 43, 46, 0.85)) for optimal contrast
+- **Responsive Layout**: Automatically adapts to mobile devices
+
+**Gaussian Distribution Visualizations**:
+- **Probability Curves**: Each metric displayed as a Gaussian distribution showing ecological ranges
+- **Viridis Color Mapping**: Scientific color scale for normalized metric values
+- **Interactive Dots**: Colored indicators positioned at mean values with subtle glow effects
+- **Smart Axis Labels**: Intelligent tick intervals based on data ranges
+
+**Simplified Interpretations for Landscape Architects**:
+- **Sunlight**: "Full Sun" (6+ hrs), "Partial Sun" (3-6 hrs), "Full Shade" (<3 hrs)
+- **Soil Moisture**: "Dry", "Moderate", "Wet" with 5-level scale
+- **Soil pH**: "Acidic" (<6.0), "Neutral" (6.0-7.5), "Alkaline" (>7.5)
+- **Nutrients**: "Low", "Moderate", "High" for N/P/K with ppm thresholds
+- **Risk Factors**: Percentage-based drought, flood, and wind exposure categories
+
+**Data Integration**:
+- **Real-time Updates**: Instantly displays metrics when plantable area is selected
+- **Project-wide Ranges**: Calculates min/max values across all site areas
+- **Boyd Format Support**: Parses M1-M10 ecological niche model data
+- **Metric Reordering**: Optimized order based on landscape design priorities
+
+#### 2.4 Scientific Accuracy & Validation
 - **Automatic Quality Checks**: Prevent scientifically invalid data from publication
 - **Precision Metadata**: Track and display accuracy levels for all models
 - **Cross-validation**: Ensure consistency between different data sources

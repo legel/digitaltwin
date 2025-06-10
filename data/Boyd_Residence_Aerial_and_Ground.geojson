@@ -1981,7 +1981,7 @@
       "type": "Feature",
       "id": "e6c9629c-a6fa-44ab-a5f2-5486c8429639",
       "properties": {
-        "name": "PA18=\"North Entrance",
+        "name": "PA18=\"North Entrance\"",
         "description": "Ecodash.ai Ecological Niche Model v0.5\n\nM1: Moisture (level)      = Dry - Moderate\nM2: Light (hours)           = 0-2\nM3: pH (0-14)                 = 5.9-7.9\nM4: N (ppm)                   = 1-3\nM5: P (ppm)                   = 37-41\nM6: K (ppm)                   = 54-58\nM7: Organic (%)             = 2-4\nM8: Drought (Risk %)    = 0-5   \nM9: Flood (Risk %)        = 0-5\nM10: Wind                      = 0-3",
         "created": "2025-05-23T21:28:31.479Z",
         "modified": "2025-05-28T16:54:17.327Z",

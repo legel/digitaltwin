@@ -48,14 +48,70 @@ class CesiumManager {
         this.viewer.scene.globe.terrainExaggeration = 1.0; // No vertical exaggeration
         this.viewer.scene.globe.maximumScreenSpaceError = 4; // Lower quality for better performance (default is 2)
         
-        // Add click handler for polygons
+        // Enable picking through translucent objects
+        this.viewer.scene.pickTranslucentDepth = true;
+        
+        // Add click handler for debugging (can be removed later)
         const handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
         handler.setInputAction((click) => {
             const pickedObject = this.viewer.scene.pick(click.position);
-            console.log('Click detected, picked object:', pickedObject);
+            // console.log('Click detected, picked object:', pickedObject); // Commented out to reduce noise
             
-            if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.polygon) {
-                const entity = pickedObject.id;
+            // Check if we picked an entity (pickedObject.id) or if the pickedObject has a primitive
+            let entity = null;
+            if (Cesium.defined(pickedObject)) {
+                if (pickedObject.id && pickedObject.id.polygon) {
+                    // Standard entity pick
+                    entity = pickedObject.id;
+                } else if (pickedObject.primitive && pickedObject.primitive.id && pickedObject.primitive.id.polygon) {
+                    // Picked the primitive, get entity from primitive.id
+                    entity = pickedObject.primitive.id;
+                }
+            }
+            
+            // If we didn't find an entity, try drillPick to see through 3D tiles
+            if (!entity) {
+                const drillPickResults = this.viewer.scene.drillPick(click.position);
+                console.log('Drill pick results:', drillPickResults.length);
+                for (let i = 0; i < drillPickResults.length; i++) {
+                    const picked = drillPickResults[i];
+                    console.log(`DrillPick result ${i}:`, {
+                        hasId: !!picked.id,
+                        idType: picked.id ? typeof picked.id : 'none',
+                        idName: picked.id?.name,
+                        hasPolygon: picked.id?.polygon ? true : false,
+                        primitive: !!picked.primitive,
+                        content: !!picked.content
+                    });
+                    
+                    if (picked.id && picked.id.polygon) {
+                        entity = picked.id;
+                        console.log('Found entity via drillPick:', entity.name);
+                        break;
+                    }
+                }
+            }
+            
+            // If still no entity, try getting entity at the clicked position
+            if (!entity && this.viewer.scene.globe.pick) {
+                const ray = this.viewer.camera.getPickRay(click.position);
+                const cartesian = this.viewer.scene.globe.pick(ray, this.viewer.scene);
+                if (cartesian) {
+                    // Check all entities to see if click is inside any polygon
+                    const entities = this.viewer.entities.values;
+                    for (let i = 0; i < entities.length; i++) {
+                        const ent = entities[i];
+                        if (ent.polygon) {
+                            // This is a simplified check - just looking for any polygon entity
+                            // In production, you'd want to check if the click is actually inside the polygon
+                            console.log('Found polygon entity in collection:', ent.name);
+                            // For now, just log what we find
+                        }
+                    }
+                }
+            }
+            
+            if (entity) {
                 const entityName = entity.name;
                 
                 console.log('Clicked on polygon with name:', entityName);
@@ -64,34 +120,97 @@ class CesiumManager {
                 const parsed = window.parseBoydName?.(entityName);
                 console.log('Parsed entity:', parsed);
                 
-                if (entityName && entityName.includes('PA') && !entityName.includes('NPA')) {
+                // Check if this is a plantable area by looking at all PA radio values
+                const allPARadios = document.querySelectorAll('.pa-category input[type="radio"][name="plantableArea"]');
+                let isPlantableArea = false;
+                for (const radio of allPARadios) {
+                    if (radio.value === entityName) {
+                        isPlantableArea = true;
+                        break;
+                    }
+                }
+                
+                if (isPlantableArea) {
                     // This is a plantable area
-                    const paName = parsed?.description || parsed?.id;
-                    console.log('Clicked on plantable area, description:', paName);
+                    console.log('Clicked on plantable area:', entityName);
                     
-                    // Check if this PA is in our categories
-                    if (paName && window.layerState?.paCategories?.has(paName)) {
-                        console.log('Found PA in categories:', paName);
+                    // Ensure the plantable areas dropdown is open
+                    const plantableToggle = document.getElementById('plantableAreasToggle');
+                    const plantableSubOptions = document.getElementById('plantableSubOptions');
+                    if (plantableToggle && plantableSubOptions && plantableSubOptions.style.display !== 'block') {
+                        console.log('Opening plantable areas dropdown');
+                        plantableToggle.click();
+                    }
+                    
+                    // Find and click the PA label (entire row)
+                    setTimeout(() => {
+                        console.log(`Searching for PA label with entity name: "${entityName}"`);
                         
-                        // Ensure the plantable areas dropdown is open
-                        const plantableToggle = document.getElementById('plantableAreasToggle');
-                        const plantableSubOptions = document.getElementById('plantableSubOptions');
-                        if (plantableToggle && plantableSubOptions && plantableSubOptions.style.display !== 'block') {
-                            console.log('Opening plantable areas dropdown');
-                            plantableToggle.click();
+                        // Find all PA category labels
+                        const allLabels = document.querySelectorAll('.pa-category');
+                        console.log(`Found ${allLabels.length} PA category labels`);
+                        
+                        let targetLabel = null;
+                        
+                        // Look through all labels to find the matching one
+                        for (const label of allLabels) {
+                            // Check the radio input value inside this label
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (radio) {
+                                console.log(`Checking label with radio value: "${radio.value}"`);
+                                
+                                if (radio.value === entityName) {
+                                    targetLabel = label;
+                                    console.log(`Found matching label for: "${entityName}"`);
+                                    break;
+                                }
+                            }
                         }
                         
-                        // Find and click the radio button
-                        setTimeout(() => {
-                            const radio = document.querySelector(`.pa-category input[value="${paName}"]`);
-                            console.log('Looking for radio with value:', paName, 'Found:', radio);
+                        if (targetLabel) {
+                            console.log('Target label found, simulating click on entire label element');
+                            
+                            // Create and dispatch mouse events on the label
+                            const clickEvent = new MouseEvent('click', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            });
+                            targetLabel.dispatchEvent(clickEvent);
+                            console.log('Dispatched click event on label');
+                            
+                            // Also try native click method
+                            targetLabel.click();
+                            console.log('Called native click() method on label');
+                            
+                            // Check if radio got selected
+                            const radio = targetLabel.querySelector('input[type="radio"]');
                             if (radio) {
-                                radio.checked = true;
-                                radio.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('Selected PA radio button');
+                                console.log(`Radio checked state after click: ${radio.checked}`);
+                                
+                                // Update visual highlighting
+                                if (window.updateSelectedPAHighlight) {
+                                    window.updateSelectedPAHighlight(entityName);
+                                }
+                                
+                                // Create connection after a delay
+                                setTimeout(() => {
+                                    if (window.createPAConnection) {
+                                        window.createPAConnection(targetLabel);
+                                    }
+                                }, 300);
                             }
-                        }, 100);
-                    }
+                        } else {
+                            console.warn(`Could not find PA label for: "${entityName}"`);
+                            console.warn('Available PA values:');
+                            allLabels.forEach(label => {
+                                const radio = label.querySelector('input[type="radio"]');
+                                if (radio) {
+                                    console.log(` - "${radio.value}"`);
+                                }
+                            });
+                        }
+                    }, 300);
                 } else if (entityName && entityName.includes('NPA')) {
                     // This is a non-plantable area
                     const npaCategory = window.extractNPACategory?.(entityName);
@@ -121,12 +240,162 @@ class CesiumManager {
                     }
                 }
             } else {
-                console.log('Click was not on a polygon entity');
+                // console.log('Click was not on a polygon entity'); // Commented out to reduce noise
             }
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
         
         // Store handler for cleanup
         this.clickHandler = handler;
+        
+        // Debug function to list all polygon entities
+        this.debugListPolygons = () => {
+            const entities = this.viewer.entities.values;
+            console.log(`Total entities: ${entities.length}`);
+            let polygonCount = 0;
+            entities.forEach(entity => {
+                if (entity.polygon) {
+                    polygonCount++;
+                    console.log(`Polygon entity: ${entity.name}`);
+                }
+            });
+            console.log(`Total polygon entities: ${polygonCount}`);
+        };
+        
+        // Call debug function after a delay to ensure entities are loaded
+        setTimeout(() => this.debugListPolygons(), 5000);
+        
+        // Handle entity selection
+        this.viewer.selectedEntityChanged.addEventListener((entity) => {
+            console.log('Selected entity changed:', entity?.name);
+            if (entity && entity.polygon) {
+                console.log('Polygon entity selected via selectedEntityChanged:', entity.name);
+                const entityName = entity.name;
+                
+                // Parse the entity name to extract PA/NPA info
+                const parsed = window.parseBoydName?.(entityName);
+                console.log('Parsed entity:', parsed);
+                
+                // Check if this is a plantable area by looking at all PA radio values
+                const allPARadios = document.querySelectorAll('.pa-category input[type="radio"][name="plantableArea"]');
+                let isPlantableArea = false;
+                for (const radio of allPARadios) {
+                    if (radio.value === entityName) {
+                        isPlantableArea = true;
+                        break;
+                    }
+                }
+                
+                if (isPlantableArea) {
+                    // This is a plantable area
+                    console.log('Selected plantable area:', entityName);
+                    
+                    // Ensure the plantable areas dropdown is open
+                    const plantableToggle = document.getElementById('plantableAreasToggle');
+                    const plantableSubOptions = document.getElementById('plantableSubOptions');
+                    if (plantableToggle && plantableSubOptions && plantableSubOptions.style.display !== 'block') {
+                        console.log('Opening plantable areas dropdown');
+                        plantableToggle.click();
+                    }
+                    
+                    // Find and click the PA label (entire row)
+                    setTimeout(() => {
+                        console.log(`Searching for PA label with entity name: "${entityName}"`);
+                        
+                        // Find all PA category labels
+                        const allLabels = document.querySelectorAll('.pa-category');
+                        console.log(`Found ${allLabels.length} PA category labels`);
+                        
+                        let targetLabel = null;
+                        
+                        // Look through all labels to find the matching one
+                        for (const label of allLabels) {
+                            // Check the radio input value inside this label
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (radio) {
+                                console.log(`Checking label with radio value: "${radio.value}"`);
+                                
+                                if (radio.value === entityName) {
+                                    targetLabel = label;
+                                    console.log(`Found matching label for: "${entityName}"`);
+                                    break;
+                                }
+                            }
+                            
+                            // Also check the span title as backup
+                            const span = label.querySelector('span[title]');
+                            if (span && span.title === entityName) {
+                                targetLabel = label;
+                                console.log(`Found matching label by span title: "${entityName}"`);
+                                break;
+                            }
+                        }
+                        
+                        if (targetLabel) {
+                            console.log('Target label found, simulating click on entire label element');
+                            
+                            // Create and dispatch mouse events on the label
+                            const mouseDownEvent = new MouseEvent('mousedown', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            });
+                            targetLabel.dispatchEvent(mouseDownEvent);
+                            console.log('Dispatched mousedown event on label');
+                            
+                            const mouseUpEvent = new MouseEvent('mouseup', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            });
+                            targetLabel.dispatchEvent(mouseUpEvent);
+                            console.log('Dispatched mouseup event on label');
+                            
+                            const clickEvent = new MouseEvent('click', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            });
+                            targetLabel.dispatchEvent(clickEvent);
+                            console.log('Dispatched click event on label');
+                            
+                            // Also try native click method
+                            targetLabel.click();
+                            console.log('Called native click() method on label');
+                            
+                            // Check if radio got selected
+                            const radio = targetLabel.querySelector('input[type="radio"]');
+                            if (radio) {
+                                console.log(`Radio checked state after click: ${radio.checked}`);
+                                
+                                // Update visual highlighting
+                                if (window.updateSelectedPAHighlight) {
+                                    window.updateSelectedPAHighlight(entityName);
+                                }
+                                
+                                // Create connection after a delay
+                                setTimeout(() => {
+                                    if (window.createPAConnection) {
+                                        window.createPAConnection(targetLabel);
+                                    }
+                                }, 300);
+                            }
+                        } else {
+                            console.warn(`Could not find PA label for: "${entityName}"`);
+                            console.warn('Make sure the Plantable Areas section is expanded');
+                            
+                            // List all available values for debugging
+                            console.log('Available PA values:');
+                            allLabels.forEach(label => {
+                                const radio = label.querySelector('input[type="radio"]');
+                                if (radio) {
+                                    console.log(` - "${radio.value}"`);
+                                }
+                            });
+                        }
+                    }, 300); // Wait for dropdown to be fully rendered
+                }
+            }
+        });
 
         this.finalDestination = null;
 
@@ -232,30 +501,70 @@ class CesiumManager {
         const latSpan = (maxLat - minLat) * 111320; // Approximate meters per degree latitude
         const lonSpan = (maxLon - minLon) * 111320 * Math.cos(centerLat * Math.PI / 180);
         
-        // Get the viewport aspect ratio
-        const aspectRatio = this.viewer.canvas.width / this.viewer.canvas.height;
+        // Get the viewport dimensions
+        const viewportWidth = this.viewer.canvas.width;
+        const viewportHeight = this.viewer.canvas.height;
+        const aspectRatio = viewportWidth / viewportHeight;
         
-        // Calculate height based on vertical constraint (50% of screen height)
-        // The polygon should fit within 50% of vertical space
-        const fov = this.viewer.camera.frustum.fov;
-        const verticalHeight = (latSpan * 2) / Math.tan(fov / 2); // *2 for 50% vertical
+        // Camera field of view
+        const fov = this.viewer.camera.frustum.fov; // Vertical FOV in radians
+        const hfov = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio); // Horizontal FOV
         
-        // Check if horizontal span would exceed screen width at this height
-        const horizontalFOV = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
-        const maxHorizontalSpan = 2 * verticalHeight * Math.tan(horizontalFOV / 2);
+        // Calculate required height for constraints:
+        // 1. Polygon should occupy no more than 25% of horizontal screen width
+        // 2. Polygon should occupy no more than 50% of vertical screen height
         
-        // If horizontal span would exceed screen width, adjust height based on horizontal constraint
-        let height = verticalHeight;
-        if (lonSpan > maxHorizontalSpan) {
-            height = lonSpan / (2 * Math.tan(horizontalFOV / 2));
-        }
+        // For horizontal constraint (25% of screen width)
+        const targetHorizontalCoverage = 0.25;
+        const requiredHorizontalViewSpan = lonSpan / targetHorizontalCoverage;
+        const heightForHorizontal = requiredHorizontalViewSpan / (2 * Math.tan(hfov / 2));
         
-        // Add 20% padding for better framing
+        // Double the height to ensure we're zoomed out enough
+        const heightForHorizontalAdjusted = heightForHorizontal * 2;
+        
+        // For vertical constraint (50% of screen height)
+        const targetVerticalCoverage = 0.5;
+        const requiredVerticalViewSpan = latSpan / targetVerticalCoverage;
+        const heightForVertical = requiredVerticalViewSpan / (2 * Math.tan(fov / 2));
+        
+        // Use the larger height to ensure both constraints are met
+        let height = Math.max(heightForHorizontalAdjusted, heightForVertical);
+        
+        // Add 20% padding for visual comfort
         height = height * 1.2;
+        
+        // Apply minimum height constraint
+        const minHeight = 100; // 100 meters minimum for better overview
+        height = Math.max(height, minHeight);
+        
+        // Now calculate the camera position to place polygon center at (25% horizontal, 50% vertical)
+        // Target screen position: 25% from left, 50% from top
+        const targetScreenX = 0.25; // 25% from left
+        const targetScreenY = 0.5;  // 50% from top (center)
+        
+        // Calculate world-space offset needed
+        // When looking straight down, screen X maps to longitude, screen Y to latitude
+        const viewWidthMeters = 2 * height * Math.tan(hfov / 2);
+        const viewHeightMeters = 2 * height * Math.tan(fov / 2);
+        
+        // Convert screen position offset to world coordinates
+        const screenOffsetX = targetScreenX - 0.5; // -0.25 (left of center)
+        const screenOffsetY = targetScreenY - 0.5; // 0 (center)
+        
+        // Convert to degrees
+        const metersPerDegreeLon = 111320 * Math.cos(centerLat * Math.PI / 180);
+        const metersPerDegreeLat = 111320;
+        
+        const lonOffset = -(screenOffsetX * viewWidthMeters) / metersPerDegreeLon;
+        const latOffset = -(screenOffsetY * viewHeightMeters) / metersPerDegreeLat;
+        
+        // Apply offsets to position polygon correctly on screen
+        const adjustedCenterLon = centerLon + lonOffset;
+        const adjustedCenterLat = centerLat + latOffset;
         
         // Fly to position with camera facing straight down
         this.viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromDegrees(centerLon, centerLat, height),
+            destination: Cesium.Cartesian3.fromDegrees(adjustedCenterLon, adjustedCenterLat, height),
             orientation: {
                 heading: 0.0,  // North
                 pitch: -Math.PI / 2,  // Looking straight down

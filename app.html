@@ -23,6 +23,9 @@
 
     <!-- Menu and View Switch CSS -->
     <link href="/css/menu.css" rel="stylesheet">
+    
+    <!-- Focus Panel CSS -->
+    <link href="/css/focusPanel.css" rel="stylesheet">
 </head>
 <body>
     <!-- Cesium 3D Container -->
@@ -105,33 +108,31 @@
         </div>
     </div>
 
-    <!-- Load the Cesium scripts after the DOM is ready -->
-    <script src="/js/CesiumManager.js"></script>
+    <!-- Core Application Scripts -->
     <script src="/js/utilities.js"></script>
-    <script src="/js/navigation.js"></script>
     <script src="/js/main.js"></script>
 
-    <!-- Load the Google Maps API and its related script after the DOM is ready -->
+    <!-- Map Managers -->
+    <script src="/js/CesiumManager.js"></script>
     <script src="/js/GoogleMaps2DManager.js"></script>
-
-    <!-- Load services for inferring user IP and device information -->
     <script src="/js/UserManager.js"></script>
 
-    <!-- Load services for inferring user IP and device information -->
+    <!-- Navigation and Tours -->
+    <script src="/js/navigation.js"></script>
     <script src="/js/narratives.js"></script>
 
-    <!-- Load the new scripts -->
+    <!-- View Controls -->
     <script src="/js/tilt.js"></script>
     <script src="/js/orbit.js"></script>
     <script src="/js/home.js"></script>
     <script src="/js/viewTransform.js"></script>
     
-    <!-- Debug controls (only loads when #debug in URL) -->
-    <script src="/js/debugControls.js"></script>
-    
-    <!-- Layer controls -->
+    <!-- Data Visualization -->
     <script src="/js/layerControls.js"></script>
+    <script src="/js/metricChart.js"></script>
+    <script src="/js/focusPanel.js"></script>
+    
+    <!-- Development Tools -->
+    <script src="/js/debugControls.js"></script>
 </body>
 </html>
-
-
