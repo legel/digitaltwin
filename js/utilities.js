@@ -1058,10 +1058,12 @@ function parseBoydName(name) {
         const description = match[3] || '';
         return {
             id: `${prefix}${number}`,
-            description: description || 'Unknown'
+            description: description || name,
+            number: parseInt(number)
         };
     }
-    return { id: name, description: 'Unknown' };
+    // For names that don't match the pattern, return the name as both id and description
+    return { id: name, description: name, number: 0 };
 }
 
 /**
@@ -1368,7 +1370,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
             if (isPlantable) {
                 // Apply plantable area settings when showing plantable layer
                 if (window.layerState?.showPlantableAreas && !window.currentParameterFilter) {
-                    polygonAlpha = window.layerSettings?.plantableAreas.polygonAlpha || 0;
+                    polygonAlpha = window.layerSettings?.plantableAreas.polygonAlpha || 0.01; // Minimum alpha for pickability
                     outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
                     outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
                 }
@@ -1427,7 +1429,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                             outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
                         }
                         polygonColor = Cesium.Color.TRANSPARENT;
-                        polygonAlpha = 0;
+                        polygonAlpha = 0.01; // Minimum alpha for pickability
                     } else {
                         // Don't show if no layer is active
                         return;
@@ -1482,7 +1484,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                             outlineWidth = window.layerSettings?.nonPlantableAreas.outlineWidth || 2;
                         }
                         polygonColor = Cesium.Color.TRANSPARENT;
-                        polygonAlpha = 0;
+                        polygonAlpha = 0.01; // Minimum alpha for pickability
                     } else {
                         // Don't show if NPA layer is not active
                         return;
@@ -1569,8 +1571,8 @@ function visualizeGeoJsonPolygons(geoJsonData) {
             polygon: {
                 hierarchy: new Cesium.PolygonHierarchy(positions),
                 material: (window.debugSettings?.showFill !== false) ? 
-                    polygonColor.withAlpha(polygonAlpha) : 
-                    Cesium.Color.TRANSPARENT,
+                    polygonColor.withAlpha(Math.max(0.01, polygonAlpha)) : // Ensure minimum alpha
+                    Cesium.Color.WHITE.withAlpha(0.01), // Nearly transparent but still pickable
                 outline: window.debugSettings?.showOutline !== false,
                 outlineColor: outlineColor,
                 outlineWidth: outlineWidth,

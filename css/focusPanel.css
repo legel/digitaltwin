@@ -1,0 +1,518 @@
+/* ===================================
+   Focus Panel Styles
+   Glass greenhouse aesthetic with elegant data visualization
+   =================================== */
+
+/* Main focus panel container */
+.focus-panel {
+    position: fixed;
+    right: 310px; /* 20px gap from control panel at 290px */
+    top: 100px; /* Align with layer controls accounting for border radius */
+    bottom: 100px; /* Mirror top alignment */
+    width: 420px; /* Standard width */
+    background: rgba(255, 255, 255, 0.03); /* Very light, almost transparent white */
+    backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px; /* Full radius on all corners */
+    box-shadow: 
+        -8px 0 32px rgba(255, 255, 255, 0.1),
+        -4px 0 16px rgba(255, 255, 255, 0.05),
+        inset 0 0 80px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    opacity: 0;
+    z-index: 998; /* Slightly below layer controls to appear behind */
+    
+    /* Soft diffuse light effect */
+    background-image: 
+        radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 60%, rgba(255, 255, 255, 0.04) 0%, transparent 45%),
+        radial-gradient(ellipse at 40% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
+}
+
+/* Default state - hidden off-screen */
+.focus-panel:not(.visible):not(.animating-in):not(.animating-out) {
+    transform: translateX(calc(100% + 0px));
+    transition: none;
+}
+
+/* Visible state - for programmatic animation */
+.focus-panel.visible:not(.animating-in):not(.animating-out) {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* Animation states controlled by JavaScript */
+.focus-panel.animating-in,
+.focus-panel.animating-out {
+    opacity: 1;
+}
+
+/* Connection line from selected PA to focus panel */
+.connection-line {
+    position: fixed;
+    height: 2px;
+    background: white;
+    opacity: 0;
+    z-index: 1002; /* Higher than both panels (layer controls at 1000, focus panel at 998) */
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5); /* Add glow for visibility */
+}
+
+/* Legacy animation support */
+.connection-line:not(.animated) {
+    transition: opacity 0.5s ease, width 0.5s ease;
+}
+
+.connection-line.visible {
+    opacity: 1; /* Full opacity */
+}
+
+/* Animated connection line controlled by JavaScript */
+.connection-line.animated {
+    opacity: 1;
+}
+
+/* Visual connection indicator */
+.focus-connection-indicator {
+    position: absolute;
+    left: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 60px;
+    background: linear-gradient(to right, 
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%);
+    border-left: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 0;
+}
+
+/* Panel header */
+.focus-panel-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(7, 43, 46, 0.3); /* Slight tint for header */
+}
+
+.pa-name {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 16px; /* Reduced font size */
+    font-weight: 600;
+    margin: 0;
+    font-family: 'Oxygen', sans-serif;
+    letter-spacing: 1px; /* Better readability for ALL CAPS */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pa-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    font-weight: 400;
+    margin: 4px 0 0 0;
+    font-family: 'Oxygen', sans-serif;
+    font-style: italic;
+}
+
+.close-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.2s ease;
+}
+
+.close-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+/* Panel content */
+.focus-panel-content {
+    padding: 10px 20px 15px 20px; /* Reduced vertical padding */
+    overflow-y: auto;
+    height: calc(100% - 80px); /* Fill remaining height */
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* Custom scrollbar for panel content */
+.focus-panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.focus-panel-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.focus-panel-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.focus-panel-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Metric row styling */
+.metric-row {
+    margin-bottom: 10px; /* Reduced from 15px */
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.4s ease forwards;
+}
+
+.metric-row:nth-child(1) { animation-delay: 0.05s; }
+.metric-row:nth-child(2) { animation-delay: 0.1s; }
+.metric-row:nth-child(3) { animation-delay: 0.15s; }
+.metric-row:nth-child(4) { animation-delay: 0.2s; }
+.metric-row:nth-child(5) { animation-delay: 0.25s; }
+.metric-row:nth-child(6) { animation-delay: 0.3s; }
+.metric-row:nth-child(7) { animation-delay: 0.35s; }
+.metric-row:nth-child(8) { animation-delay: 0.4s; }
+.metric-row:nth-child(9) { animation-delay: 0.45s; }
+.metric-row:nth-child(10) { animation-delay: 0.5s; }
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Metric container with integrated header */
+.metric-container {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 12px 15px; /* Reduced vertical padding */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: visible; /* Changed from hidden to show dots/labels at edges */
+    display: flex;
+    flex-direction: column;
+    height: auto; /* Let content determine height */
+    gap: 8px; /* Consistent spacing between elements */
+}
+
+.metric-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        transparent 100%);
+}
+
+/* Metric header */
+.metric-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+    margin-bottom: 9px; /* Added 5px more space */
+    flex-shrink: 0;
+    gap: 12px; /* Space between name and interpretation */
+}
+
+.metric-name {
+    color: white;
+    font-size: 20px; /* Increased by 25% from 16px */
+    font-weight: 500;
+    font-family: 'Oxygen', sans-serif;
+}
+
+.metric-interpretation {
+    font-size: 20px; /* Match metric name size */
+    font-weight: 300; /* 200 points lighter */
+    font-style: italic;
+    font-family: 'Oxygen', sans-serif;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    margin-left: auto; /* Push to right */
+}
+
+/* Interpretation text will use inline Viridis colors */
+
+/* Chart container */
+.metric-chart {
+    position: relative;
+    height: 100px; /* Match canvas height exactly */
+    margin: 0;
+    padding: 0; /* Remove padding - canvas handles its own padding */
+    overflow: visible; /* Ensure dots and labels are not clipped */
+}
+
+/* Chart wrapper for proper positioning */
+.chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100px; /* Explicit height matching canvas */
+    display: block;
+}
+
+/* Value indicator line */
+.metric-value-line {
+    position: absolute;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(-50%);
+    z-index: 2;
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+/* Value label */
+.metric-value-label {
+    position: absolute;
+    top: -14px; /* Increased spacing from dot */
+    transform: translateX(-50%);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Oxygen', sans-serif;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 3;
+    min-width: 35px; /* Ensure label doesn't get cut off */
+    text-align: center;
+}
+
+/* Y-axis labels */
+.y-axis-label {
+    position: absolute;
+    left: -5px;
+    top: 15px; /* Adjusted to better position */
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 9px; /* Slightly larger */
+    font-style: italic;
+    font-family: 'Oxygen', sans-serif;
+    text-align: center;
+    width: 35px;
+}
+
+.y-axis-max {
+    position: absolute;
+    left: 5px;
+    top: 25px; /* Match canvas paddingTop */
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    font-family: 'Oxygen', sans-serif;
+    text-align: right;
+    width: 25px;
+}
+
+.y-axis-zero {
+    position: absolute;
+    left: 5px;
+    bottom: 20px; /* Match canvas paddingBottom */
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    font-family: 'Oxygen', sans-serif;
+    text-align: right;
+    width: 25px;
+}
+
+.gaussian-canvas {
+    width: 100%;
+    height: 100px; /* Reduced from 120px */
+    display: block;
+    image-rendering: crisp-edges; /* Prevent blurring */
+}
+
+/* Metric dot */
+.metric-dot {
+    position: absolute;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    transform: translateX(-50%);
+    box-shadow: 
+        0 0 20px rgba(255, 255, 255, 0.6),
+        0 0 10px rgba(255, 255, 255, 0.4),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.5s ease;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.8; /* 80% opacity to show Gaussian behind */
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 20px rgba(255, 255, 255, 0.6),
+            0 0 10px rgba(255, 255, 255, 0.4),
+            0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 0 30px rgba(255, 255, 255, 0.8),
+            0 0 15px rgba(255, 255, 255, 0.6),
+            0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+}
+
+
+/* Metric details - redesigned layout */
+.metric-details {
+    margin-top: 4px; /* Further reduced to minimize gap */
+    padding: 0 35px; /* Match canvas internal padding for alignment */
+    text-align: left;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.metric-value {
+    display: none; /* Hide the range value */
+}
+
+.metric-range {
+    display: none; /* Hide the range text */
+}
+
+.metric-definition {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px; /* Slightly larger */
+    font-style: italic;
+    font-family: 'Oxygen', sans-serif;
+    line-height: 1.4;
+    text-align: left;
+    display: block;
+    width: 100%;
+}
+
+.metric-range {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-family: 'Oxygen', sans-serif;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Axis styling */
+.axis-container {
+    position: absolute;
+    bottom: 0;
+    left: 5px;
+    right: 5px;
+    height: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.axis-label {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+    font-style: italic;
+    font-weight: 300;
+    font-family: 'Oxygen', sans-serif;
+}
+
+.axis-tick {
+    width: 1px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Loading state */
+.focus-panel-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+}
+
+/* Mobile responsiveness */
+@media screen and (max-width: 767px) {
+    .focus-panel {
+        width: calc(100vw - 20px);
+        left: 10px;
+        right: auto;
+        top: auto;
+        bottom: 10px;
+        max-height: 60vh;
+        transform: translateY(calc(100% + 20px));
+    }
+    
+    .focus-panel.visible {
+        transform: translateY(0);
+    }
+    
+    .metric-interpretation {
+        font-size: 14px;
+    }
+    
+    .metric-name {
+        font-size: 12px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .focus-panel {
+        border: 2px solid white;
+    }
+    
+    .metric-dot {
+        border-width: 3px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .focus-panel {
+        transition: opacity 0.2s ease;
+    }
+    
+    .metric-row {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+    
+    .metric-dot {
+        animation: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .focus-panel {
+        position: static;
+        width: 100%;
+        max-height: none;
+        background: white;
+        color: black;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+    
+    .metric-name,
+    .metric-interpretation,
+    .metric-value {
+        color: black;
+    }
+    
+    .close-button {
+        display: none;
+    }
+}

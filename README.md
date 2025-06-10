@@ -40,51 +40,31 @@ Terrain 3D is a sophisticated 3D visualization platform that enables landscape d
 
 ## 📁 Documentation
 
-- **[Terrain3D.md](Terrain3D.md)**: Comprehensive technical specifications and implementation details
-- **[CLAUDE.md](CLAUDE.md)**: Development principles and essential values for AI-assisted coding
-- **[docs/ecodash-company-manifesto.md](docs/ecodash-company-manifesto.md)**: Company mission and ecological vision
+- **[TECHNICAL.md](TECHNICAL.md)**: Architecture, implementation details, and AI agent guide
+- **[CLAUDE.md](CLAUDE.md)**: AI development guidelines with critical gotchas
+- **[REQUIREMENTS.md](REQUIREMENTS.md)**: Functional specifications and future roadmap
+- **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)**: Active bugs and limitations
 
 ## 🛠 Quick Start
 
-### Prerequisites
-- Modern web browser with WebGL support
-- API keys for Cesium Ion, Google Maps, and IP Geolocation services
-
-### Installation
 ```bash
 git clone https://github.com/legel/terrain-3d.git
 cd terrain-3d
-```
-
-### Run Locally
-```bash
-# Install Python dependencies
 pip install -r requirements.txt
-
-# Start Python server
-python3 server.py
-# Navigate to http://localhost:8000/app.html
+python server.py
+# Open http://localhost:5001
 ```
 
-### Development Workflow
-No build system required! Edit JavaScript files directly and refresh browser:
-1. **Edit** - Modify files in `/js`, `/css`, or `app.html`
-2. **Test** - Refresh browser to see changes
-3. **Debug** - Use `debug()` in console for camera position logging
+**No build system** - Edit files, refresh browser. API keys hardcoded (security issue for production).
 
 ## 🏗 Architecture
 
-**Vanilla JavaScript** with manager-based architecture:
-
-```
-├── CesiumManager.js      # 3D globe rendering and controls
-├── GoogleMaps2DManager.js # 2D satellite map interface  
-├── UserManager.js        # Device detection and geolocation
-├── navigation.js         # Guided tour system
-├── viewTransform.js      # Seamless 2D/3D view switching
-├── narratives.js         # Tour content and waypoints
-└── utilities.js          # Shared functions and UI components
-```
+**Key Files** (see TECHNICAL.md for details):
+- `utilities.js` - Core logic (1700+ lines, handle with care)
+- `layerControls.js` - Complex UI state management
+- `CesiumManager.js` - 3D rendering + polygon clicks
+- `focusPanel.js` - Ecological metrics display
+- Everything on `window` object (no modules)
 
 ## 🔬 Technical Specifications
 
