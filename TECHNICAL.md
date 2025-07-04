@@ -15,10 +15,11 @@ Terrain 3D is a web-based 3D ecological visualization platform that transforms l
 
 ### Frontend
 - **Core**: Vanilla JavaScript (ES6+), no framework or build process
-- **3D Engine**: Cesium 1.121 with Google Photorealistic 3D Tiles
+- **3D Engine**: Cesium 1.131 with Google Photorealistic 3D Tiles and Gaussian Splat support
 - **2D Maps**: Google Maps JavaScript API v3 (satellite view)
 - **Coordinates**: Proj4js 2.9.0 for UTM→WGS84 conversion
 - **Styling**: Plain CSS with Oxygen font family
+- **3D Content**: Gaussian Splat digital twins (.spz compression)
 
 ### Backend
 - **Server**: Flask 3.0.0 (Python) - development server only
@@ -65,12 +66,13 @@ The application uses specialized classes to handle distinct domains:
 
 ```
 Window Object (Global State)
-├── map3D (CesiumManager)      → 3D visualization
-├── map2D (GoogleMaps2DManager) → 2D satellite view  
-├── user (UserManager)          → Device/location info
-├── currentLayerSelection      → Active layer (PA/NPA/M1-M10)
-├── currentSiteData            → Loaded GeoJSON
-└── Tour flags                 → stopFlyThrough, etc.
+├── map3D (CesiumManager)        → 3D visualization
+├── map2D (GoogleMaps2DManager)  → 2D satellite view  
+├── user (UserManager)           → Device/location info
+├── gaussianSplatManager         → Gaussian splat loading/management
+├── currentLayerSelection        → Active layer (PA/NPA/M1-M10)
+├── currentSiteData              → Loaded GeoJSON
+└── Tour flags                   → stopFlyThrough, etc.
 ```
 
 ### Key Files & Responsibilities
@@ -79,6 +81,7 @@ Window Object (Global State)
 | `utilities.js` | Core logic, GeoJSON viz | `visualizeGeoJsonPolygons()`, `initializeSiteSelector()` | `currentSiteData`, `currentHeightOffset` |
 | `layerControls.js` | Layer UI & state | `initializeLayerControls()`, `updateVisualization()` | `layerState` |
 | `CesiumManager.js` | 3D rendering | Cesium setup, polygon click handling | `map3D` |
+| `GaussianSplatManager.js` | 3D digital twins | `loadGaussianSplat()`, `removeAllSplats()` | `gaussianSplatManager` |
 | `focusPanel.js` | Metrics display | `show()`, creates DOM dynamically | `focusPanel` |
 | `main.js` | Bootstrap | `allSystemsGo()` | - |
 
@@ -417,6 +420,65 @@ For production environments:
 5. Add authentication for sensitive endpoints
 
 ## Recent Updates (January 2025)
+
+### Gaussian Splat Digital Twin Integration
+
+#### Implementation Overview
+Complete system for loading and managing 3D Gaussian Splat digital twins in Cesium 1.131:
+
+```javascript
+// GaussianSplatManager Class Structure
+class GaussianSplatManager {
+    constructor(viewer) {
+        this.viewer = viewer;
+        this.loadedTilesets = new Map();     // Track loaded splats by site
+        this.loadingIndicators = new Map();  // Loading visual feedback
+        this.setupErrorHandling();
+        this.setupDevelopmentControls();
+    }
+}
+```
+
+#### Key Technical Features
+- **Tileset Loading**: Uses `Cesium.Cesium3DTileset.fromUrl()` method for reliable loading
+- **File Structure**: Expects `tileset.json` + `content.glb` in `/data/[site-id]/` directory
+- **Extension Support**: Handles `KHR_spz_gaussian_splats_compression` for .spz files
+- **Loading Indicators**: Static canvas-based visual feedback during load
+- **Error Recovery**: Comprehensive error handling with emergency cleanup
+- **Auto-initialization**: Checks for splat data and loads automatically per site
+
+#### Polygon Visibility Enhancements
+```javascript
+// Elevation Strategy for Visibility Through Splats
+const elevatedPositions = outlinePositions.map(pos => {
+    const cartographic = Cesium.Cartographic.fromCartesian(pos);
+    return Cesium.Cartesian3.fromRadians(
+        cartographic.longitude,
+        cartographic.latitude,
+        cartographic.height + 3.0 // 3m elevation above splat
+    );
+});
+
+// Enhanced Polyline Properties
+polyline: {
+    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    depthFailMaterial: outlineColor,
+    heightReference: Cesium.HeightReference.NONE,
+    shadows: Cesium.ShadowMode.DISABLED
+}
+```
+
+#### Performance Considerations
+- **Memory Impact**: Gaussian splats consume significant GPU memory
+- **Rendering Load**: Severe framerate reduction during camera movement
+- **Loading Time**: Large file sizes require loading indicators
+- **Browser Compatibility**: Requires modern GPU support for optimal performance
+
+#### Current Limitations
+- **Visibility Conflicts**: Polygon outlines partially obscured by splat rendering
+- **Toggle Reliability**: Hide/show functionality inconsistent - removal preferred
+- **Performance Impact**: Significant slowdown when splat is active
+- **Memory Usage**: High memory consumption on lower-end devices
 
 ### Focus Panel Animation System
 - Sophisticated multi-phase animation sequence with connection lines

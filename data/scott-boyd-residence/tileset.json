@@ -1,0 +1,50 @@
+{
+  "asset": {
+    "version": "1.1"
+  },
+  "extensions": {
+    "3DTILES_content_gltf": {
+      "extensionsRequired": ["KHR_spz_gaussian_splats_compression"],
+      "extensionsUsed": ["KHR_spz_gaussian_splats_compression"]
+    }
+  },
+  "extensionsUsed": ["3DTILES_content_gltf"],
+  "geometricError": 65536,
+  "root": {
+    "boundingVolume": {
+      "box": [ 0.059326172, 0.0, 0.040161133, 2047.9287, 0.0, 0.0, 0.0, 2047.9932, 0.0, 0.0, 0.0, 2047.8969 ]
+    },
+    "geometricError": 32768,
+    "refine": "REPLACE",
+    "children": [
+      {
+        "boundingVolume": {
+          "box": [ 0.059326172, 0.0, 0.040161133, 2047.9287, 0.0, 0.0, 0.0, 2047.9932, 0.0, 0.0, 0.0, 2047.8969 ]
+        },
+        "content": {
+          "uri": "content.glb"
+        },
+        "geometricError": 0,
+        "refine": "REPLACE"
+      }
+    ],
+    "transform": [
+      0.13651037120540344,
+      -0.011943109934188524,
+      -0.06101049646137003,
+      0,
+      0.05685503340586642,
+      0.08353040358258985,
+      0.11086107005503541,
+      0,
+      0.025148036300688976,
+      -0.12401626426573872,
+      0.08054528209516484,
+      0,
+      813767.8874033637,
+      -5549000.826724425,
+      3027483.0551716527,
+      1
+    ]
+  }
+}
