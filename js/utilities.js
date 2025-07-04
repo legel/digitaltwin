@@ -241,7 +241,7 @@ async function loadSiteData() {
     
     for (const file of files) {
         try {
-            const response = await fetch(`/data/${file.filename}`);
+            const response = await fetch(`/data/scott-boyd-residence/${file.filename}`);
             const geoJsonData = await response.json();
             
             // Calculate bounds from the GeoJSON features
@@ -767,6 +767,11 @@ async function initializeSiteSelector() {
             if (window.visualizeGeoJsonPolygonsWithLayers) {
                 window.visualizeGeoJsonPolygonsWithLayers(scottBoydSite.geoJson);
             }
+            
+            // Auto-load Gaussian Splat for Scott Boyd site
+            if (window.gaussianSplatManager) {
+                window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+            }
         }
     }
     
@@ -793,6 +798,17 @@ async function initializeSiteSelector() {
                     
                     // Show/hide parameter filter based on format (now with data available)
                     toggleParameterFilter(format);
+                    
+                    // Load Gaussian Splat if available for this site
+                    if (window.gaussianSplatManager) {
+                        // Unload any existing splats first
+                        window.gaussianSplatManager.unloadAllSplats();
+                        
+                        // For Scott Boyd site, auto-load the splat
+                        if (selectedSite.name === 'Scott Boyd Residence') {
+                            window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+                        }
+                    }
                 }
             });
             
@@ -803,6 +819,11 @@ async function initializeSiteSelector() {
             window.currentSiteData = null;
             window.currentHeightOffset = undefined;
             window.lastHeightOffset = undefined;
+            
+            // Unload all splats when no site is selected
+            if (window.gaussianSplatManager) {
+                window.gaussianSplatManager.unloadAllSplats();
+            }
         }
     });
 }
@@ -1561,25 +1582,63 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 vertexHeight = maxAltitude + heightOffset;
             }
             
-            positions.push(Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, vertexHeight));
+            // Elevate polygons by 3m to match outline elevation and render above splat
+            positions.push(Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, vertexHeight + 3.0));
         }
         
         // Create polygon with individual vertex heights
-        viewer.entities.add({
+        const polygonEntity = viewer.entities.add({
             name: entityName,
             polygon: {
                 hierarchy: new Cesium.PolygonHierarchy(positions),
                 material: (window.debugSettings?.showFill !== false) ? 
                     polygonColor.withAlpha(Math.max(0.01, polygonAlpha)) : // Ensure minimum alpha
                     Cesium.Color.WHITE.withAlpha(0.01), // Nearly transparent but still pickable
-                outline: window.debugSettings?.showOutline !== false,
-                outlineColor: outlineColor,
-                outlineWidth: outlineWidth,
+                outline: false, // Disable polygon outline, we'll use separate polylines
                 perPositionHeight: true, // Use individual heights for each vertex
-                disableDepthTestDistance: Number.POSITIVE_INFINITY // Always visible
+                disableDepthTestDistance: Number.POSITIVE_INFINITY, // Always visible
+                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, // Ensure proper height reference
+                extrudedHeight: 0.5 // Slightly extrude to ensure visibility through splat
             },
             description: descriptionContent
         });
+        
+        // Create separate polyline for outline that renders better through splats
+        if (window.debugSettings?.showOutline !== false) {
+            // Close the loop by adding first position at the end
+            const outlinePositions = [...positions, positions[0]];
+            
+            // Elevate the polyline positions slightly to render above the splat
+            const elevatedPositions = outlinePositions.map(pos => {
+                const cartographic = Cesium.Cartographic.fromCartesian(pos);
+                return Cesium.Cartesian3.fromRadians(
+                    cartographic.longitude,
+                    cartographic.latitude,
+                    cartographic.height + 3.0 // Elevate by 3 meters
+                );
+            });
+            
+            viewer.entities.add({
+                name: `${entityName}_Outline`,
+                polyline: {
+                    positions: elevatedPositions,
+                    width: outlineWidth || 2,
+                    material: outlineColor,
+                    clampToGround: false,
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                    heightReference: Cesium.HeightReference.NONE, // Use absolute height
+                    // Additional properties to ensure visibility through splats
+                    classificationType: Cesium.ClassificationType.BOTH,
+                    zIndex: 1000,
+                    // Enhanced visibility settings for splat rendering
+                    depthFailMaterial: outlineColor, // Show same color even when depth test fails
+                    show: true, // Explicitly set to visible
+                    distanceDisplayCondition: undefined, // Always show regardless of distance
+                    // Force bright rendering
+                    shadows: Cesium.ShadowMode.DISABLED // Disable shadows to ensure visibility
+                }
+            });
+        }
         }
         
         // Handle Point features
@@ -1858,6 +1917,9 @@ async function allSystemsGo() {
 
     // Instantiate the UserManager and store it globally
     window.user = new UserManager(window.map3D);
+    
+    // Instantiate the GaussianSplatManager
+    window.gaussianSplatManager = new GaussianSplatManager(window.map3D.viewer);
     
     // Initialize layer state early
     window.layerState = {
