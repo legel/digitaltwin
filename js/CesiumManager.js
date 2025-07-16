@@ -14,9 +14,9 @@ class CesiumManager {
         }
 
         // Set the Cesium Ion access token
-        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YWU4NTA5OC1mNDk4LTRjM2EtYmViZS1kZmFlZWE1OWUzNzUiLCJpZCI6MjQzMTg3LCJpYXQiOjE3MjY5Nzc3NzZ9.VvafdUTRTMh-QrH-ut-_l8SLL99Z9VIdCwRs-25PUDM";
+        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5MjliMTAwZC0yNTE4LTQ5MDMtODRlYy00MGIxMTg4NTQ0YzkiLCJpZCI6MjQzMTg3LCJpYXQiOjE3NDk2MDQ4MzZ9.u83AqBjOkC2ESDQsylIlYSwE8Br5Je0Hchir3zi3KG8";
 
-        // Initialize the Cesium Viewer with the desired configuration
+        // Initialize the Cesium Viewer with the desired configuration (no terrain initially)
         this.viewer = new Cesium.Viewer(containerId, {
             timeline: false,
             animation: false,
@@ -29,24 +29,13 @@ class CesiumManager {
             selectionIndicator: false,  // Disable the green selection box
             infoBox: false,  // Disable the info box popup
         });
+        
+        // Track current base layer mode
+        this.isUsingTerrain = false;
+        this.photorealisticTileset = null;
 
         // Enable rendering the sky
         this.viewer.scene.skyAtmosphere.show = true;
-        
-        // Add Cesium World Terrain for proper ground elevation (without trees/buildings)
-        // This gives us the actual terrain elevation without trees/buildings
-        this.viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
-            url: Cesium.IonResource.fromAssetId(1), // Cesium World Terrain
-            requestWaterMask: false,
-            requestVertexNormals: false
-        });
-        
-        // Enable depth testing against terrain for proper rendering
-        this.viewer.scene.globe.depthTestAgainstTerrain = true;
-        
-        // Reduce terrain detail for better performance
-        this.viewer.scene.globe.terrainExaggeration = 1.0; // No vertical exaggeration
-        this.viewer.scene.globe.maximumScreenSpaceError = 4; // Lower quality for better performance (default is 2)
         
         // Enable picking through translucent objects
         this.viewer.scene.pickTranslucentDepth = true;
@@ -408,11 +397,17 @@ class CesiumManager {
             console.log("Cesium credits removed from the DOM.");
         }
 
+        // Ensure clean state - explicitly disable globe and terrain for HQ mode
+        this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        this.viewer.scene.globe.show = false;
+        this.viewer.scene.globe.depthTestAgainstTerrain = false;
+        console.log("Initialized with globe disabled for photorealistic 3D tiles");
+
         // Add Photorealistic 3D Tileset
         this.addTileset();
 
-        // Set a default final destination
-        this.setFinalDestination(-80.21104660, 25.74188074, 194.69, 0.03691171, -0.80323003, 0.00000814);
+        // Set a default final destination (increased height for better performance)
+        this.setFinalDestination(-80.21104660, 25.74188074, 800.0, 0.03691171, -0.80323003, 0.00000814);
 
         const viewer3D = this.getViewer(); // Get the viewer from CesiumManager
 
@@ -452,11 +447,117 @@ class CesiumManager {
         console.log("Adding photorealistic tileset");
         return Cesium.createGooglePhotorealistic3DTileset()
             .then(tileset => {
+                this.photorealisticTileset = tileset;
                 this.viewer.scene.primitives.add(tileset);
+                this.isUsingTerrain = false;
+                
+                // Return the tileset so we can wait for it to be ready
+                return tileset;
             })
             .catch(error => {
                 console.error(`Error loading Photorealistic 3D Tiles tileset: ${error}`);
+                throw error;
             });
+    }
+    
+    /**
+     * Toggle between terrain and photorealistic 3D tiles
+     * ONLY manages photorealistic tiles and terrain - leaves everything else untouched
+     */
+    async toggleBaseTerrain() {
+        if (this.isUsingTerrain) {
+            // Switch to HQ mode: Remove terrain, add photorealistic tiles
+            try {
+                console.log("Switching to HQ mode (photorealistic 3D tiles)...");
+                
+                // 1. Remove terrain provider and disable globe for photorealistic tiles
+                this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+                this.viewer.scene.globe.show = false;
+                this.viewer.scene.globe.depthTestAgainstTerrain = false;
+                
+                // 2. Add photorealistic tileset if we don't have one
+                if (!this.photorealisticTileset) {
+                    const tileset = await this.addTileset();
+                    
+                    // 3. Recreate clipping from scratch (Cesium ownership issue requires fresh collections)
+                    if (window.gaussianSplatManager) {
+                        setTimeout(() => {
+                            console.log("Tileset loaded, recreating clipping polygons from scratch...");
+                            // Get site IDs first, then clear and recreate
+                            const siteIds = Array.from(window.gaussianSplatManager.clippingPolygons.keys());
+                            
+                            // Properly clean up outlines before clearing clipping polygons
+                            siteIds.forEach(siteId => {
+                                if (window.gaussianSplatManager.removeClippingVisualization) {
+                                    window.gaussianSplatManager.removeClippingVisualization(siteId);
+                                }
+                            });
+                            
+                            window.gaussianSplatManager.clippingPolygons.clear();
+                            
+                            // Recreate clipping for each site
+                            siteIds.forEach(siteId => {
+                                console.log(`Recreating clipping for site: ${siteId} due to Cesium ownership issues`);
+                                // Reload fresh from file (this creates new ClippingPolygonCollection)
+                                window.gaussianSplatManager.loadPrecomputedClipping(siteId, tileset)
+                                    .catch(error => {
+                                        console.error(`Failed to recreate clipping for ${siteId}:`, error);
+                                    });
+                            });
+                        }, 3000);
+                    }
+                }
+                
+                this.isUsingTerrain = false;
+                console.log("Successfully switched to HQ mode");
+                return false; // Not using terrain
+            } catch (error) {
+                console.error("Failed to switch to HQ mode:", error);
+                return true; // Keep using terrain
+            }
+        } else {
+            // Switch to PERF mode: Remove photorealistic tiles, add terrain
+            try {
+                console.log("Switching to PERF mode (terrain)...");
+                
+                // 1. Remove ONLY the tracked photorealistic tileset
+                if (this.photorealisticTileset) {
+                    // Clear clipping from tileset before removing it to prevent collection destruction
+                    if (this.photorealisticTileset.clippingPolygons) {
+                        this.photorealisticTileset.clippingPolygons = undefined;
+                    }
+                    
+                    if (this.viewer.scene.primitives.contains(this.photorealisticTileset)) {
+                        this.viewer.scene.primitives.remove(this.photorealisticTileset);
+                    }
+                    if (this.photorealisticTileset.destroy) {
+                        this.photorealisticTileset.destroy();
+                    }
+                    this.photorealisticTileset = null;
+                }
+                
+                // 2. Load terrain
+                this.viewer.terrainProvider = await Cesium.CesiumTerrainProvider.fromUrl(
+                    Cesium.IonResource.fromAssetId(1),
+                    {
+                        requestWaterMask: false,
+                        requestVertexNormals: false
+                    }
+                );
+                
+                // 3. Configure terrain settings
+                this.viewer.scene.globe.show = true;
+                this.viewer.scene.skyAtmosphere.show = true;
+                this.viewer.scene.globe.depthTestAgainstTerrain = true;
+                
+                this.isUsingTerrain = true;
+                console.log("Successfully switched to PERF mode");
+                return true; // Using terrain
+            } catch (error) {
+                console.error("Failed to switch to PERF mode:", error);
+                return false; // Keep using photorealistic
+            }
+        }
     }
     
     /**
