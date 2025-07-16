@@ -15,16 +15,14 @@ class GoogleMaps2DManager {
         this.lon = lon;
         this.zoom = zoom;
         this.map = null;
-        this.isMapReady = false; // Flag to indicate when the map is fully initialized
-
-        return this.loadGoogleMapsAPI();
+        this.isMapReady = false; // Flag to track map readiness
     }
 
     /**
-     * Loads the Google Maps API asynchronously and initializes the map.
-     * @returns {Promise<GoogleMaps2DManager>} - A promise that resolves with the GoogleMaps2DManager instance.
+     * Asynchronously initializes the Google Maps API and creates the map instance.
+     * @returns {Promise<GoogleMaps2DManager>} A promise that resolves to this instance.
      */
-    loadGoogleMapsAPI() {
+    async initialize() {
         return new Promise((resolve, reject) => {
             if (typeof google !== 'undefined' && google.maps) {
                 this.initializeMap();
@@ -48,29 +46,33 @@ class GoogleMaps2DManager {
         });
     }
 
-initializeMap() {
-    const containerElement = document.getElementById(this.containerId);
-    if (!containerElement) {
-        throw new Error(`Container element with ID '${this.containerId}' not found.`);
+    /**
+     * Initializes the Google Map instance.
+     */
+    initializeMap() {
+        const containerElement = document.getElementById(this.containerId);
+        if (!containerElement) {
+            throw new Error(`Container element with ID '${this.containerId}' not found.`);
+        }
+
+        this.map = new google.maps.Map(containerElement, {
+            center: { lat: this.lat, lng: this.lon },
+            zoom: this.zoom,
+            mapTypeId: google.maps.MapTypeId.SATELLITE,
+            disableDefaultUI: true,
+            zoomControl: true,
+            zoomControlOptions: {
+                position: google.maps.ControlPosition.RIGHT_BOTTOM
+            },
+            fullscreenControl: false,
+            streetViewControl: false,
+            rotateControl: true,  // Rotate control enabled
+        });
+
+        this.configureZoomBehavior();
+        this.isMapReady = true; // Set the flag to true once the map is ready
+        console.log("Google Map 2D initialized:", this.map);
     }
-
-    this.map = new google.maps.Map(containerElement, {
-        center: { lat: this.lat, lng: this.lon },
-        zoom: this.zoom,
-        mapTypeId: "satellite",
-        disableDefaultUI: true,
-        mapTypeControl: false,
-        fullscreenControl: false,
-        streetViewControl: false,
-        rotateControl: true,  // Rotate control enabled
-    });
-
-    this.configureZoomBehavior();
-    this.isMapReady = true; // Set the flag to true once the map is ready
-    console.log("Google Map 2D initialized:", this.map);
-
-}
-
 
     /**
      * Configures custom zoom behavior based on the tilt level.
@@ -80,60 +82,24 @@ initializeMap() {
         const minTiltedZoom = 22;
 
         const zoomRangeModifier = this.map.__proto__.__proto__.__proto__;
-        const originalSetFunc = zoomRangeModifier.set;
-
-        zoomRangeModifier.set = function(name, value) {
-            if (name === "maxZoom") {
-                value = originalDesiredMaxZoom;
-            }
-            originalSetFunc.call(this, name, value);
-        };
-
-        google.maps.event.addListener(this.map, "tilt_changed", () => {
-            let desiredMaxZoom;
-            const currentZoom = this.map.getZoom();
-
-            if (this.map.getTilt() === 0) {
-                desiredMaxZoom = 22;
-            } else if (this.map.getTilt() === 45) {
-                desiredMaxZoom = 21;
-                if (currentZoom > minTiltedZoom) {
-                    this.map.setZoom(minTiltedZoom);
-                }
-            }
-            this.map.setOptions({ maxZoom: desiredMaxZoom });
-        });
-
-        this.map.setTilt(0);
-        this.map.setTilt(45);
-    }
-
-    /**
-     * Returns the Google Maps instance.
-     * @returns {google.maps.Map} - The Google Maps instance.
-     */
-    getMap() {
-        return this.map;
-    }
-
-    /**
-     * Waits until the map is fully initialized.
-     * @returns {Promise<GoogleMaps2DManager>} - A promise that resolves when the map is ready.
-     */
-    waitForMapReady() {
-        return new Promise((resolve) => {
-            const checkReady = () => {
-                if (this.isMapReady) {
-                    resolve(this);
-                } else {
-                    setTimeout(checkReady, 50);
-                }
+        if (zoomRangeModifier && zoomRangeModifier.getMinZoom) {
+            zoomRangeModifier.getMinZoom = () => {
+                return this.map.getTilt() > 0 ? minTiltedZoom : this.map.getMinZoom();
             };
-            checkReady();
+        }
+
+        this.map.addListener('tilt_changed', () => {
+            const currentZoom = this.map.getZoom();
+            const currentTilt = this.map.getTilt();
+
+            if (currentTilt > 0 && currentZoom < minTiltedZoom) {
+                this.map.setZoom(minTiltedZoom);
+            } else if (currentTilt === 0 && currentZoom > originalDesiredMaxZoom) {
+                this.map.setZoom(originalDesiredMaxZoom);
+            }
         });
     }
 }
 
 // Expose GoogleMaps2DManager to the global scope
 window.GoogleMaps2DManager = GoogleMaps2DManager;
-

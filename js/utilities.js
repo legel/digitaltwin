@@ -97,6 +97,66 @@ function createReusableButton(text, onClick, options = {}) {
 }
 
 /**
+ * Initialize test clipping button
+ */
+function initializeTestClippingButton() {
+    const button = document.getElementById('testClippingButton');
+    if (button) {
+        button.addEventListener('click', () => {
+            console.log('=== TEST CLIPPING BUTTON CLICKED ===');
+            testClippingVisualization();
+        });
+        console.log('Test clipping button initialized successfully');
+    } else {
+        console.error('Test clipping button not found in DOM');
+    }
+}
+
+/**
+ * Test function to create clipping visualizations from JSON
+ */
+async function testClippingVisualization() {
+    console.log('=== STARTING TEST CLIPPING VISUALIZATION ===');
+    
+    if (!window.gaussianSplatManager) {
+        console.error('GaussianSplatManager not available');
+        return;
+    }
+    
+    // Get current tileset
+    let tileset = null;
+    if (window.map3D && window.map3D.photorealisticTileset) {
+        tileset = window.map3D.photorealisticTileset;
+        console.log('Found photorealistic tileset:', tileset);
+    } else {
+        console.error('No photorealistic tileset found');
+        console.log('window.map3D:', window.map3D);
+        if (window.map3D) {
+            console.log('window.map3D.photorealisticTileset:', window.map3D.photorealisticTileset);
+        }
+    }
+    
+    // Test with known site IDs
+    const testSiteIds = ['scott-boyd-residence'];
+    
+    for (const siteId of testSiteIds) {
+        try {
+            console.log(`=== TESTING CLIPPING FOR SITE: ${siteId} ===`);
+            const success = await window.gaussianSplatManager.loadPrecomputedClipping(siteId, tileset);
+            if (success) {
+                console.log(`✓ Successfully loaded clipping for ${siteId}`);
+            } else {
+                console.log(`✗ No clipping data found for ${siteId}`);
+            }
+        } catch (error) {
+            console.error(`✗ Error testing clipping for ${siteId}:`, error);
+        }
+    }
+    
+    console.log('=== TEST CLIPPING VISUALIZATION COMPLETE ===');
+}
+
+/**
  * Parses a markdown-style string and converts it to HTML.
  * Supports links in the format [[Link text]](https://url-here.com).
  * Supports bold text using **text** and italic text using __text__.
@@ -1920,6 +1980,7 @@ async function allSystemsGo() {
     
     // Instantiate the GaussianSplatManager
     window.gaussianSplatManager = new GaussianSplatManager(window.map3D.viewer);
+    await import('./integrate_splat_clipping.js');
     
     // Initialize layer state early
     window.layerState = {
@@ -1937,6 +1998,12 @@ async function allSystemsGo() {
     // Initialize the parameter filter (now does nothing but kept for compatibility)
     initializeParameterFilter();
     
+    // Initialize terrain toggle button event listener with delay to ensure splatManager is ready
+    setTimeout(() => {
+        initializeTerrainToggle();
+    }, 100);
+    
+    
     // Then initialize the site selector which will trigger the default site load
     await initializeSiteSelector();
 }
@@ -1949,6 +2016,7 @@ window.printViewConfiguration = printViewConfiguration;
 window.allSystemsGo = allSystemsGo;
 window.debug = debug;
 window.createReusableButton = createReusableButton;
+window.testClippingVisualization = testClippingVisualization;
 window.loadSiteData = loadSiteData;
 window.calculateBounds = calculateBounds;
 window.utmToLatLng = utmToLatLng;
@@ -1976,5 +2044,48 @@ window.initializeParameterFilter = initializeParameterFilter;
 window.adjustHeightOffset = adjustHeightOffset;
 window.viridisColormap = viridisColormap;
 window.createColorLegend = createColorLegend;
+
+/**
+ * Initialize terrain toggle button functionality
+ */
+function initializeTerrainToggle() {
+    const terrainToggleButton = document.getElementById('terrainToggleButton');
+    if (!terrainToggleButton) {
+        console.warn('Terrain toggle button not found');
+        return;
+    }
+    
+    // Hide button if debug mode is disabled
+    if (window.gaussianSplatManager && !window.gaussianSplatManager.debugMode) {
+        terrainToggleButton.style.display = 'none';
+        return;
+    }
+    
+    terrainToggleButton.addEventListener('click', async function() {
+        if (window.map3D && window.map3D.toggleBaseTerrain) {
+            try {
+                // Disable button during transition
+                terrainToggleButton.disabled = true;
+                terrainToggleButton.textContent = '...';
+                
+                const isUsingTerrain = await window.map3D.toggleBaseTerrain();
+                
+                // Update button text based on current mode
+                terrainToggleButton.textContent = isUsingTerrain ? 'PERF' : 'HQ';
+                terrainToggleButton.title = isUsingTerrain ? 
+                    'Switch to high quality mode (photorealistic 3D tiles)' : 
+                    'Switch to performance mode (basic terrain)';
+            } catch (error) {
+                console.error('Error toggling terrain mode:', error);
+                // Reset button to previous state
+                terrainToggleButton.textContent = 'HQ';
+            } finally {
+                terrainToggleButton.disabled = false;
+            }
+        }
+    });
+}
+
+window.initializeTerrainToggle = initializeTerrainToggle;
 window.getParameterDisplayName = getParameterDisplayName;
 window.extractNPACategory = extractNPACategory;

@@ -84,7 +84,7 @@ function introductionToScottBoydSite() {
     // Height of 300m for good overview of the property
     const flyTos = [
         // longitude, latitude, height, heading, pitch, roll, duration, message, messageDelay, fadeIn, displayTime, fadeOut
-        [-81.65755485, 28.52085345, 90.24, 0.41942449, -0.66485765, 0.00000298, 3, "Welcome to Winter Garden, Florida!", 3.0, 0.5, 2.0, 0.5]
+        [-81.65905485, 28.51935345, 400.0, 0.41942449, -0.66485765, 0.00000298, 3, "Welcome to Winter Garden, Florida!", 3.0, 0.5, 2.0, 0.5]
     ];
     
     // Start the flyTo sequence
