@@ -47,10 +47,33 @@ Terrain 3D is a sophisticated 3D visualization platform that enables landscape d
 
 ## 🛠 Quick Start
 
+### 1. Clone and Setup Terrain 3D
 ```bash
 git clone https://github.com/legel/terrain-3d.git
 cd terrain-3d
 pip install -r requirements.txt
+```
+
+### 2. Build Cesium Dependencies
+```bash
+# Clone Cesium repository
+git clone https://github.com/CesiumGS/cesium.git
+cd cesium
+
+# Use tested version (optional - can use latest)
+git checkout 7103190
+
+# Build Cesium
+npm install
+npm run build
+
+# Copy build to terrain-3d
+cp -r Build/CesiumUnminified ../terrain-3d/cesium
+cd ../terrain-3d
+```
+
+### 3. Start Development Server
+```bash
 python server.py
 # Open http://localhost:5001
 ```
