@@ -15,7 +15,7 @@ Terrain 3D is a web-based 3D ecological visualization platform that transforms l
 
 ### Frontend
 - **Core**: Vanilla JavaScript (ES6+), no framework or build process
-- **3D Engine**: Cesium 1.131 with Google Photorealistic 3D Tiles and Gaussian Splat support
+- **3D Engine**: Cesium (local build from commit 7103190) with Google Photorealistic 3D Tiles and Gaussian Splat support
 - **2D Maps**: Google Maps JavaScript API v3 (satellite view)
 - **Coordinates**: Proj4js 2.9.0 for UTM→WGS84 conversion
 - **Styling**: Plain CSS with Oxygen font family
@@ -424,7 +424,7 @@ For production environments:
 ### Gaussian Splat Digital Twin Integration
 
 #### Implementation Overview
-Complete system for loading and managing 3D Gaussian Splat digital twins in Cesium 1.131:
+Complete system for loading and managing 3D Gaussian Splat digital twins in Cesium (local build):
 
 ```javascript
 // GaussianSplatManager Class Structure
