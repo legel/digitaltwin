@@ -67,8 +67,9 @@ git checkout 7103190
 npm install
 npm run build
 
-# Copy build to terrain-3d
-cp -r Build/CesiumUnminified ../terrain-3d/cesium
+# Copy build to terrain-3d (create directory first)
+mkdir -p ../terrain-3d/cesium
+cp -r Build/CesiumUnminified/* ../terrain-3d/cesium/
 cd ../terrain-3d
 ```
 
@@ -79,6 +80,14 @@ python server.py
 ```
 
 **No build system** - Edit files, refresh browser. API keys hardcoded (security issue for production).
+
+### Troubleshooting
+
+**Cesium Build Issues:**
+- If `npm install` shows vulnerabilities, they can be ignored for development
+- If `git checkout 7103190` fails, ensure you're in the cesium directory
+- If Cesium files return 404 errors, verify the `cesium/` directory exists and contains `Cesium.js` and `Widgets/widgets.css`
+- Build size warnings (⚠️) are normal and can be ignored
 
 ## 🏗 Architecture
 
@@ -91,7 +100,7 @@ python server.py
 
 ## 🔬 Technical Specifications
 
-- **Rendering Engine**: Cesium.js 1.121 with 3D Gaussian Splatting support
+- **Rendering Engine**: Cesium.js (local build from commit 7103190) with 3D Gaussian Splatting support
 - **Data Sources**: PIX4Dmatic mesh tiles, .spz files, GIS layers
 - **Coordinate System**: WGS84 (EPSG:4326) with RTK precision
 - **Performance**: Optimized for 60fps on modern hardware
@@ -107,7 +116,7 @@ Terrain 3D directly supports Ecodash's mission to **"Cultivate thriving ecosyste
 
 ## 🤝 Contributing
 
-1. **Read Documentation**: Start with [Terrain3D.md](Terrain3D.md) for technical details
+1. **Read Documentation**: Start with [TECHNICAL.md](TECHNICAL.md) for technical details
 2. **Fork Repository**: Create your feature branch
 3. **Follow Principles**: Maintain ecological focus and visual fidelity standards
 4. **Test Thoroughly**: Verify across different devices and use cases
