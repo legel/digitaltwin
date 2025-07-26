@@ -8,6 +8,10 @@ class GaussianSplatManager {
         this.loadedTilesets = new Map(); // Track loaded splats by site ID
         this.loadingIndicators = new Map(); // Track loading indicators by site ID
         this.isLoading = false;
+        this.loadingStartTime = null;
+        this.isWaitingForCompletion = false;
+        this.performanceStatsLogged = false;
+        this.loadingResolver = null;
         this.clippingPolygons = new Map(); // Track clipping polygons by site ID
         
         // Toggle state management
@@ -26,8 +30,7 @@ class GaussianSplatManager {
         this.setupDevelopmentControls();
         
         // Check Cesium version and Gaussian Splat support
-        console.log('GaussianSplatManager initialized');
-        console.log('Cesium version:', Cesium.VERSION);
+        // GaussianSplatManager initialized
         this.checkGaussianSplatSupport();
     }
     
@@ -416,6 +419,478 @@ class GaussianSplatManager {
     
     
     /**
+     * Configures advanced performance optimizations for a loaded tileset
+     * @param {Cesium.Cesium3DTileset} tileset - The loaded tileset
+     * @param {string} siteId - Site identifier for debugging
+     */
+    configureTilesetPerformance(tileset, siteId) {
+        try {
+            // Configuring performance optimizations
+            
+            // Set up camera movement handler for dynamic performance adjustment
+            // Use unified handler instead of separate handlers to prevent conflicts
+            if (!window.unifiedCameraHandler) {
+                this.createUnifiedCameraHandler();
+            }
+            
+            // DISABLED: Individual handler replaced by unified system
+            // Old individual handlers caused performance conflicts
+            if (false && !this.cameraMovementHandler) {
+                this.cameraMovementHandler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
+                this.isCameraMoving = false;
+                this.cameraMovementTimeout = null;
+                
+                // Track camera movement start
+                this.cameraMovementHandler.setInputAction(() => {
+                    const startTime = performance.now();
+                    
+                    if (!this.isCameraMoving) {
+                        this.isCameraMoving = true;
+                        const optimizeStart = performance.now();
+                        this.optimizeForMovement(true);
+                        const optimizeEnd = performance.now();
+                        console.log(`🟡 Gaussian Camera Movement START - optimize took ${(optimizeEnd - optimizeStart).toFixed(2)}ms`);
+                    }
+                    
+                    // Clear existing timeout
+                    if (this.cameraMovementTimeout) {
+                        clearTimeout(this.cameraMovementTimeout);
+                    }
+                    
+                    // Set timeout to detect movement end
+                    this.cameraMovementTimeout = setTimeout(() => {
+                        const restoreStart = performance.now();
+                        this.isCameraMoving = false;
+                        this.optimizeForMovement(false);
+                        const restoreEnd = performance.now();
+                        console.log(`🟡 Gaussian Camera Movement END - restore took ${(restoreEnd - restoreStart).toFixed(2)}ms`);
+                    }, 150); // 150ms delay before considering movement stopped
+                    
+                    const totalTime = performance.now() - startTime;
+                    if (totalTime > 1) {
+                        console.log(`🟡 Gaussian handleCameraMovement (mouse) total: ${totalTime.toFixed(2)}ms`);
+                    }
+                }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+                
+                // Also track wheel events for zoom  
+                this.cameraMovementHandler.setInputAction(() => {
+                    const startTime = performance.now();
+                    
+                    if (!this.isCameraMoving) {
+                        this.isCameraMoving = true;
+                        const optimizeStart = performance.now();
+                        this.optimizeForMovement(true);
+                        const optimizeEnd = performance.now();
+                        console.log(`🟡 Gaussian Camera WHEEL START - optimize took ${(optimizeEnd - optimizeStart).toFixed(2)}ms`);
+                    }
+                    if (this.cameraMovementTimeout) {
+                        clearTimeout(this.cameraMovementTimeout);
+                    }
+                    this.cameraMovementTimeout = setTimeout(() => {
+                        const restoreStart = performance.now();
+                        this.isCameraMoving = false;
+                        this.optimizeForMovement(false);
+                        const restoreEnd = performance.now();
+                        console.log(`🟡 Gaussian Camera WHEEL END - restore took ${(restoreEnd - restoreStart).toFixed(2)}ms`);
+                    }, 300); // Longer delay for zoom
+                    
+                    const totalTime = performance.now() - startTime;
+                    if (totalTime > 1) {
+                        console.log(`🟡 Gaussian handleCameraMovement (wheel) total: ${totalTime.toFixed(2)}ms`);
+                    }
+                }, Cesium.ScreenSpaceEventType.WHEEL);
+            }
+            
+            // Monitor tileset loading progress with debouncing to prevent thrashing
+            let lastGaussianSSEUpdate = Date.now();
+            let gaussianCurrentSSE = 16;
+            
+            tileset.loadProgress.addEventListener((numberOfPendingRequests, numberOfTilesProcessing) => {
+                const totalActive = numberOfPendingRequests + numberOfTilesProcessing;
+                const now = Date.now();
+                
+                // Only adjust SSE every 3 seconds to prevent oscillation
+                if (now - lastGaussianSSEUpdate > 3000) {
+                    let targetSSE = 16; // Starting quality (higher for faster load)
+                    
+                    // Simple quality reduction - less aggressive than Google tiles
+                    if (totalActive > 8) {
+                        targetSSE = 24; // Modest quality reduction
+                    } else if (totalActive === 0) {
+                        targetSSE = 12; // Good quality when not loading
+                    }
+                    
+                    // Only update if there's a meaningful change
+                    if (Math.abs(gaussianCurrentSSE - targetSSE) >= 4) {
+                        gaussianCurrentSSE = targetSSE;
+                        tileset.maximumScreenSpaceError = gaussianCurrentSSE;
+                        lastGaussianSSEUpdate = now;
+                        console.log(`Gaussian Splat SSE updated: ${totalActive} active → SSE: ${gaussianCurrentSSE}`);
+                    }
+                }
+                
+                // Reduced logging for Gaussian splats
+                if (totalActive === 1 || totalActive === 0) {
+                    // Gaussian Splat tiles status updated
+                }
+            });
+            
+            // Set up distance-based LOD adjustment
+            this.setupDistanceBasedLOD(tileset, siteId);
+            
+            // Performance optimizations configured
+            
+        } catch (error) {
+            console.error(`Error configuring performance for ${siteId}:`, error);
+        }
+    }
+    
+    /**
+     * Optimizes all loaded tilesets based on camera movement state
+     * @param {boolean} isMoving - Whether camera is currently moving
+     */
+    optimizeForMovement(isMoving) {
+        const startTime = performance.now();
+        let tilesetsProcessed = 0;
+        
+        for (const [siteId, tileset] of this.loadedTilesets.entries()) {
+            if (tileset && !tileset.isDestroyed?.()) {
+                const tilesetStart = performance.now();
+                
+                if (isMoving) {
+                    // Reduce quality during movement for better FPS
+                    tileset.maximumScreenSpaceError = 24;
+                    tileset.cullRequestsWhileMoving = true;
+                    tileset.cullRequestsWhileMovingMultiplier = 60.0;
+                    tileset.immediatelyLoadDesiredLevelOfDetail = false;
+                } else {
+                    // Restore quality when camera stops
+                    tileset.maximumScreenSpaceError = 8;
+                    tileset.cullRequestsWhileMoving = false;
+                    tileset.immediatelyLoadDesiredLevelOfDetail = true;
+                }
+                
+                const tilesetEnd = performance.now();
+                tilesetsProcessed++;
+                
+                if (tilesetEnd - tilesetStart > 0.5) {
+                    console.log(`🟡 Gaussian tileset ${siteId} optimize ${isMoving ? 'START' : 'END'}: ${(tilesetEnd - tilesetStart).toFixed(2)}ms`);
+                }
+            }
+        }
+        
+        const totalTime = performance.now() - startTime;
+        if (totalTime > 1) {
+            console.log(`🟡 Gaussian optimizeForMovement ${isMoving ? 'START' : 'END'}: processed ${tilesetsProcessed} tilesets in ${totalTime.toFixed(2)}ms`);
+        }
+    }
+    
+    /**
+     * Sets up distance-based level of detail adjustment
+     * @param {Cesium.Cesium3DTileset} tileset - The tileset to configure
+     * @param {string} siteId - Site identifier
+     */
+    setupDistanceBasedLOD(tileset, siteId) {
+        // Set up distance-based quality adjustment
+        const distanceUpdateInterval = setInterval(() => {
+            if (tileset.isDestroyed?.()) {
+                clearInterval(distanceUpdateInterval);
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                const cameraPosition = this.viewer.camera.position;
+                const tilesetCenter = tileset.boundingSphere?.center;
+                
+                if (tilesetCenter) {
+                    const distanceCalcStart = performance.now();
+                    const distance = Cesium.Cartesian3.distance(cameraPosition, tilesetCenter);
+                    const distanceCalcEnd = performance.now();
+                    
+                    // Adjust screen space error based on distance
+                    let targetSSE;
+                    if (distance < 50) {
+                        targetSSE = 4;    // High quality when close
+                    } else if (distance < 150) {
+                        targetSSE = 8;    // Medium quality
+                    } else if (distance < 500) {
+                        targetSSE = 16;   // Lower quality at medium distance
+                    } else {
+                        targetSSE = 32;   // Lowest quality when far
+                    }
+                    
+                    // Only update if significantly different to avoid constant changes
+                    if (Math.abs(tileset.maximumScreenSpaceError - targetSSE) > 2) {
+                        const updateStart = performance.now();
+                        tileset.maximumScreenSpaceError = targetSSE;
+                        const updateEnd = performance.now();
+                        const totalTime = performance.now() - startTime;
+                        
+                        // Distance LOD updated
+                    }
+                    
+                    // Log timing even when no update needed if it's slow
+                    const totalTime = performance.now() - startTime;
+                    if (totalTime > 2 && Math.abs(tileset.maximumScreenSpaceError - targetSSE) <= 2) {
+                        console.log(`🟡 Distance LOD check for ${siteId}: no update needed but took ${totalTime.toFixed(2)}ms`);
+                    }
+                }
+            } catch (error) {
+                console.warn(`🟡 Error in distance-based LOD for ${siteId}:`, error);
+            }
+        }, 500); // Update every 500ms
+        
+        // Store interval ID for cleanup
+        if (!this.distanceUpdateIntervals) {
+            this.distanceUpdateIntervals = new Map();
+        }
+        this.distanceUpdateIntervals.set(siteId, distanceUpdateInterval);
+    }
+    
+    /**
+     * Creates a unified camera movement handler that coordinates all tileset optimizations
+     * This prevents multiple competing handlers from causing performance issues
+     */
+    createUnifiedCameraHandler() {
+        // Creating unified camera movement handler
+        
+        window.unifiedCameraHandler = {
+            handler: new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas),
+            isMoving: false,
+            timeout: null,
+            lastCameraPosition: null,
+            lastCameraOrientation: null,
+            movementThreshold: 0.1, // Minimum camera change to trigger optimization (meters/radians)
+            eventCount: 0,
+            
+            // Check if camera has moved significantly
+            hasSignificantMovement: () => {
+                const camera = this.viewer.camera;
+                const currentPos = camera.position.clone();
+                const currentOrientation = {
+                    heading: camera.heading,
+                    pitch: camera.pitch,
+                    roll: camera.roll
+                };
+                
+                if (!window.unifiedCameraHandler.lastCameraPosition) {
+                    window.unifiedCameraHandler.lastCameraPosition = currentPos;
+                    window.unifiedCameraHandler.lastCameraOrientation = currentOrientation;
+                    return false;
+                }
+                
+                // Check position change (in meters)
+                const positionDistance = Cesium.Cartesian3.distance(
+                    currentPos, 
+                    window.unifiedCameraHandler.lastCameraPosition
+                );
+                
+                // Check orientation change (in radians)
+                const headingDiff = Math.abs(currentOrientation.heading - window.unifiedCameraHandler.lastCameraOrientation.heading);
+                const pitchDiff = Math.abs(currentOrientation.pitch - window.unifiedCameraHandler.lastCameraOrientation.pitch);
+                const rollDiff = Math.abs(currentOrientation.roll - window.unifiedCameraHandler.lastCameraOrientation.roll);
+                
+                const hasMovement = positionDistance > window.unifiedCameraHandler.movementThreshold ||
+                                  headingDiff > window.unifiedCameraHandler.movementThreshold ||
+                                  pitchDiff > window.unifiedCameraHandler.movementThreshold ||
+                                  rollDiff > window.unifiedCameraHandler.movementThreshold;
+                
+                if (hasMovement) {
+                    window.unifiedCameraHandler.lastCameraPosition = currentPos;
+                    window.unifiedCameraHandler.lastCameraOrientation = currentOrientation;
+                }
+                
+                return hasMovement;
+            },
+            
+            // Optimized movement handler - only triggers on significant camera changes
+            startMovement: () => {
+                window.unifiedCameraHandler.eventCount++;
+                
+                // Only process every 5th event to reduce overhead during smooth movement
+                if (window.unifiedCameraHandler.eventCount % 5 !== 0) {
+                    // Still reset the end timeout to prevent premature restoration
+                    if (window.unifiedCameraHandler.timeout) {
+                        clearTimeout(window.unifiedCameraHandler.timeout);
+                    }
+                    window.unifiedCameraHandler.timeout = setTimeout(() => {
+                        window.unifiedCameraHandler.isMoving = false;
+                        // Camera movement ended (no optimization triggered)
+                    }, 200);
+                    return;
+                }
+                
+                // Check if this is significant movement
+                if (!window.unifiedCameraHandler.hasSignificantMovement()) {
+                    return;
+                }
+                
+                if (!window.unifiedCameraHandler.isMoving) {
+                    const startTime = performance.now();
+                    window.unifiedCameraHandler.isMoving = true;
+                
+                    // Optimize Google Photorealistic tiles
+                    if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
+                        window.map3D.optimizePhotorealisticForMovement(true);
+                    }
+                    
+                    // Optimize all Gaussian splats
+                    if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
+                        window.gaussianSplatManager.optimizeForMovement(true);
+                    }
+                    
+                    const totalTime = performance.now() - startTime;
+                    // Camera movement optimization started
+                }
+                
+                // Always clear and reset the end timeout on movement
+                if (window.unifiedCameraHandler.timeout) {
+                    clearTimeout(window.unifiedCameraHandler.timeout);
+                }
+                
+                // Set end timeout for restoration
+                window.unifiedCameraHandler.timeout = setTimeout(() => {
+                    const startTime = performance.now();
+                    window.unifiedCameraHandler.isMoving = false;
+                    
+                    // Restore Google Photorealistic tiles
+                    if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
+                        window.map3D.optimizePhotorealisticForMovement(false);
+                    }
+                    
+                    // Restore all Gaussian splats
+                    if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
+                        window.gaussianSplatManager.optimizeForMovement(false);
+                    }
+                    
+                    const totalTime = performance.now() - startTime;
+                    // Camera movement optimization restored
+                }, 200); // Slightly longer timeout for smoother experience
+            }
+        };
+        
+        // Bind to mouse movement
+        window.unifiedCameraHandler.handler.setInputAction(() => {
+            window.unifiedCameraHandler.startMovement();
+        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+        
+        // Bind to wheel events
+        window.unifiedCameraHandler.handler.setInputAction(() => {
+            window.unifiedCameraHandler.startMovement();
+        }, Cesium.ScreenSpaceEventType.WHEEL);
+        
+        // Unified camera handler created
+    }
+    
+    /**
+     * Sets up performance monitoring for a tileset
+     * @param {Cesium.Cesium3DTileset} tileset - The tileset to monitor
+     * @param {string} siteId - Site identifier
+     */
+    setupPerformanceMonitoring(tileset, siteId) {
+        if (!this.performanceStats) {
+            this.performanceStats = new Map();
+        }
+        
+        const stats = {
+            siteId: siteId,
+            loadStartTime: Date.now(),
+            tilesLoaded: 0,
+            tilesFailed: 0,
+            memoryUsage: 0,
+            averageLoadTime: 0,
+            lastFrameTime: performance.now(),
+            frameCount: 0,
+            fps: 0
+        };
+        
+        // Monitor tile loading
+        tileset.tileLoad.addEventListener((tile) => {
+            stats.tilesLoaded++;
+            const loadTime = Date.now() - stats.loadStartTime;
+            stats.averageLoadTime = loadTime / stats.tilesLoaded;
+            
+            // Estimate memory usage (rough calculation)
+            if (tile._content && tile._content._geometryByteLength) {
+                stats.memoryUsage += tile._content._geometryByteLength;
+            }
+            
+            console.log(`Tile loaded for ${siteId}: Total=${stats.tilesLoaded}, Avg Load Time=${stats.averageLoadTime.toFixed(0)}ms`);
+        });
+        
+        tileset.tileFailed.addEventListener((error) => {
+            stats.tilesFailed++;
+            console.warn(`Tile failed for ${siteId}: Total failed=${stats.tilesFailed}`, error);
+        });
+        
+        // Monitor frame rate impact
+        const frameMonitor = () => {
+            if (tileset.isDestroyed?.()) return;
+            
+            const now = performance.now();
+            const deltaTime = now - stats.lastFrameTime;
+            stats.frameCount++;
+            
+            if (stats.frameCount % 60 === 0) { // Update every 60 frames
+                stats.fps = 1000 / (deltaTime / 60);
+                
+                // Log performance stats periodically
+                if (stats.frameCount % 300 === 0) { // Every 5 seconds at 60fps
+                    console.log(`Performance stats for ${siteId}:`, {
+                        fps: stats.fps.toFixed(1),
+                        tilesLoaded: stats.tilesLoaded,
+                        tilesFailed: stats.tilesFailed,
+                        estimatedMemoryMB: (stats.memoryUsage / 1024 / 1024).toFixed(1),
+                        averageLoadTimeMs: stats.averageLoadTime.toFixed(0)
+                    });
+                    
+                    // Just log performance stats without triggering completion
+                    if (!this.performanceStatsLogged) {
+                        this.performanceStatsLogged = true;
+                        console.log('Performance stats logged for first time');
+                    }
+                }
+            }
+            
+            stats.lastFrameTime = now;
+            requestAnimationFrame(frameMonitor);
+        };
+        
+        requestAnimationFrame(frameMonitor);
+        this.performanceStats.set(siteId, stats);
+    }
+    
+    /**
+     * Gets performance statistics for a site
+     * @param {string} siteId - Site identifier
+     * @returns {Object|null} Performance stats or null if not found
+     */
+    getPerformanceStats(siteId) {
+        return this.performanceStats?.get(siteId) || null;
+    }
+    
+    /**
+     * Gets performance statistics for all loaded sites
+     * @returns {Object} Performance stats for all sites
+     */
+    getAllPerformanceStats() {
+        const allStats = {};
+        if (this.performanceStats) {
+            for (const [siteId, stats] of this.performanceStats.entries()) {
+                allStats[siteId] = {
+                    fps: parseFloat(stats.fps.toFixed(1)),
+                    tilesLoaded: stats.tilesLoaded,
+                    tilesFailed: stats.tilesFailed,
+                    memoryUsageMB: parseFloat((stats.memoryUsage / 1024 / 1024).toFixed(1)),
+                    averageLoadTimeMs: parseInt(stats.averageLoadTime)
+                };
+            }
+        }
+        return allStats;
+    }
+    
+    /**
      * Checks if current Cesium version supports Gaussian Splats
      */
     checkGaussianSplatSupport() {
@@ -423,17 +898,12 @@ class GaussianSplatManager {
         const has3DTilesContentGltf = Cesium.Cesium3DTileset.prototype.hasOwnProperty('_extensionsUsed');
         const cesiumVersion = Cesium.VERSION;
         
-        console.log('Cesium 3D Tiles support check:');
-        console.log('- Cesium version:', cesiumVersion);
-        console.log('- Has 3D Tiles content GLTF support:', has3DTilesContentGltf);
-        
-        // Gaussian Splats are supported in Cesium 1.110+ with experimental flag
+        // Check Cesium version for Gaussian Splat support
         const versionParts = cesiumVersion.split('.').map(Number);
         const majorVersion = versionParts[0];
         const minorVersion = versionParts[1];
         
         const supportsGaussianSplats = majorVersion > 1 || (majorVersion === 1 && minorVersion >= 110);
-        console.log('- Estimated Gaussian Splat support:', supportsGaussianSplats);
         
         if (!supportsGaussianSplats) {
             console.warn('This Cesium version may not fully support Gaussian Splats. Consider upgrading to 1.110+');
@@ -497,7 +967,7 @@ class GaussianSplatManager {
         });
         
         this.loadingIndicators.set(siteId, loadingEntity);
-        console.log(`Loading indicator created for site: ${siteId}`);
+        // Loading indicator created
     }
     
     /**
@@ -565,7 +1035,7 @@ class GaussianSplatManager {
                     this.viewer.entities.remove(indicator);
                 }
                 this.loadingIndicators.delete(siteId);
-                console.log(`Loading indicator removed for site: ${siteId}`);
+                // Loading indicator removed
             } catch (error) {
                 console.warn(`Error removing loading indicator for ${siteId}:`, error);
                 // Force remove from map even if entity removal failed
@@ -591,103 +1061,50 @@ class GaussianSplatManager {
         const hasSplat = await this.hasSplatData(siteId);
         if (!hasSplat) {
             console.log(`No Gaussian Splat data available for site: ${siteId}`);
+            // Complete independent loading since there's no splat to load
+            if (window.independentLoadingState) {
+                // Brief delay to let progress animation reach a reasonable point
+                setTimeout(() => {
+                    window.independentLoadingState.complete();
+                }, 3000); // 3 second delay to show some progress
+            }
             return null;
         }
         
         this.isLoading = true;
+        this.loadingStartTime = Date.now();
         
-        // Show loading indicator
-        this.createLoadingIndicator(siteId, bounds);
+        // Skip 3D scene loading indicator to avoid conflicts with main loading screen
+        // this.createLoadingIndicator(siteId, bounds);
         
         try {
             const tilesetUrl = `/data/${siteId}/tileset.json`;
-            console.log(`Loading Gaussian Splat from: ${tilesetUrl}`);
+            console.log('Loading Gaussian Splat tileset...');
             
-            // First, validate the tileset.json content
-            const tilesetResponse = await fetch(tilesetUrl);
-            const tilesetJson = await tilesetResponse.json();
-            console.log('Tileset JSON content:', tilesetJson);
-            
-            // Check for Gaussian Splat extensions
-            const hasGaussianSplatExt = tilesetJson.extensions && 
-                tilesetJson.extensions['3DTILES_content_gltf'] &&
-                tilesetJson.extensions['3DTILES_content_gltf'].extensionsRequired &&
-                tilesetJson.extensions['3DTILES_content_gltf'].extensionsRequired.includes('KHR_spz_gaussian_splats_compression');
-            
-            console.log('Has Gaussian Splat extensions:', hasGaussianSplatExt);
-            
-            // Use fromUrl method as shown in reference - much simpler and more reliable
-            console.log('Loading tileset using fromUrl method...');
-            const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl);
-            
-            // Add tileset to scene
-            this.viewer.scene.primitives.add(tileset);
-            
-            // Add event listeners for debugging
-            tileset.tileLoad.addEventListener((tile) => {
-                console.log('Tile loaded:', tile);
-            });
-            
-            tileset.tileFailed.addEventListener((error) => {
-                console.error('Tile failed to load:', error);
-            });
-            
-            tileset.loadProgress.addEventListener((numberOfPendingRequests, numberOfTilesProcessing) => {
-                console.log(`Loading progress: ${numberOfPendingRequests} pending, ${numberOfTilesProcessing} processing`);
-            });
-            
-            // Log transform information for debugging
-            console.log('Tileset modelMatrix:', tileset.modelMatrix);
-            console.log('Tileset root.transform:', tileset.root.transform);
-            if (tileset.root.computedTransform) {
-                console.log('Tileset root.computedTransform:', tileset.root.computedTransform);
+            // Update loading message for Gaussian Splat phase
+            if (window.independentLoadingState) {
+                // window.independentLoadingState.updateMessage('Growing native plant database...', 6000);
             }
             
-            // Store the loaded tileset
-            this.loadedTilesets.set(siteId, tileset);
+            // Use a completely non-blocking approach with immediate promise resolution
+            this.loadTilesetAsync(tilesetUrl, siteId, bounds);
             
-            // Remove loading indicator
-            this.removeLoadingIndicator(siteId);
+            // Loading screen now runs independently with its own timing
             
             this.isLoading = false;
             
-            console.log(`Gaussian Splat loaded successfully for site: ${siteId}`);
-            console.log(`Tileset bounds:`, tileset.boundingSphere);
-            console.log(`Tileset root:`, tileset.root);
-            console.log(`Tileset root boundingVolume:`, tileset.root.boundingVolume);
-            
-            // Calculate bounds and volume
-            this.calculateSplatBounds(tileset, siteId);
-            
-            // Optionally position camera for optimal viewing
-            // Note: Only do this if not in the middle of a tour or other camera animation
-            if (!window.stopFlyThrough && !window.currentFlyThroughActive) {
-                try {
-                    // Position camera similar to reference example
-                    await this.viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(
-                        0,                               // heading (north)
-                        Cesium.Math.toRadians(-30),      // pitch (look down 30 degrees)
-                        Math.max(tileset.boundingSphere.radius * 2.5, 150)  // distance (minimum 150m)
-                    ));
-                    console.log('Camera positioned for optimal splat viewing');
-                } catch (cameraError) {
-                    console.warn('Could not position camera automatically:', cameraError);
-                    // Don't fail the entire loading process if camera positioning fails
-                }
-            }
-            
-            // Ensure toggle button exists and update state (only in debug mode)
-            if (this.debugMode) {
-                this.createSplatToggleButton();
-                this.updateToggleButtonState();
-            }
-            
-            // Display success message
-            if (window.displayMessage) {
-                window.displayMessage('Loading Digital Twin', 0.5, 2, 0.5);
-            }
-            
-            return tileset;
+            // Return a promise that resolves when tileset is actually loaded
+            return new Promise((resolve) => {
+                // Check periodically if tileset has been loaded
+                const checkLoaded = () => {
+                    if (this.loadedTilesets.has(siteId)) {
+                        resolve(this.loadedTilesets.get(siteId));
+                    } else {
+                        setTimeout(checkLoaded, 100);
+                    }
+                };
+                setTimeout(checkLoaded, 100);
+            });
             
         } catch (error) {
             console.error(`Failed to load Gaussian Splat for site ${siteId}:`, error);
@@ -697,23 +1114,60 @@ class GaussianSplatManager {
                 name: error.name
             });
             
-            // Try to determine the specific issue
+            // Try to determine the specific issue and provide actionable feedback
             let errorMessage = 'Failed to load digital twin';
-            if (error.message && error.message.includes('updateTransform')) {
+            let shouldRetry = false;
+            
+            if (error.message && error.message.includes('timeout')) {
+                errorMessage = 'Digital twin loading timed out (15s limit exceeded)';
+                console.warn('Large Gaussian Splat detected. File size: 56MB is causing slow loading.');
+                console.warn('Recommendations:');
+                console.warn('1. Consider splitting the splat into smaller tiles');
+                console.warn('2. Use lower resolution splat for faster loading');
+                console.warn('3. Implement progressive streaming');
+                shouldRetry = true;
+            } else if (error.message && error.message.includes('updateTransform')) {
                 errorMessage = 'Gaussian Splat format not fully supported in this Cesium version';
                 console.warn('Suggestion: This appears to be a Cesium/Gaussian Splat compatibility issue.');
                 console.warn('Try using Cesium 1.115+ or check if the tileset uses supported extensions.');
-            } else if (error.message && error.message.includes('timeout')) {
-                errorMessage = 'Digital twin loading timed out';
+            } else if (error.message && error.message.includes('network')) {
+                errorMessage = 'Network error loading digital twin';
+                shouldRetry = true;
+            } else if (error.message && error.message.includes('memory')) {
+                errorMessage = 'Insufficient memory to load digital twin';
+                console.warn('Try reducing memory usage by:');
+                console.warn('1. Closing other browser tabs');
+                console.warn('2. Reducing Google Photorealistic tile quality');
+                console.warn('3. Using a device with more RAM');
             }
             
-            // Remove loading indicator on error
-            this.removeLoadingIndicator(siteId);
+            // Loading indicator skipped - using main loading screen instead
             this.isLoading = false;
             
-            // Display error message
-            if (window.displayMessage) {
-                window.displayMessage(errorMessage, 0.5, 4, 0.5);
+            // Complete independent loading even on error
+            if (window.independentLoadingState) {
+                // Make sure we're not stuck waiting for trigger on error
+                window.independentLoadingState.waitingForTrigger = false;
+                window.independentLoadingState.complete();
+            }
+            
+            // Offer retry option for timeout/network errors
+            if (shouldRetry && window.displayMessage) {
+                setTimeout(() => {
+                    window.displayMessage(`${errorMessage}. Try reducing quality or refresh to retry.`, 0.5, 6, 0.5);
+                }, 1000);
+            } else if (window.displayMessage) {
+                setTimeout(() => {
+                    window.displayMessage(errorMessage, 0.5, 4, 0.5);
+                }, 1000);
+            }
+            
+            // Log performance recommendation
+            if (error.message && error.message.includes('timeout')) {
+                console.log('PERFORMANCE TIP: For 56MB Gaussian splats, consider:');
+                console.log('- Using compressed formats (.spz with higher compression)');
+                console.log('- Creating LOD pyramid with multiple resolution levels');
+                console.log('- Implementing tile-based streaming instead of single large file');
             }
             
             return null;
@@ -763,6 +1217,13 @@ class GaussianSplatManager {
                 // Remove terrain clipping if it exists
                 this.removeTerrainClipping(siteId);
                 
+                // Clean up distance-based LOD intervals
+                if (this.distanceUpdateIntervals && this.distanceUpdateIntervals.has(siteId)) {
+                    clearInterval(this.distanceUpdateIntervals.get(siteId));
+                    this.distanceUpdateIntervals.delete(siteId);
+                    console.log(`Distance LOD monitoring stopped for site: ${siteId}`);
+                }
+                
                 this.loadedTilesets.delete(siteId);
                 console.log(`Gaussian Splat unloaded for site: ${siteId}`);
             } catch (error) {
@@ -785,6 +1246,22 @@ class GaussianSplatManager {
             console.log(`Gaussian Splat unloaded for site: ${siteId}`);
         }
         this.loadedTilesets.clear();
+        
+        // Clean up all distance-based LOD intervals
+        if (this.distanceUpdateIntervals) {
+            for (const [siteId, intervalId] of this.distanceUpdateIntervals.entries()) {
+                clearInterval(intervalId);
+                console.log(`Distance LOD monitoring stopped for site: ${siteId}`);
+            }
+            this.distanceUpdateIntervals.clear();
+        }
+        
+        // Clean up camera movement handler
+        if (this.cameraMovementHandler) {
+            this.cameraMovementHandler.destroy();
+            this.cameraMovementHandler = null;
+            console.log('Camera movement handler destroyed');
+        }
         
         // Remove all loading indicators
         for (const siteId of this.loadingIndicators.keys()) {
@@ -862,16 +1339,7 @@ class GaussianSplatManager {
             // Alternative: Calculate volume of actual sphere for comparison
             const sphereVolume = (4/3) * Math.PI * Math.pow(radius, 3);
             
-            // Log all the bounds data
-            console.log('=== GAUSSIAN SPLAT BOUNDS ANALYSIS ===');
-            console.log(`Site ID: ${siteId}`);
-            console.log(`Bounding Sphere Center (Cartesian):`, center);
-            console.log(`Bounding Sphere Center (Degrees): ${longitude.toFixed(6)}, ${latitude.toFixed(6)}, ${height.toFixed(2)}m`);
-            console.log(`Bounding Sphere Radius: ${radius.toFixed(2)} meters`);
-            console.log(`Rectangular Prism (Cube) Side Length: ${sideLength.toFixed(2)} meters`);
-            console.log(`Rectangular Prism Volume: ${volume.toFixed(2)} cubic meters`);
-            console.log(`Sphere Volume (for comparison): ${sphereVolume.toFixed(2)} cubic meters`);
-            console.log(`Volume Ratio (Cube/Sphere): ${(volume / sphereVolume).toFixed(2)}`);
+            // Bounds analysis completed
             
             // Try to create terrain clipping (will only succeed if clipping-polygon.json exists)
             this.createTerrainClipping(tileset, siteId);
@@ -946,6 +1414,304 @@ class GaussianSplatManager {
             }
         } catch (error) {
             console.warn(`Error removing bounds visualization for ${siteId}:`, error);
+        }
+    }
+    
+    /**
+     * Updates the loading progress bar and text
+     * @param {number} percentage - Progress percentage (0-100)
+     * @param {string} message - Loading message
+     */
+    updateLoadingProgress(percentage, message) {
+        // DISABLED: Let main.js handle all progress updates to avoid conflicts
+        // Multiple progress handlers were causing oscillation
+        console.log('GaussianSplatManager progress update disabled:', percentage, message);
+    }
+    
+    /**
+     * Completes the loading with a quick 500ms speedup to 100%
+     */
+    completeLoading() {
+        // DISABLED: Let main.js Web Worker handle all progress updates
+        console.log('GaussianSplatManager completeLoading disabled - main.js handles completion');
+        this.isWaitingForCompletion = false;
+        
+        if (this.loadingResolver) {
+            this.loadingResolver();
+        }
+    }
+    
+    /**
+     * Loads tileset completely asynchronously without blocking main thread
+     * @param {string} tilesetUrl - URL to the tileset
+     * @param {string} siteId - Site identifier 
+     * @param {Object} bounds - Site bounds for positioning
+     */
+    async loadTilesetAsync(tilesetUrl, siteId, bounds) {
+        try {
+            console.log(`Starting async tileset load for ${siteId}`);
+            
+            // Use setTimeout to yield control back to main thread immediately
+            setTimeout(async () => {
+                try {
+                    console.log('Creating tileset in background thread...');
+                    
+                    // Load tileset - this will still block, but we've yielded control first
+                    const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl);
+                    
+                    console.log('Tileset created, adding to scene...');
+                    
+                    // Add to scene in next frame to prevent blocking
+                    requestAnimationFrame(() => {
+                        this.viewer.scene.primitives.add(tileset);
+                        console.log('Gaussian Splat added to scene');
+                        
+                        // Store the loaded tileset
+                        this.loadedTilesets.set(siteId, tileset);
+                        
+                        // Start continuous clicking immediately
+                        this.startContinuousClicking();
+                        
+                        // Set up monitoring for when the splat is truly ready
+                        this.monitorTilesetCompletion(tileset, siteId);
+                        
+                        // Do post-processing in background
+                        this.doPostProcessing(tileset, siteId);
+                    });
+                    
+                } catch (asyncError) {
+                    console.error(`Error in async tileset loading for ${siteId}:`, asyncError);
+                    this.handleTilesetError(siteId, asyncError);
+                }
+            }, 10); // Very brief delay to yield control
+            
+        } catch (error) {
+            console.error(`Error setting up async tileset load for ${siteId}:`, error);
+            this.handleTilesetError(siteId, error);
+        }
+    }
+    
+    /**
+     * Handles post-processing tasks after tileset is loaded
+     * @param {Cesium.Cesium3DTileset} tileset - The loaded tileset
+     * @param {string} siteId - Site identifier
+     */
+    doPostProcessing(tileset, siteId) {
+        // Calculate bounds and volume (non-blocking)
+        setTimeout(() => {
+            this.calculateSplatBounds(tileset, siteId);
+        }, 100);
+        
+        // Optionally position camera for optimal viewing (non-blocking)
+        if (!window.stopFlyThrough && !window.currentFlyThroughActive) {
+            setTimeout(async () => {
+                try {
+                    await this.viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(
+                        0,
+                        Cesium.Math.toRadians(-30),
+                        Math.max(tileset.boundingSphere.radius * 2.5, 150)
+                    ));
+                    console.log('Camera positioned for optimal splat viewing');
+                } catch (cameraError) {
+                    console.warn('Could not position camera automatically:', cameraError);
+                }
+            }, 200);
+        }
+        
+        // Ensure toggle button exists and update state (only in debug mode)
+        if (this.debugMode) {
+            setTimeout(() => {
+                this.createSplatToggleButton();
+                this.updateToggleButtonState();
+            }, 300);
+        }
+        
+        // Display success message with performance info (delayed)
+        setTimeout(() => {
+            if (window.displayMessage) {
+                window.displayMessage('Digital Twin loading in background...', 0.5, 2, 0.5);
+            }
+        }, 500);
+    }
+    
+    /**
+     * Perturbs the scene to force initial render of Gaussian Splats
+     * This ensures the scene is properly rendered before completion
+     */
+    perturbSceneForInitialRender() {
+        try {
+            console.log('Starting continuous mouse click simulation');
+            this.startContinuousClicking();
+        } catch (error) {
+            console.warn('Error starting continuous clicking:', error);
+        }
+    }
+    
+    /**
+     * Clicks the center of the screen once every second for 10 seconds
+     */
+    async startContinuousClicking() {
+        const canvas = this.viewer.scene.canvas;
+        const rect = canvas.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        console.log(`Starting continuous clicking at (${centerX}, ${centerY})`);
+        
+        for (let i = 0; i < 10; i++) {
+            try {
+                // Create mouse events
+                const mouseDownEvent = new MouseEvent('mousedown', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: centerY,
+                    button: 0
+                });
+                
+                const mouseUpEvent = new MouseEvent('mouseup', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: centerY,
+                    button: 0
+                });
+                
+                // Dispatch click
+                canvas.dispatchEvent(mouseDownEvent);
+                setTimeout(() => {
+                    canvas.dispatchEvent(mouseUpEvent);
+                    // Force multiple renders
+                    this.viewer.scene.requestRender();
+                    this.viewer.scene.requestRender();
+                    this.viewer.scene.requestRender();
+                }, 50);
+                
+                console.log(`[${new Date().toISOString()}] Continuous click ${i + 1}/10`);
+                
+                // Wait 1 second before next click
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+            } catch (error) {
+                console.warn(`Error on click ${i + 1}:`, error);
+            }
+        }
+        
+        console.log('Continuous clicking complete after 10 seconds');
+    }
+    
+    /**
+     * Handles tileset loading errors
+     * @param {string} siteId - Site identifier
+     * @param {Error} error - The error that occurred
+     */
+    handleTilesetError(siteId, error) {
+        // Loading indicator skipped - using main loading screen instead
+        this.isLoading = false;
+        
+        // Complete independent loading even on error
+        if (window.independentLoadingState) {
+            window.independentLoadingState.complete();
+        }
+        
+        console.error(`Failed to load Gaussian Splat for site ${siteId}:`, error);
+        
+        // Show error message after delay
+        setTimeout(() => {
+            if (window.displayMessage) {
+                window.displayMessage('Failed to load digital twin', 0.5, 4, 0.5);
+            }
+        }, 1000);
+    }
+    
+    /**
+     * Monitors tileset completion in the background without blocking
+     * @param {Cesium.Cesium3DTileset} tileset - The tileset to monitor
+     * @param {string} siteId - Site identifier
+     */
+    monitorTilesetCompletion(tileset, siteId) {
+        console.log(`Setting up background monitoring for tileset: ${siteId}`);
+        
+        // Set up performance monitoring (non-blocking)
+        this.setupPerformanceMonitoring(tileset, siteId);
+        
+        // Configure tileset performance settings
+        this.configureTilesetPerformance(tileset, siteId);
+        
+        // Monitor for actual completion in background
+        let checkCount = 0;
+        const maxChecks = 100; // Prevent infinite checking
+        
+        const backgroundMonitor = () => {
+            checkCount++;
+            
+            try {
+                // Loading indicator skipped - using main loading screen instead
+                if (tileset.ready && checkCount === 1) {
+                    console.log(`Tileset is ready for ${siteId}`);
+                }
+                
+                // Log completion when tiles are actually loaded
+                if (tileset.statistics) {
+                    const stats = tileset.statistics;
+                    if (stats.numberOfTilesWithContentReady > 0) {
+                        if (this.loadingStartTime) {
+                            const loadTime = Date.now() - this.loadingStartTime;
+                            console.log(`Tile loaded for ${siteId}: Total=1, Avg Load Time=${loadTime}ms`);
+                            this.loadingStartTime = null; // Only log once
+                            
+                            // Trigger loading completion when Gaussian splat is ready
+                            console.log('🎯 GAUSSIAN SPLAT READY - Finalizing scene and triggering completion');
+                            if (window.independentLoadingState && window.independentLoadingState.complete) {
+                                // Perturb scene to ensure proper rendering
+                                this.perturbSceneForInitialRender();
+                                
+                                // Final completion message and trigger
+                                window.independentLoadingState.currentMessage = 'Digital twin materialized. Welcome to the ecosystem.';
+                                const loadingMessage = document.getElementById('loadingMessage');
+                                if (loadingMessage) loadingMessage.textContent = 'Digital twin materialized. Welcome to the ecosystem.';
+                                
+                                // Wait longer for tiles to fully render, then perturb
+                                setTimeout(() => {
+                                    this.perturbSceneForInitialRender();
+                                    // Additional delay and second perturbation
+                                    setTimeout(() => {
+                                        this.perturbSceneForInitialRender();
+                                        setTimeout(() => window.independentLoadingState.complete(), 500);
+                                    }, 1000);
+                                }, 2000); // Wait 2 seconds after tiles are ready
+                            }
+                        }
+                    }
+                }
+                
+                // Continue monitoring if not at max checks
+                if (checkCount < maxChecks && (!tileset.ready || !tileset.statistics || tileset.statistics.numberOfPendingRequests > 0)) {
+                    setTimeout(backgroundMonitor, 500); // Check every 500ms
+                } else {
+                    console.log(`Background monitoring complete for ${siteId} after ${checkCount} checks`);
+                }
+                
+            } catch (error) {
+                console.warn(`Error in background monitoring for ${siteId}:`, error);
+                // Continue monitoring despite errors
+                if (checkCount < maxChecks) {
+                    setTimeout(backgroundMonitor, 1000);
+                }
+            }
+        };
+        
+        // Start background monitoring
+        setTimeout(backgroundMonitor, 500);
+    }
+    
+    /**
+     * Hides the loading screen
+     */
+    hideLoadingScreen() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
         }
     }
     
@@ -1146,12 +1912,7 @@ class GaussianSplatManager {
     applyTerrainClipping(siteId, retryCount = 0) {
         try {
             const clippingCollection = this.clippingPolygons.get(siteId);
-            console.log(`Debug - Clipping collection for ${siteId}:`, {
-                exists: !!clippingCollection,
-                isDestroyed: clippingCollection ? clippingCollection.isDestroyed() : 'N/A',
-                hasLength: clippingCollection ? clippingCollection.length : 'N/A',
-                polygonCount: clippingCollection ? clippingCollection.length : 'N/A'
-            });
+            // Clipping collection debug complete
             
             if (!clippingCollection) {
                 console.warn(`No clipping polygon found for site: ${siteId}`);
@@ -1162,16 +1923,11 @@ class GaussianSplatManager {
             const primitives = this.viewer.scene.primitives;
             let googleTileset = null;
             
-            console.log(`Searching for Google Photorealistic tileset (attempt ${retryCount + 1}), found ${primitives.length} primitives`);
+            // Searching for Google Photorealistic tileset
             
             for (let i = 0; i < primitives.length; i++) {
                 const primitive = primitives.get(i);
-                console.log(`Primitive ${i}:`, {
-                    type: primitive.constructor.name,
-                    isCesium3DTileset: primitive instanceof Cesium.Cesium3DTileset,
-                    hasUrl: !!primitive.url,
-                    url: primitive.url
-                });
+                // Check primitive type
                 
                 if (primitive instanceof Cesium.Cesium3DTileset && !primitive.isDestroyed()) {
                     // Check if this is NOT one of our loaded gaussian splats
@@ -1187,12 +1943,7 @@ class GaussianSplatManager {
                         // This is likely the Google Photorealistic tileset
                         // Prefer the most recently added one (should be last in the list)
                         googleTileset = primitive;
-                        console.log(`Found Google Photorealistic tileset:`, {
-                            ready: googleTileset.ready,
-                            hasClippingPolygons: !!googleTileset.clippingPolygons,
-                            index: i,
-                            isDestroyed: primitive.isDestroyed()
-                        });
+                        // Found Google Photorealistic tileset
                         // Don't break - continue to find the last (most recent) one
                     }
                 }
@@ -1209,7 +1960,7 @@ class GaussianSplatManager {
                     // Apply clipping collection - avoid creating fresh collections due to Cesium ownership issues
                     if (clippingCollection && !clippingCollection.isDestroyed()) {
                         googleTileset.clippingPolygons = clippingCollection;
-                        console.log(`Terrain clipping applied to Google Photorealistic tileset for site: ${siteId}`);
+                        // Terrain clipping applied to Google Photorealistic tileset
                     } else {
                         console.warn(`Clipping collection for site ${siteId} is destroyed or invalid - attempting to reload`);
                         // Try to reload the clipping data from the original source
@@ -1333,3 +2084,71 @@ class GaussianSplatManager {
 
 // Export the class to global scope
 window.GaussianSplatManager = GaussianSplatManager;
+
+// Add global performance monitoring functions for development
+window.gaussianSplatPerformance = {
+    /**
+     * Gets performance stats for all loaded Gaussian splats
+     */
+    getStats: () => {
+        if (window.gaussianSplatManager) {
+            return window.gaussianSplatManager.getAllPerformanceStats();
+        }
+        return {};
+    },
+    
+    /**
+     * Gets performance stats for a specific site
+     * @param {string} siteId - Site identifier
+     */
+    getSiteStats: (siteId) => {
+        if (window.gaussianSplatManager) {
+            return window.gaussianSplatManager.getPerformanceStats(siteId);
+        }
+        return null;
+    },
+    
+    /**
+     * Logs current performance stats to console
+     */
+    logStats: () => {
+        const stats = window.gaussianSplatPerformance.getStats();
+        console.log('=== GAUSSIAN SPLAT PERFORMANCE STATS ===');
+        if (Object.keys(stats).length === 0) {
+            console.log('No Gaussian splats currently loaded');
+        } else {
+            for (const [siteId, siteStats] of Object.entries(stats)) {
+                console.log(`Site: ${siteId}`);
+                console.log(`  FPS: ${siteStats.fps}`);
+                console.log(`  Tiles Loaded: ${siteStats.tilesLoaded}`);
+                console.log(`  Tiles Failed: ${siteStats.tilesFailed}`);
+                console.log(`  Memory Usage: ${siteStats.memoryUsageMB}MB`);
+                console.log(`  Avg Load Time: ${siteStats.averageLoadTimeMs}ms`);
+                console.log('---');
+            }
+        }
+        console.log('==========================================');
+    },
+    
+    /**
+     * Optimizes all loaded splats for movement (reduces quality temporarily)
+     */
+    optimizeForMovement: () => {
+        if (window.gaussianSplatManager) {
+            window.gaussianSplatManager.optimizeForMovement(true);
+            console.log('Optimized all splats for camera movement');
+        }
+    },
+    
+    /**
+     * Restores quality after movement optimization
+     */
+    restoreQuality: () => {
+        if (window.gaussianSplatManager) {
+            window.gaussianSplatManager.optimizeForMovement(false);
+            console.log('Restored quality for all splats');
+        }
+    }
+};
+
+// Gaussian Splat performance monitoring available

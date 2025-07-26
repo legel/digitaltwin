@@ -6,7 +6,8 @@ document.addEventListener("DOMContentLoaded", function () {
      * If in 3D mode, flies to the user's location using the Cesium viewer.
      * If in 2D mode, pans the Google Maps 2D viewer to the user's location.
      */
-    homeButton.addEventListener("click", function () {
+    if (homeButton) {
+        homeButton.addEventListener("click", function () {
         if (window.is3DView) {
             if (window.user) {
                 window.user.flyToUser();
@@ -24,6 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.error("UserManager instance or geolocation data not found.");
             }
         }
-    });
+        });
+    }
 });
 

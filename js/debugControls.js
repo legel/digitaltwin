@@ -482,7 +482,6 @@ function initializeDebugControls() {
         }
     });
     
-    console.log('Debug controls available. Press Ctrl+D to toggle debug panel.');
 }
 
 // Expose functions globally

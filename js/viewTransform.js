@@ -65,7 +65,8 @@ document.addEventListener("DOMContentLoaded", function () {
      * Handles the "2D/3D view switch" button click.
      * Switches between 2D and 3D views, maintaining the current camera position and settings.
      */
-    viewSwitchButton.addEventListener("click", async function () {
+    if (viewSwitchButton) {
+        viewSwitchButton.addEventListener("click", async function () {
         if (window.is3DView) {
             // Switch from 3D to 2D
             const cesiumViewer = window.map3D.getViewer();
@@ -118,7 +119,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         window.is3DView = !window.is3DView; // Toggle the view state
-    });
+        });
+    }
 });
 
 
