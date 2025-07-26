@@ -32,7 +32,8 @@ document.addEventListener("DOMContentLoaded", function () {
      * 3D: Tilts the camera to face directly downward.
      * 2D: Sets the map tilt to 0 degrees.
      */
-    tilt0Button.addEventListener("click", function () {
+    if (tilt0Button) {
+        tilt0Button.addEventListener("click", function () {
         if (window.is3DView) {
             const cesiumViewer = window.map3D.getViewer();
             const cesiumCamera = cesiumViewer.scene.camera;
@@ -51,14 +52,16 @@ document.addEventListener("DOMContentLoaded", function () {
             const map2D = window.map2D.getMap();
             map2D.setTilt(0); // Set tilt to 0 degrees
         }
-    });
+        });
+    }
 
     /**
      * Handles the "tilt 45 degrees" button click.
      * 3D: Tilts the camera to a 45-degree angle from the ground.
      * 2D: Sets the map tilt to 45 degrees.
      */
-    tilt45Button.addEventListener("click", function () {
+    if (tilt45Button) {
+        tilt45Button.addEventListener("click", function () {
         if (window.is3DView) {
             const cesiumViewer = window.map3D.getViewer();
             const cesiumCamera = cesiumViewer.scene.camera;
@@ -77,7 +80,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const map2D = window.map2D.getMap();
             map2D.setTilt(45); // Set tilt to 45 degrees
         }
-    });
+        });
+    }
 
     // Initial hide call if the buttons are already present
     //window.hideRotateControlButtons = function () {

@@ -40,7 +40,8 @@ document.addEventListener("DOMContentLoaded", function () {
     /**
      * Handles the "rotate right 90 degrees" button click.
      */
-    rotateRightButton.addEventListener("click", function () {
+    if (rotateRightButton) {
+        rotateRightButton.addEventListener("click", function () {
         if (window.is3DView) {
             // 3D rotation logic
             const cesiumViewer = window.map3D.getViewer();
@@ -74,12 +75,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         }
-    });
+        });
+    }
 
     /**
      * Handles the "rotate left 90 degrees" button click.
      */
-    rotateLeftButton.addEventListener("click", function () {
+    if (rotateLeftButton) {
+        rotateLeftButton.addEventListener("click", function () {
         if (window.is3DView) {
             // 3D rotation logic
             const cesiumViewer = window.map3D.getViewer();
@@ -113,6 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         }
-    });
+        });
+    }
 });
 

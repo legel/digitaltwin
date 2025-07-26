@@ -1,3 +1,8 @@
+import { ecoLoadingMessages } from './ecoLoadingMessages.js';
+
+// Make messages globally available for main.js
+window.ecoLoadingMessages = ecoLoadingMessages;
+
 /**
  * Creates a reusable button with an "x" sub-button for closing.
  * @param {string} buttonText - The text to display on the button.
@@ -296,7 +301,7 @@ async function loadSiteData() {
     
     // Define the GeoJSON files to load
     const files = [
-        { filename: 'Boyd_Residence_Aerial_and_Ground.geojson', name: 'Scott Boyd Residence' }
+        { filename: 'Boyd_Residence_Aerial_and_Ground.geojson', name: 'Winter Garden Residence' }
     ];
     
     for (const file of files) {
@@ -575,6 +580,11 @@ function toggleParameterFilter(format) {
     const parameterFilter = document.getElementById('parameterFilter');
     const parameterDropdown = document.getElementById('parameterDropdown');
     
+    // Skip if elements don't exist
+    if (!parameterFilter || !parameterDropdown) {
+        return;
+    }
+    
     if (format === 'boyd') {
         parameterFilter.style.display = 'block';
     } else {
@@ -742,7 +752,7 @@ function getParameterDisplayName(paramType) {
 function initializeParameterFilter() {
     // This function is now replaced by the layer control system
     // Keep it for compatibility but it doesn't do anything
-    console.log('Parameter filter replaced by layer control system');
+    // Parameter filter replaced by layer control system
 }
 
 /**
@@ -767,12 +777,12 @@ async function initializeSiteSelector() {
         siteDropdown.appendChild(option);
     });
     
-    // Set default selection to Scott Boyd Residence
-    const scottBoydOption = Array.from(siteDropdown.options).find(option => 
-        option.textContent === 'Scott Boyd Residence'
+    // Set default selection to Winter Garden Residence
+    const winterGardenOption = Array.from(siteDropdown.options).find(option => 
+        option.textContent === 'Winter Garden Residence'
     );
-    if (scottBoydOption) {
-        siteDropdown.value = scottBoydOption.value;
+    if (winterGardenOption) {
+        siteDropdown.value = winterGardenOption.value;
         
         // Since Scott Boyd site uses Boyd format, show the layer controls immediately
         const layerControls = document.getElementById('layerControls');
@@ -784,11 +794,11 @@ async function initializeSiteSelector() {
         const selectedOption = siteDropdown.options[siteDropdown.selectedIndex];
         const bounds = JSON.parse(selectedOption.dataset.bounds);
         
-        // Load the Scott Boyd site data
-        const scottBoydSite = sites.find(site => site.filename === scottBoydOption.value);
-        if (scottBoydSite) {
+        // Load the Winter Garden site data
+        const winterGardenSite = sites.find(site => site.filename === winterGardenOption.value);
+        if (winterGardenSite) {
             // Store the site data globally
-            window.currentSiteData = scottBoydSite.geoJson;
+            window.currentSiteData = winterGardenSite.geoJson;
             
             // Initialize layer state with plantable areas checked by default
             window.layerState = {
@@ -807,11 +817,11 @@ async function initializeSiteSelector() {
             navigateToSite(bounds, false);
             
             // Store current site data globally
-            window.currentSiteData = scottBoydSite.geoJson;
+            window.currentSiteData = winterGardenSite.geoJson;
             
             // Detect format and initialize parameter filter
-            const format = scottBoydSite.geoJson.features.length > 0 ? 
-                detectGeoJsonFormat(scottBoydSite.geoJson.features[0]) : 'legacy';
+            const format = winterGardenSite.geoJson.features.length > 0 ? 
+                detectGeoJsonFormat(winterGardenSite.geoJson.features[0]) : 'legacy';
             
             // Initialize layer controls after site is loaded
             if (window.initializeLayerControls) {
@@ -825,12 +835,14 @@ async function initializeSiteSelector() {
             
             // Trigger initial visualization with plantable areas
             if (window.visualizeGeoJsonPolygonsWithLayers) {
-                window.visualizeGeoJsonPolygonsWithLayers(scottBoydSite.geoJson);
+                window.visualizeGeoJsonPolygonsWithLayers(winterGardenSite.geoJson);
             }
             
-            // Auto-load Gaussian Splat for Scott Boyd site
+            // Auto-load Gaussian Splat for Winter Garden site (with small delay to ensure camera is positioned)
             if (window.gaussianSplatManager) {
-                window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+                setTimeout(() => {
+                    window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+                }, 100);
             }
         }
     }
@@ -864,8 +876,8 @@ async function initializeSiteSelector() {
                         // Unload any existing splats first
                         window.gaussianSplatManager.unloadAllSplats();
                         
-                        // For Scott Boyd site, auto-load the splat
-                        if (selectedSite.name === 'Scott Boyd Residence') {
+                        // For Winter Garden site, auto-load the splat
+                        if (selectedSite.name === 'Winter Garden Residence') {
                             window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
                         }
                     }
@@ -1205,7 +1217,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
         viewer.entities.remove(entity);
     });
     
-    console.log(`Cleared ${entitiesToRemove.length} existing entities`);
+    // Cleared existing entities
     
     // Detect format from first feature
     const format = geoJsonData.features.length > 0 ? detectGeoJsonFormat(geoJsonData.features[0]) : 'legacy';
@@ -1221,7 +1233,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
         }
     }
     
-    console.log(`Visualizing ${format} format GeoJSON with ${isGeographic ? 'geographic' : 'projected'} coordinates`);
+    // Visualizing GeoJSON format
     
     // Find the vertex with maximum altitude from the GeoJSON data
     let maxAltitude = -Infinity;
@@ -1259,8 +1271,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
     });
     
     const avgAltitude = allAltitudes.length > 0 ? allAltitudes.reduce((a, b) => a + b, 0) / allAltitudes.length : 0;
-    console.log(`GeoJSON altitude stats: min=${minAltitude}m, max=${maxAltitude}m, avg=${avgAltitude.toFixed(2)}m`);
-    console.log(`Found maximum altitude in GeoJSON: ${maxAltitude}m at coordinates:`, maxAltitudeCoord);
+    // GeoJSON altitude analysis completed
     
     // If we found a max altitude coordinate, sample the Google 3D Tiles height at that location
     let fixedHeight = maxAltitude + 0.1; // Default to GeoJSON altitude + 0.1m
@@ -1642,8 +1653,8 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 vertexHeight = maxAltitude + heightOffset;
             }
             
-            // Elevate polygons by 3m to match outline elevation and render above splat
-            positions.push(Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, vertexHeight + 3.0));
+            // Elevate polygons by 0.5m to match outline elevation and render above splat
+            positions.push(Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, vertexHeight + 0.5));
         }
         
         // Create polygon with individual vertex heights
@@ -1657,7 +1668,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 outline: false, // Disable polygon outline, we'll use separate polylines
                 perPositionHeight: true, // Use individual heights for each vertex
                 disableDepthTestDistance: Number.POSITIVE_INFINITY, // Always visible
-                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, // Ensure proper height reference
+                // Remove heightReference when using perPositionHeight (incompatible)
                 extrudedHeight: 0.5 // Slightly extrude to ensure visibility through splat
             },
             description: descriptionContent
@@ -1674,7 +1685,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 return Cesium.Cartesian3.fromRadians(
                     cartographic.longitude,
                     cartographic.latitude,
-                    cartographic.height + 3.0 // Elevate by 3 meters
+                    cartographic.height + 0.5 // Elevate by 0.5 meters
                 );
             });
             
@@ -1684,12 +1695,12 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                     positions: elevatedPositions,
                     width: outlineWidth || 2,
                     material: outlineColor,
-                    clampToGround: false,
+                    clampToGround: false, // Keep unclamped for elevation above splat
                     disableDepthTestDistance: Number.POSITIVE_INFINITY,
                     heightReference: Cesium.HeightReference.NONE, // Use absolute height
                     // Additional properties to ensure visibility through splats
                     classificationType: Cesium.ClassificationType.BOTH,
-                    zIndex: 1000,
+                    // Remove zIndex since it conflicts with clampToGround: false
                     // Enhanced visibility settings for splat rendering
                     depthFailMaterial: outlineColor, // Show same color even when depth test fails
                     show: true, // Explicitly set to visible
@@ -1825,7 +1836,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                 
                 viewer.entities.add({
                     name: `Site_Point_${index}`,
-                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, 1.0),
+                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat),
                     cylinder: {
                         length: 2.0,
                         topRadius: 0.3,
@@ -1842,7 +1853,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
         }
     });
     
-    console.log(`Visualized ${geoJsonData.features.length} features from GeoJSON`);
+    // GeoJSON visualization completed
 }
 
 /**
@@ -1908,7 +1919,7 @@ function stopActiveTutorial() {
         window.map3D.viewer.scene.camera.cancelFlight();
     }
     
-    console.log('Tutorial/flythrough stopped by site selection');
+    // Tutorial/flythrough stopped by site selection
 }
 
 /**
@@ -1931,11 +1942,11 @@ function navigateToSite(bounds, visualize = true) {
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
     const centerLng = (bounds.minLng + bounds.maxLng) / 2;
     
-    // Calculate appropriate viewing height based on bounds
+    // Calculate appropriate viewing height based on bounds (3x closer than before)
     const latSpan = bounds.maxLat - bounds.minLat;
     const lngSpan = bounds.maxLng - bounds.minLng;
     const maxSpan = Math.max(latSpan, lngSpan);
-    const height = Math.max(500, maxSpan * 111320 * 2); // Convert degrees to meters roughly
+    const height = Math.max(67, maxSpan * 111320 * 0.67); // 3x closer: was *2, now *0.67
     
     // Fly to the site
     viewer.camera.flyTo({
@@ -1968,17 +1979,48 @@ function navigateToSite(bounds, visualize = true) {
  * This includes the CesiumManager, GoogleMaps2DManager, and UserManager.
  */
 async function allSystemsGo() {
-    // Instantiate the CesiumManager
+    // Update loading message for initialization
+    if (window.independentLoadingState) {
+        // window.independentLoadingState.updateMessage('Initializing ecosystem simulation...', 3000);
+    }
+    
+    // Instantiate the CesiumManager - this starts Cesium rendering immediately
     window.map3D = new CesiumManager('cesiumContainer');
+
+    // Message cycling will be set up independently in main.js
+    
+    // Make sure Cesium starts rendering in background even while loading screen is visible
+    if (window.map3D.viewer) {
+        // Force initial render to prevent glitchy transition
+        window.map3D.viewer.scene.requestRender();
+        
+        // Set up camera movement handlers to trigger renders for on-demand rendering
+        const camera = window.map3D.viewer.scene.camera;
+        camera.moveStart.addEventListener(() => {
+            // Start continuous rendering during camera movement
+            window.map3D.viewer.scene.requestRender();
+        });
+        
+        camera.moveEnd.addEventListener(() => {
+            // Ensure final render when movement stops
+            window.map3D.viewer.scene.requestRender();
+        });
+        
+        // Also trigger renders for mouse/touch interactions (with passive listeners)
+        const canvas = window.map3D.viewer.scene.canvas;
+        canvas.addEventListener('mousedown', () => window.map3D.viewer.scene.requestRender(), { passive: true });
+        canvas.addEventListener('wheel', () => window.map3D.viewer.scene.requestRender(), { passive: true });
+        canvas.addEventListener('touchstart', () => window.map3D.viewer.scene.requestRender(), { passive: true });
+    }
 
     // Instantiate the GoogleMaps2DManager and wait for it to be ready
     window.map2D = await new GoogleMaps2DManager('map2D');
-    console.log("Google Map object is ready:", window.map2D);
+    // Google Map object is ready
 
     // Instantiate the UserManager and store it globally
     window.user = new UserManager(window.map3D);
     
-    // Instantiate the GaussianSplatManager
+    // Instantiate the GaussianSplatManager with independent loading support
     window.gaussianSplatManager = new GaussianSplatManager(window.map3D.viewer);
     await import('./integrate_splat_clipping.js');
     
@@ -2004,8 +2046,16 @@ async function allSystemsGo() {
     }, 100);
     
     
+    // Update loading message for site data loading
+    if (window.independentLoadingState) {
+        // window.independentLoadingState.updateMessage('Simulating hummingbird flight paths...', 4000);
+    }
+    
     // Then initialize the site selector which will trigger the default site load
     await initializeSiteSelector();
+    
+    // Loading will complete when Gaussian splat is ready (handled by GaussianSplatManager)
+    console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - Waiting for Gaussian splat to load`);
 }
 
 // Expose the functions globally
@@ -2089,3 +2139,4 @@ function initializeTerrainToggle() {
 window.initializeTerrainToggle = initializeTerrainToggle;
 window.getParameterDisplayName = getParameterDisplayName;
 window.extractNPACategory = extractNPACategory;
+window.allSystemsGo = allSystemsGo;

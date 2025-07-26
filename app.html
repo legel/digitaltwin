@@ -28,6 +28,71 @@
     <link href="/css/focusPanel.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #072b2e;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    ">
+        <img src="/images/ecodash_white_cropped.webp" alt="Ecodash Logo" style="
+            max-width: 300px;
+            margin-bottom: 40px;
+        ">
+        
+        <div style="
+            width: 400px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+        ">
+            <div id="loadingBar" style="
+                width: 100%;
+                height: 10px;
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 5px;
+                overflow: hidden;
+                margin-bottom: 25px;
+            ">
+                <div id="loadingProgress" style="
+                    width: 100%;
+                    height: 100%;
+                    background: white;
+                    border-radius: 5px;
+                    transform: scaleX(0);
+                    transform-origin: left;
+                    transition: transform 0.1s ease-out;
+                "></div>
+            </div>
+            
+            <div id="loadingMessage" style="
+                color: white;
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 8px;
+            ">Loading...</div>
+            <div id="loadingPercentage" style="
+                color: white;
+                font-family: 'Courier New', monospace;
+                font-size: 16px;
+                font-weight: bold;
+            ">0%</div>
+            <script>
+                // Log when loading screen first becomes visible
+                console.log(`[${new Date().toISOString()}] 🌟 LOADING SCREEN DISPLAYED - User sees initial message`);
+            </script>
+        </div>
+    </div>
+
     <!-- Cesium 3D Container -->
     <div id="cesiumContainer"></div>
 
@@ -44,18 +109,18 @@
     <div id="controlPanel" class="control-panel">
         <!-- Top row: buttons + site selector -->
         <div class="control-group view-controls">
-            <!-- Tilt Controls -->
-            <button id="tilt0Button" class="control-button icon-button tilt-0-button" title="Top-down view"></button>
-            <button id="tilt45Button" class="control-button icon-button tilt-45-button" title="Angled view"></button>
+            <!-- Tilt Controls - COMMENTED OUT -->
+            <!-- <button id="tilt0Button" class="control-button icon-button tilt-0-button" title="Top-down view"></button>
+            <button id="tilt45Button" class="control-button icon-button tilt-45-button" title="Angled view"></button> -->
 
-            <!-- Rotation Controls -->
-            <button id="rotateLeftButton" class="control-button icon-button rotate-left-button" title="Rotate left 90°"></button>
-            <button id="rotateRightButton" class="control-button icon-button rotate-right-button" title="Rotate right 90°"></button>
+            <!-- Rotation Controls - COMMENTED OUT -->
+            <!-- <button id="rotateLeftButton" class="control-button icon-button rotate-left-button" title="Rotate left 90°"></button>
+            <button id="rotateRightButton" class="control-button icon-button rotate-right-button" title="Rotate right 90°"></button> -->
 
-            <!-- Navigation Controls -->
-            <button id="homeButton" class="control-button icon-button home-button" title="Go to my location"></button>
+            <!-- Navigation Controls - COMMENTED OUT -->
+            <!-- <button id="homeButton" class="control-button icon-button home-button" title="Go to my location"></button>
             <button id="terrainToggleButton" class="control-button text-button terrain-toggle" title="Switch between high quality and performance modes">HQ</button>
-            <button id="viewSwitchButton" class="control-button text-button view-switch">2D</button>
+            <button id="viewSwitchButton" class="control-button text-button view-switch">2D</button> -->
 
             <!-- Site Selector (inline with buttons) -->
             <div id="siteSelector" class="control-item site-selector">
@@ -110,7 +175,11 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="/js/utilities.js"></script>
+    <script>
+        // Log the very first moment scripts start loading
+        console.log(`[${new Date().toISOString()}] ⚡ HTML PARSED - Starting script loading`);
+    </script>
+    <script type="module" src="/js/utilities.js"></script>
     <script src="/js/main.js"></script>
 
     <!-- Map Managers -->

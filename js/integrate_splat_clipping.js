@@ -24,16 +24,13 @@ window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(s
         const response = await fetch(clippingUrl);
         
         if (!response.ok) {
-            // Silent failure - no logging when file not found
             return false;
         }
         
         const clippingData = await response.json();
-        console.log(`Loading pre-computed clipping polygon for site: ${siteId}`, clippingData);
         
         // Check if this is the new 3D bounding box format
         if ((clippingData.type === "3d_bounding_box" || clippingData.type === "polygonal_prism") && clippingData.vertices_3d) {
-            console.log(`Processing ${clippingData.type} format`);
             
             // First, visualize the raw 3D bounding box before transformation
             const rawVertices = [];
@@ -46,7 +43,6 @@ window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(s
             
             // Get tileset transformation matrix
             const tilesetTransform = tileset.root.transform;
-            console.log('Tileset transform matrix:', tilesetTransform);
             const transformMatrix = Cesium.Matrix4.fromArray(tilesetTransform);
             
             // Get splat center and visualize raw prism using proper transformation (only in debug mode)
@@ -55,7 +51,6 @@ window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(s
                 this.visualizeRaw3DPrism(rawVertices, splatCenter, siteId, clippingData.type, clippingData.metadata, transformMatrix);
             }
             
-            console.log('Transform matrix:', transformMatrix);
             
             // Transform all 3D vertices to world coordinates
             const transformedVertices = [];
@@ -74,8 +69,6 @@ window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(s
                 const worldPosition = new Cesium.Cartesian3(transformedPosition.x, transformedPosition.y, transformedPosition.z);
                 
                 transformedVertices.push(worldPosition);
-                
-                console.log(`3D Vertex: (${localX}, ${localY}, ${localZ}) -> World:`, worldPosition);
             }
             
             // Project 3D vertices to 2D and find convex hull for clipping polygon
@@ -83,7 +76,6 @@ window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(s
             
         } else {
             // Legacy format - handle old 2D positions
-            console.log('Processing legacy 2D positions format');
             var positions = [];
             for (let i = 0; i < clippingData.positions.length; i += 3) {
                 const x = clippingData.positions[i];
@@ -108,10 +100,6 @@ window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(s
             inverse: false  // Hide the area inside the polygon
         });
         
-        // Debug logging
-        console.log('Created clipping polygon collection:', clippingPolygonCollection);
-        console.log('Collection polygons:', clippingPolygonCollection.polygons);
-        
         // Store the clipping polygon for this site
         this.clippingPolygons.set(siteId, clippingPolygonCollection);
         
@@ -124,7 +112,6 @@ window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(s
             this.visualizeClippingPolygon(siteId);
         }
         
-        console.log(`Pre-computed terrain clipping applied for site: ${siteId}`);
         return true;
         
     } catch (error) {
@@ -143,16 +130,13 @@ window.GaussianSplatManager.prototype.createTerrainClipping = async function(til
         const precomputedLoaded = await this.loadPrecomputedClipping(siteId, tileset);
         
         if (precomputedLoaded) {
-            console.log(`Using pre-computed clipping polygon for site: ${siteId}`);
             return;
         }
         
         // No clipping polygon found - skip clipping entirely
-        console.log(`No clipping polygon found for site: ${siteId} - skipping terrain clipping`);
         
     } catch (error) {
         console.error(`Error in createTerrainClipping for ${siteId}:`, error);
-        // Silent failure - no clipping applied
     }
 };
 
@@ -268,14 +252,12 @@ window.GaussianSplatManager.prototype.removeAllTerrainClipping = function() {
 
 // Utility method to project 3D vertices to 2D and find convex hull
 window.GaussianSplatManager.prototype.project3DVerticesTo2D = function(vertices3d, prismType, metadata) {
-    console.log(`Projecting 3D vertices to 2D for clipping polygon (${prismType})`);
     
     // For polygonal prisms, use only the bottom polygon vertices
     let verticesToProject = vertices3d;
     if (prismType === "polygonal_prism" && metadata && metadata.base_vertices) {
         // Take only the first N vertices (bottom polygon)
         verticesToProject = vertices3d.slice(0, metadata.base_vertices);
-        console.log(`Using ${metadata.base_vertices} bottom polygon vertices for projection`);
     }
     
     // Convert vertices to geographic coordinates for 2D projection
@@ -287,7 +269,6 @@ window.GaussianSplatManager.prototype.project3DVerticesTo2D = function(vertices3
         geoPoints.push([longitude, latitude]);
     }
     
-    console.log('Geographic points for convex hull calculation:', geoPoints);
     
     // For polygonal prisms, the vertices are already in the correct order, so we can use them directly
     // For rectangular prisms, we need to calculate the convex hull
@@ -295,11 +276,9 @@ window.GaussianSplatManager.prototype.project3DVerticesTo2D = function(vertices3
     if (prismType === "polygonal_prism") {
         // Use the polygon vertices directly (they're already in correct order)
         finalPoints = geoPoints;
-        console.log(`Using polygon vertices directly (${finalPoints.length} vertices)`);
     } else {
         // Calculate 2D convex hull using a simple algorithm
         finalPoints = this.calculateConvexHull2D(geoPoints);
-        console.log(`Calculated convex hull (${finalPoints.length} vertices)`);
     }
     
     // Convert final points back to Cartesian3 positions
@@ -309,7 +288,6 @@ window.GaussianSplatManager.prototype.project3DVerticesTo2D = function(vertices3
         positions.push(cartesian);
     }
     
-    console.log(`2D clipping polygon has ${positions.length} vertices`);
     return positions;
 };
 
@@ -404,8 +382,8 @@ window.GaussianSplatManager.prototype.visualizeRaw3DPrism = function(rawVertices
                 positions: [startPos, endPos],
                 width: 2,
                 material: Cesium.Color.CYAN,
-                clampToGround: false,
-                zIndex: 999
+                clampToGround: false, // Keep 3D positioning for debug wireframe
+                disableDepthTestDistance: Number.POSITIVE_INFINITY
             }
         });
         
@@ -500,4 +478,4 @@ window.GaussianSplatManager.prototype.removeRawPrismVisualization = function(sit
     }
 };
 
-console.log('Splat clipping integration loaded - supports 3D bounding box clipping polygons');
+// Splat clipping integration loaded
