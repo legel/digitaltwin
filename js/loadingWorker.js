@@ -79,8 +79,8 @@ function animateProgress() {
     let newProgress;
     
     if (currentProgress < 80) {
-        // Phase 1: 0-80% over 20 seconds (4% per second)
-        newProgress = Math.min(80, (totalElapsedTime / 20) * 80);
+        // Phase 1: 0-80% over 35 seconds (2.3% per second) - extended for remote loading
+        newProgress = Math.min(80, (totalElapsedTime / 35) * 80);
     } else {
         // Phase 2: 80-99% with exponential slowdown
         if (!exponentialSlowdownStartTime) {
