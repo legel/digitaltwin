@@ -835,15 +835,9 @@ class GaussianSplatManager {
             if (stats.frameCount % 60 === 0) { // Update every 60 frames
                 stats.fps = 1000 / (deltaTime / 60);
                 
-                // Log performance stats periodically
+                // Performance stats logging removed for cleaner console output
                 if (stats.frameCount % 300 === 0) { // Every 5 seconds at 60fps
-                    console.log(`Performance stats for ${siteId}:`, {
-                        fps: stats.fps.toFixed(1),
-                        tilesLoaded: stats.tilesLoaded,
-                        tilesFailed: stats.tilesFailed,
-                        estimatedMemoryMB: (stats.memoryUsage / 1024 / 1024).toFixed(1),
-                        averageLoadTimeMs: stats.averageLoadTime.toFixed(0)
-                    });
+                    // Performance monitoring continues without console spam
                     
                     // Just log performance stats without triggering completion
                     if (!this.performanceStatsLogged) {
@@ -1587,7 +1581,7 @@ class GaussianSplatManager {
                     this.viewer.scene.requestRender();
                 }, 50);
                 
-                console.log(`[${new Date().toISOString()}] Continuous click ${i + 1}/10`);
+                // Continuous click logging removed for cleaner console output
                 
                 // Wait 1 second before next click
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1597,7 +1591,7 @@ class GaussianSplatManager {
             }
         }
         
-        console.log('Continuous clicking complete after 10 seconds');
+        // Continuous clicking completion logging removed for cleaner console output
     }
     
     /**

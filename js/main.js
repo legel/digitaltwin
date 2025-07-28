@@ -76,7 +76,7 @@ function startIndependentLoadingAnimation() {
             window.independentLoadingState.currentProgress = newPercentage;
             updateLoadingText();
             
-            console.log(`[${new Date().toISOString()}] Progress: ${currentProgress}% → ${newPercentage}%`);
+            // Progress logging removed for cleaner console output
         }
     };
     
@@ -223,7 +223,7 @@ function startIndependentLoadingAnimation() {
             // Only update if significantly different to avoid spam
             const currentProgress = window.independentLoadingState.currentProgress || 0;
             if (Math.abs(backupProgress - currentProgress) > 0.5) {
-                console.log(`[${new Date().toISOString()}] BACKUP progress update: ${currentProgress}% → ${backupProgress}%`);
+                // Backup progress logging removed for cleaner console output
                 updateLoadingProgress(backupProgress);
             }
         }, 500); // Every 500ms as backup
@@ -248,7 +248,7 @@ function startIndependentLoadingAnimation() {
             
             // Set first message immediately
             const firstMessage = shuffledMessages[0];
-            console.log(`[${new Date().toISOString()}] 🌱 Starting simple message cycling:`, firstMessage);
+            // Message cycling start logging removed for cleaner console output
             
             window.independentLoadingState.currentMessage = firstMessage;
             const loadingMessage = document.getElementById('loadingMessage');
@@ -266,7 +266,7 @@ function startIndependentLoadingAnimation() {
                 }
                 
                 const message = shuffledMessages[messageIndex];
-                console.log(`[${new Date().toISOString()}] 🌱 Simple cycle to:`, message);
+                // Message cycling logging removed for cleaner console output
                 
                 window.independentLoadingState.currentMessage = message;
                 const loadingMessage = document.getElementById('loadingMessage');
