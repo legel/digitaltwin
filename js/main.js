@@ -39,7 +39,7 @@ function startIndependentLoadingAnimation() {
             console.log('Loading completion triggered - signaling worker');
             loadingWorker.postMessage({ type: 'complete' });
         },
-        updateMessage: (message, minDisplayTime = 2500) => {
+        updateMessage: (message, minDisplayTime = 3750) => {
             // Queue message with minimum display time
             window.independentLoadingState.messageQueue.push({ message, minDisplayTime });
             processMessageQueue();
@@ -277,7 +277,7 @@ function startIndependentLoadingAnimation() {
                     messageIndex = 0;
                     shuffledMessages.sort(() => Math.random() - 0.5);
                 }
-            }, 2000); // Every 2 seconds
+            }, 3000); // Every 3 seconds (1.5x slower for better readability)
         };
         
         checkForMessages();

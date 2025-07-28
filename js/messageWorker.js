@@ -32,20 +32,20 @@ self.onmessage = function(e) {
                 }
             };
             
-            // First cycle after 1.8 seconds
+            // First cycle after 2.7 seconds  
             setTimeout(() => {
                 if (isActive) {
                     cycle();
-                    // Then continue every 1.8 seconds
+                    // Then continue every 2.7 seconds (1.5x slower for better readability)
                     intervalId = setInterval(() => {
                         if (isActive) {
                             cycle();
                         } else {
                             clearInterval(intervalId);
                         }
-                    }, 1800);
+                    }, 2700);
                 }
-            }, 1800);
+            }, 2700);
             break;
             
         case 'stop':
