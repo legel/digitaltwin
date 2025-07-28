@@ -187,11 +187,11 @@ function startIndependentLoadingAnimation() {
             const elapsed = (Date.now() - startTime) / 1000;
             
             if (progress < 80) {
-                // 0-80% over 20 seconds
-                progress = Math.min(80, (elapsed / 20) * 80);
+                // 0-80% over 35 seconds - extended for remote loading
+                progress = Math.min(80, (elapsed / 35) * 80);
             } else {
                 // Slow exponential approach to 99%
-                const slowdownTime = elapsed - 16; // Time since 80% (at 16 seconds)
+                const slowdownTime = elapsed - 35; // Time since 80% (at 35 seconds)
                 progress = Math.min(99, 80 + (19 * (1 - Math.exp(-slowdownTime / 10))));
             }
             
@@ -213,10 +213,10 @@ function startIndependentLoadingAnimation() {
             const elapsed = (Date.now() - startTime) / 1000;
             let backupProgress = 0;
             
-            if (elapsed < 16) {
-                backupProgress = Math.min(80, (elapsed / 20) * 80);
+            if (elapsed < 35) {
+                backupProgress = Math.min(80, (elapsed / 35) * 80);
             } else {
-                const slowdownTime = elapsed - 16;
+                const slowdownTime = elapsed - 35;
                 backupProgress = Math.min(99, 80 + (19 * (1 - Math.exp(-slowdownTime / 10))));
             }
             
