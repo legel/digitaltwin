@@ -228,27 +228,27 @@ class CesiumManager {
                 } else if (entityName && entityName.includes('NPA')) {
                     // This is a non-plantable area
                     const npaCategory = window.extractNPACategory?.(entityName);
-                    console.log('Clicked on NPA with category:', npaCategory);
+                    // NPA click logging removed for cleaner console output
                     
                     if (npaCategory && window.layerState?.npaCategories?.has(npaCategory)) {
-                        console.log('Found NPA category in state:', npaCategory);
+                        // NPA category state logging removed for cleaner console output
                         
                         // Ensure the non-plantable areas dropdown is open
                         const npaToggle = document.getElementById('nonPlantableAreasToggle');
                         const npaSubOptions = document.getElementById('nonPlantableSubOptions');
                         if (npaToggle && npaSubOptions && npaSubOptions.style.display !== 'block') {
-                            console.log('Opening non-plantable areas dropdown');
+                            // NPA dropdown opening logging removed for cleaner console output
                             npaToggle.click();
                         }
                         
                         // Find and click the radio button
                         setTimeout(() => {
                             const radio = document.querySelector(`.npa-category input[value="${npaCategory}"]`);
-                            console.log('Looking for NPA radio with value:', npaCategory, 'Found:', radio);
+                            // NPA radio button search logging removed for cleaner console output
                             if (radio) {
                                 radio.checked = true;
                                 radio.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('Selected NPA radio button');
+                                // NPA radio selection logging removed for cleaner console output
                             }
                         }, 100);
                     }

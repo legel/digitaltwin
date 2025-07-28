@@ -442,15 +442,15 @@ function analyzePACategories(geoJsonData) {
     
     let paFeatureCount = 0;
     geoJsonData.features.forEach((feature, index) => {
-        console.log(`🔍 Feature ${index}:`, feature.properties?.name || 'unnamed');
+        // Feature parsing logging removed for cleaner console output
         
         if (feature.properties.name && feature.properties.name.includes('PA') && !feature.properties.name.includes('NPA')) {
             paFeatureCount++;
-            console.log(`✅ Found PA feature #${paFeatureCount}:`, feature.properties.name);
+            // PA feature discovery logging removed for cleaner console output
             
             // Found PA feature
             const parsed = parseBoydName(feature.properties.name);
-            console.log('🔍 Parsed PA name:', parsed);
+            // PA name parsing logging removed for cleaner console output
             
             const name = parsed.description || parsed.id;
             if (name && !categories.has(name)) {
@@ -459,14 +459,12 @@ function analyzePACategories(geoJsonData) {
                     category: categorizePADescription(parsed.description)
                 };
                 categories.set(name, categoryData);
-                console.log(`✅ Added PA category: "${name}" →`, categoryData);
+                // PA category addition logging removed for cleaner console output
             }
         }
     });
     
-    console.log(`🔍 Total PA features found: ${paFeatureCount}`);
-    console.log('🔍 Categories map size:', categories.size);
-    console.log('🔍 Categories map contents:', Array.from(categories.entries()));
+    // PA analysis summary logging removed for cleaner console output
     
     // Found PA categories
     
@@ -992,7 +990,7 @@ function zoomToNPACategory(categoryName) {
     });
     
     if (npaFeatures.length === 0) {
-        console.log('No features found for NPA category:', categoryName);
+        // NPA feature search logging removed for cleaner console output
         return;
     }
     
@@ -1049,13 +1047,7 @@ function zoomToNPACategory(categoryName) {
     const minHeight = 100; // 100 meters minimum
     const finalHeight = Math.max(height, minHeight);
     
-    console.log('NPA Camera positioning:', {
-        category: categoryName,
-        center: { lat: centerLat, lng: centerLng },
-        radius: radius,
-        calculatedHeight: height,
-        finalHeight: finalHeight
-    });
+    // NPA camera positioning logging removed for cleaner console output
     
     // Animate to position with camera facing straight down
     viewer.camera.flyTo({
