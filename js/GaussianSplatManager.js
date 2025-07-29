@@ -1501,6 +1501,9 @@ class GaussianSplatManager {
                             
                             console.log('🔧 ORTHOGRAPHIC - Applied forced visibility settings');
                             
+                            // Adjust orthographic frustum width to accommodate this splat
+                            this.adjustOrthographicFrustumForSplat(tileset, siteId);
+                            
                             // Debug camera position relative to splat
                             setTimeout(() => {
                                 const camera = this.viewer.camera;
@@ -2137,6 +2140,60 @@ class GaussianSplatManager {
         }
     }
     
+    /**
+     * Adjusts orthographic frustum width to accommodate a Gaussian Splat
+     * @param {Cesium.Cesium3DTileset} tileset - The loaded tileset
+     * @param {string} siteId - Site identifier
+     */
+    adjustOrthographicFrustumForSplat(tileset, siteId) {
+        try {
+            const camera = this.viewer.camera;
+            const frustum = camera.frustum;
+            
+            if (tileset.boundingSphere && frustum instanceof Cesium.OrthographicFrustum) {
+                const splatRadius = tileset.boundingSphere.radius;
+                const splatCenter = tileset.boundingSphere.center;
+                const cameraPos = camera.position;
+                const distance = Cesium.Cartesian3.distance(cameraPos, splatCenter);
+                
+                // Calculate required width to fully encompass the splat
+                // Use the maximum of: splat diameter * 2, or distance to splat + splat radius
+                const requiredWidth = Math.max(
+                    splatRadius * 4, // 4x radius = 2x diameter for generous visibility
+                    distance + splatRadius * 2 // Ensure splat fits even if offset from center
+                );
+                
+                const currentWidth = frustum.width;
+                
+                if (requiredWidth > currentWidth) {
+                    console.log(`📐 EXPANDING orthographic frustum for ${siteId}:`, {
+                        currentWidth: currentWidth.toFixed(2),
+                        requiredWidth: requiredWidth.toFixed(2),
+                        splatRadius: splatRadius.toFixed(2),
+                        distance: distance.toFixed(2)
+                    });
+                    
+                    // Update frustum width while preserving other properties
+                    const newFrustum = new Cesium.OrthographicFrustum({
+                        width: requiredWidth,
+                        aspectRatio: frustum.aspectRatio,
+                        near: frustum.near,
+                        far: frustum.far
+                    });
+                    
+                    camera.frustum = newFrustum;
+                    this.viewer.scene.requestRender();
+                    
+                    console.log(`✅ Orthographic frustum expanded to ${requiredWidth.toFixed(2)}m width for splat visibility`);
+                } else {
+                    console.log(`✅ Orthographic frustum width (${currentWidth.toFixed(2)}m) sufficient for splat (needs ${requiredWidth.toFixed(2)}m)`);
+                }
+            }
+        } catch (error) {
+            console.error(`Error adjusting orthographic frustum for ${siteId}:`, error);
+        }
+    }
+
     /**
      * Removes all terrain clipping
      */

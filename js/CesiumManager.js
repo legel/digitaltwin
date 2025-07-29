@@ -1128,8 +1128,21 @@ class CesiumManager {
         const canvas = this.viewer.scene.canvas;
         const aspectRatio = canvas.clientWidth / canvas.clientHeight;
         
-        // Use a larger width suitable for site viewing (optimized for Gaussian Splats)
-        const width = 800; // Fixed width optimized for site-scale viewing
+        // Calculate width based on site bounds and any loaded Gaussian Splats
+        let width = 800; // Base width for site viewing
+        
+        // Check if Gaussian Splats are loaded and adjust width accordingly
+        if (window.gaussianSplatManager && window.gaussianSplatManager.loadedTilesets) {
+            for (const [siteId, tileset] of window.gaussianSplatManager.loadedTilesets.entries()) {
+                if (tileset && tileset.boundingSphere) {
+                    const splatRadius = tileset.boundingSphere.radius;
+                    // Ensure width covers the splat with generous buffer
+                    const requiredWidth = (splatRadius * 2) * 3; // 3x diameter for good visibility
+                    width = Math.max(width, requiredWidth);
+                    console.log(`📐 Adjusting orthographic width for splat ${siteId}: radius=${splatRadius.toFixed(2)}m, required=${requiredWidth.toFixed(2)}m`);
+                }
+            }
+        }
 
         // Create and assign orthographic frustum
         this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
