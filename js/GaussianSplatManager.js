@@ -1073,7 +1073,7 @@ class GaussianSplatManager {
         
         try {
             const tilesetUrl = `/data/${siteId}/tileset.json`;
-            console.log('Loading Gaussian Splat tileset...');
+            // Gaussian Splat loading logging removed for cleaner console output
             
             // Update loading message for Gaussian Splat phase
             if (window.independentLoadingState) {
@@ -1448,12 +1448,12 @@ class GaussianSplatManager {
             // Use setTimeout to yield control back to main thread immediately
             setTimeout(async () => {
                 try {
-                    console.log('Creating tileset in background thread...');
+                    // Tileset creation in background thread logging removed for cleaner console output
                     
                     // Load tileset - this will still block, but we've yielded control first
                     const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl);
                     
-                    console.log('Tileset created, adding to scene...');
+                    // Tileset creation logging removed for cleaner console output
                     
                     // Add to scene in next frame to prevent blocking
                     requestAnimationFrame(() => {
@@ -1534,7 +1534,7 @@ class GaussianSplatManager {
      */
     perturbSceneForInitialRender() {
         try {
-            console.log('Starting continuous mouse click simulation');
+            // Mouse click simulation logging removed for cleaner console output
             this.startContinuousClicking();
         } catch (error) {
             console.warn('Error starting continuous clicking:', error);
@@ -1550,7 +1550,7 @@ class GaussianSplatManager {
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         
-        console.log(`Starting continuous clicking at (${centerX}, ${centerY})`);
+        // Continuous clicking start logging removed for cleaner console output
         
         for (let i = 0; i < 10; i++) {
             try {
@@ -1624,7 +1624,7 @@ class GaussianSplatManager {
      * @param {string} siteId - Site identifier
      */
     monitorTilesetCompletion(tileset, siteId) {
-        console.log(`Setting up background monitoring for tileset: ${siteId}`);
+        // Background monitoring setup logging removed for cleaner console output
         
         // Set up performance monitoring (non-blocking)
         this.setupPerformanceMonitoring(tileset, siteId);
@@ -1683,7 +1683,7 @@ class GaussianSplatManager {
                 if (checkCount < maxChecks && (!tileset.ready || !tileset.statistics || tileset.statistics.numberOfPendingRequests > 0)) {
                     setTimeout(backgroundMonitor, 500); // Check every 500ms
                 } else {
-                    console.log(`Background monitoring complete for ${siteId} after ${checkCount} checks`);
+                    // Background monitoring completion logging removed for cleaner console output
                 }
                 
             } catch (error) {

@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async function() {
-    console.log(`[${new Date().toISOString()}] DOM fully loaded and parsed - LOADING SCREEN VISIBLE`);
+    // DOM loading logging removed for cleaner console output
     //debug();
 
     // Start independent loading screen animation
@@ -36,7 +36,7 @@ function startIndependentLoadingAnimation() {
         messageTimer: null,
         worker: loadingWorker,
         complete: () => {
-            console.log('Loading completion triggered - signaling worker');
+            // Loading completion logging removed for cleaner console output
             loadingWorker.postMessage({ type: 'complete' });
         },
         updateMessage: (message, minDisplayTime = 3750) => {
@@ -162,7 +162,7 @@ function startIndependentLoadingAnimation() {
     };
     
     // Use ONLY Web Worker for progress - disable fallback to avoid conflicts
-    console.log('Using Web Worker only - fallback animation disabled');
+    // Web Worker initialization logging removed for cleaner console output
     // startFallbackAnimation(); // DISABLED
     
     // Web Worker is the single source of progress updates
