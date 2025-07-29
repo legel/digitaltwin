@@ -1473,6 +1473,79 @@ class GaussianSplatManager {
                         this.viewer.scene.primitives.add(tileset);
                         console.log('Gaussian Splat added to scene');
                         
+                        // Debug orthographic mode compatibility
+                        const isOrthographic = window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection();
+                        if (isOrthographic) {
+                            console.log('🔍 ORTHOGRAPHIC DEBUG - Tileset properties:', {
+                                show: tileset.show,
+                                maximumScreenSpaceError: tileset.maximumScreenSpaceError,
+                                cullWithChildrenBounds: tileset.cullWithChildrenBounds,
+                                cullRequestsWhileMoving: tileset.cullRequestsWhileMoving,
+                                dynamicScreenSpaceError: tileset.dynamicScreenSpaceError,
+                                immediatelyLoadDesiredLevelOfDetail: tileset.immediatelyLoadDesiredLevelOfDetail,
+                                skipLevelOfDetail: tileset.skipLevelOfDetail,
+                                boundingSphere: tileset.boundingSphere ? {
+                                    center: tileset.boundingSphere.center,
+                                    radius: tileset.boundingSphere.radius
+                                } : 'undefined'
+                            });
+                            
+                            // Force visibility settings for orthographic mode
+                            tileset.show = true;
+                            tileset.cullWithChildrenBounds = false;
+                            tileset.cullRequestsWhileMoving = false;
+                            tileset.dynamicScreenSpaceError = false;
+                            tileset.immediatelyLoadDesiredLevelOfDetail = true;
+                            tileset.skipLevelOfDetail = false;
+                            tileset.maximumScreenSpaceError = 4; // High quality for orthographic
+                            
+                            console.log('🔧 ORTHOGRAPHIC - Applied forced visibility settings');
+                            
+                            // Debug camera position relative to splat
+                            setTimeout(() => {
+                                const camera = this.viewer.camera;
+                                const cameraPos = camera.position;
+                                const cameraCartographic = Cesium.Cartographic.fromCartesian(cameraPos);
+                                const frustum = camera.frustum;
+                                
+                                console.log('📷 ORTHOGRAPHIC CAMERA DEBUG:', {
+                                    position: {
+                                        longitude: Cesium.Math.toDegrees(cameraCartographic.longitude).toFixed(6),
+                                        latitude: Cesium.Math.toDegrees(cameraCartographic.latitude).toFixed(6),
+                                        height: cameraCartographic.height.toFixed(2)
+                                    },
+                                    frustum: {
+                                        width: frustum.width,
+                                        aspectRatio: frustum.aspectRatio,
+                                        near: frustum.near,
+                                        far: frustum.far
+                                    },
+                                    direction: {
+                                        heading: Cesium.Math.toDegrees(camera.heading).toFixed(2),
+                                        pitch: Cesium.Math.toDegrees(camera.pitch).toFixed(2),
+                                        roll: Cesium.Math.toDegrees(camera.roll).toFixed(2)
+                                    }
+                                });
+                                
+                                if (tileset.boundingSphere) {
+                                    const splatCenter = tileset.boundingSphere.center;
+                                    const splatCartographic = Cesium.Cartographic.fromCartesian(splatCenter);
+                                    const distance = Cesium.Cartesian3.distance(cameraPos, splatCenter);
+                                    
+                                    console.log('🎯 SPLAT vs CAMERA:', {
+                                        splatCenter: {
+                                            longitude: Cesium.Math.toDegrees(splatCartographic.longitude).toFixed(6),
+                                            latitude: Cesium.Math.toDegrees(splatCartographic.latitude).toFixed(6),
+                                            height: splatCartographic.height.toFixed(2)
+                                        },
+                                        distance: distance.toFixed(2) + 'm',
+                                        splatRadius: tileset.boundingSphere.radius.toFixed(2) + 'm',
+                                        withinFrustumWidth: distance < (frustum.width / 2) ? 'YES' : 'NO'
+                                    });
+                                }
+                            }, 1000);
+                        }
+                        
                         // Store the loaded tileset
                         this.loadedTilesets.set(siteId, tileset);
                         
