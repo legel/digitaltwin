@@ -67,10 +67,10 @@ class CesiumManager {
         // Initial render to ensure scene appears
         this.viewer.scene.requestRender();
         
-        // Set orthographic projection as default
+        // Set orthographic projection as default before any content loads
         setTimeout(() => {
-            this.setOrthographicProjection();
-        }, 100); // Small delay to ensure viewer is fully initialized
+            this.setOrthographicProjectionForSite();
+        }, 100); // Small delay to ensure viewer is initialized
         
         // Add click handler for debugging (can be removed later)
         const handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
@@ -1113,6 +1113,37 @@ class CesiumManager {
 
         this.isOrthographic = true;
         console.log('Switched to orthographic projection');
+    }
+
+    /**
+     * Set orthographic projection optimized for site viewing with Gaussian Splats
+     */
+    setOrthographicProjectionForSite() {
+        if (this.isOrthographic) return;
+
+        // Save the current perspective frustum
+        this.savedPerspectiveFrustum = this.viewer.scene.camera.frustum.clone();
+
+        // Calculate the ground area visible in the current view
+        const canvas = this.viewer.scene.canvas;
+        const aspectRatio = canvas.clientWidth / canvas.clientHeight;
+        
+        // Use a larger width suitable for site viewing (optimized for Gaussian Splats)
+        const width = 800; // Fixed width optimized for site-scale viewing
+
+        // Create and assign orthographic frustum
+        this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
+            width: width,
+            aspectRatio: aspectRatio,
+            near: 1.0, // Standard near plane
+            far: 10000000.0 // Standard far plane
+        });
+        
+        // Request render to update the scene
+        this.viewer.scene.requestRender();
+
+        this.isOrthographic = true;
+        console.log('Switched to orthographic projection for site viewing');
     }
 
     /**
