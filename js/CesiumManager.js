@@ -66,7 +66,11 @@ class CesiumManager {
         // Initial render to ensure scene appears
         this.viewer.scene.requestRender();
         
-        // Initialize in perspective mode (default) - no orthographic switching
+        // Test: Switch to orthographic mode using clean Cesium API
+        setTimeout(() => {
+            this.viewer.scene.camera.switchToOrthographicFrustum();
+            console.log('✅ Switched to orthographic using clean Cesium API');
+        }, 1000); // Delay to let scene initialize
         
         // Add click handler for debugging (can be removed later)
         const handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
