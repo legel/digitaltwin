@@ -1460,33 +1460,6 @@ class GaussianSplatManager {
                         this.viewer.scene.primitives.add(tileset);
                         console.log('Gaussian Splat added to scene');
                         
-                        // Check if we're in orthographic mode and debug visibility
-                        setTimeout(() => {
-                            const camera = this.viewer.camera;
-                            const frustum = camera.frustum;
-                            
-                            if (frustum instanceof Cesium.OrthographicFrustum) {
-                                console.log('🔍 ORTHOGRAPHIC MODE DETECTED - Debugging Gaussian Splat visibility');
-                                console.log('Tileset properties:', {
-                                    show: tileset.show,
-                                    ready: tileset.ready,
-                                    maximumScreenSpaceError: tileset.maximumScreenSpaceError,
-                                    boundingSphere: tileset.boundingSphere
-                                });
-                                console.log('Orthographic frustum:', {
-                                    width: frustum.width,
-                                    aspectRatio: frustum.aspectRatio,
-                                    near: frustum.near,
-                                    far: frustum.far
-                                });
-                                
-                                if (tileset.boundingSphere) {
-                                    const distance = Cesium.Cartesian3.distance(camera.position, tileset.boundingSphere.center);
-                                    console.log('Distance to splat:', distance + 'm, Frustum width:', frustum.width + 'm');
-                                    console.log('Splat fits in frustum:', distance < (frustum.width / 2) ? 'YES' : 'NO');
-                                }
-                            }
-                        }, 2000); // Check after orthographic switch
                         
                         // Store the loaded tileset
                         this.loadedTilesets.set(siteId, tileset);
