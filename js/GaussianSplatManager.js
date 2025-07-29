@@ -600,25 +600,39 @@ class GaussianSplatManager {
             
             try {
                 const startTime = performance.now();
-                const cameraPosition = this.viewer.camera.position;
-                const tilesetCenter = tileset.boundingSphere?.center;
                 
-                if (tilesetCenter) {
-                    const distanceCalcStart = performance.now();
-                    const distance = Cesium.Cartesian3.distance(cameraPosition, tilesetCenter);
-                    const distanceCalcEnd = performance.now();
+                // Check if we're in orthographic mode
+                const isOrthographic = window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection();
+                
+                let targetSSE;
+                
+                if (isOrthographic) {
+                    // In orthographic mode, use fixed high quality since distance is not meaningful
+                    targetSSE = 8; // Fixed medium-high quality for orthographic projection
+                } else {
+                    // In perspective mode, use distance-based quality
+                    const cameraPosition = this.viewer.camera.position;
+                    const tilesetCenter = tileset.boundingSphere?.center;
                     
-                    // Adjust screen space error based on distance
-                    let targetSSE;
-                    if (distance < 50) {
-                        targetSSE = 4;    // High quality when close
-                    } else if (distance < 150) {
-                        targetSSE = 8;    // Medium quality
-                    } else if (distance < 500) {
-                        targetSSE = 16;   // Lower quality at medium distance
+                    if (tilesetCenter) {
+                        const distanceCalcStart = performance.now();
+                        const distance = Cesium.Cartesian3.distance(cameraPosition, tilesetCenter);
+                        const distanceCalcEnd = performance.now();
+                        
+                        // Adjust screen space error based on distance
+                        if (distance < 50) {
+                            targetSSE = 4;    // High quality when close
+                        } else if (distance < 150) {
+                            targetSSE = 8;    // Medium quality
+                        } else if (distance < 500) {
+                            targetSSE = 16;   // Lower quality at medium distance
+                        } else {
+                            targetSSE = 32;   // Lowest quality when far
+                        }
                     } else {
-                        targetSSE = 32;   // Lowest quality when far
+                        targetSSE = 16; // Default for perspective mode
                     }
+                }
                     
                     // Only update if significantly different to avoid constant changes
                     if (Math.abs(tileset.maximumScreenSpaceError - targetSSE) > 2) {
