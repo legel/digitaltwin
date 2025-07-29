@@ -67,6 +67,11 @@ class CesiumManager {
         // Initial render to ensure scene appears
         this.viewer.scene.requestRender();
         
+        // Set orthographic projection as default
+        setTimeout(() => {
+            this.setOrthographicProjection();
+        }, 100); // Small delay to ensure viewer is fully initialized
+        
         // Add click handler for debugging (can be removed later)
         const handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
         handler.setInputAction((click) => {
@@ -1094,15 +1099,17 @@ class CesiumManager {
         
         // Set orthographic frustum dimensions
         const width = 500 * scaleFactor; // Base width in meters
-        const height = width / aspectRatio;
 
         // Create and assign orthographic frustum
         this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
             width: width,
             aspectRatio: aspectRatio,
-            near: 1.0,
-            far: 10000000.0
+            near: 0.1, // Closer near plane for better precision
+            far: 50000000.0 // Extended far plane for large-scale rendering
         });
+        
+        // Request render to update the scene
+        this.viewer.scene.requestRender();
 
         this.isOrthographic = true;
         console.log('Switched to orthographic projection');
@@ -1128,6 +1135,10 @@ class CesiumManager {
         }
 
         this.isOrthographic = false;
+        
+        // Request render to update the scene
+        this.viewer.scene.requestRender();
+        
         console.log('Switched to perspective projection');
     }
 
