@@ -35,7 +35,6 @@ class CesiumManager {
         this.photorealisticTileset = null;
         
         // Track camera projection mode
-        this.isOrthographic = false;
         this.savedPerspectiveFrustum = null;
         
         // Suppress console warnings by intercepting console.warn temporarily
@@ -67,10 +66,7 @@ class CesiumManager {
         // Initial render to ensure scene appears
         this.viewer.scene.requestRender();
         
-        // Set orthographic projection as default before any content loads
-        setTimeout(() => {
-            this.setOrthographicProjectionForSite();
-        }, 100); // Small delay to ensure viewer is initialized
+        // Initialize in perspective mode (default) - no orthographic switching
         
         // Add click handler for debugging (can be removed later)
         const handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
@@ -1064,249 +1060,12 @@ class CesiumManager {
         }
     }
 
-    /**
-     * Toggle between perspective and orthographic camera projection
-     */
-    toggleOrthographicProjection() {
-        if (this.isOrthographic) {
-            this.setPerspectiveProjection();
-        } else {
-            this.setOrthographicProjection();
-        }
-    }
-
-    /**
-     * Set camera to orthographic projection
-     */
-    setOrthographicProjection() {
-        if (this.isOrthographic) return;
-
-        // Save the current perspective frustum
-        this.savedPerspectiveFrustum = this.viewer.scene.camera.frustum.clone();
-
-        // Calculate orthographic frustum dimensions based on current view
-        const canvas = this.viewer.scene.canvas;
-        const camera = this.viewer.scene.camera;
-        
-        // Get the current camera height above ground
-        const cameraHeight = camera.positionCartographic.height;
-        
-        // Calculate the ground area visible in the current view
-        const aspectRatio = canvas.clientWidth / canvas.clientHeight;
-        
-        // Scale factor based on camera height (larger area for higher cameras)
-        const scaleFactor = Math.max(1, cameraHeight / 1000); // Adjust scaling as needed
-        
-        // Set orthographic frustum dimensions
-        const width = 500 * scaleFactor; // Base width in meters
-
-        // Create and assign orthographic frustum
-        this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
-            width: width,
-            aspectRatio: aspectRatio,
-            near: 0.1, // Closer near plane for better precision
-            far: 50000000.0 // Extended far plane for large-scale rendering
-        });
-        
-        // Request render to update the scene
-        this.viewer.scene.requestRender();
-
-        this.isOrthographic = true;
-        console.log('Switched to orthographic projection');
-    }
-
-    /**
-     * Set orthographic projection using Cesium's official API
-     */
-    setOrthographicProjectionForSite() {
-        if (this.isOrthographic) return;
-        
-        try {
-            console.log('🔄 Switching to orthographic projection using Cesium API...');
-            
-            // Use Cesium's built-in orthographic switch method
-            this.viewer.scene.camera.switchToOrthographicFrustum();
-            
-            // Disable automatic adjustments that cause texture destruction
-            this.disableAutomaticCameraAdjustments();
-            
-            // Calculate appropriate width for site and any Gaussian Splats
-            let width = 800; // Base width for site viewing
-            
-            // Check if Gaussian Splats are loaded and adjust width accordingly
-            if (window.gaussianSplatManager && window.gaussianSplatManager.loadedTilesets) {
-                for (const [siteId, tileset] of window.gaussianSplatManager.loadedTilesets.entries()) {
-                    if (tileset && tileset.boundingSphere) {
-                        const splatRadius = tileset.boundingSphere.radius;
-                        // Ensure width covers the splat with generous buffer
-                        const requiredWidth = splatRadius * 4; // 4x radius for good coverage
-                        width = Math.max(width, requiredWidth);
-                        console.log(`📐 Adjusting orthographic width for splat ${siteId}: radius=${splatRadius.toFixed(2)}m, required=${requiredWidth.toFixed(2)}m`);
-                    }
-                }
-            }
-            
-            // Adjust the width of the orthographic frustum
-            const frustum = this.viewer.scene.camera.frustum;
-            if (frustum instanceof Cesium.OrthographicFrustum) {
-                frustum.width = width;
-                console.log(`📏 Set orthographic frustum width to ${width}m`);
-            }
-            
-            this.isOrthographic = true;
-            console.log('✅ Successfully switched to orthographic projection using Cesium API');
-            
-        } catch (error) {
-            console.error('❌ Error switching to orthographic projection:', error);
-            this.isOrthographic = false;
-        }
-    }
-
-    /**
-     * Sets up error handling for orthographic projection issues
-     */
-    setupOrthographicErrorHandling() {
-        // Store reference to avoid duplicate listeners
-        if (this.orthographicErrorHandler) {
-            return; // Already set up
-        }
-        
-        // Add comprehensive error handling
-        this.orthographicErrorHandler = (scene, error) => {
-            console.error('Cesium rendering error:', error);
-            
-            if (error.message && (error.message.includes('destroyed') || error.message.includes('Texture'))) {
-                console.warn('🚨 Detected texture destruction error - attempting recovery...');
-                
-                // Pause rendering briefly
-                scene.requestRender = function() {}; // Temporarily disable render requests
-                
-                setTimeout(() => {
-                    try {
-                        // Re-enable rendering
-                        scene.requestRender = Cesium.Scene.prototype.requestRender;
-                        
-                        // Force scene reset
-                        scene.primitives._primitives.forEach(primitive => {
-                            if (primitive && !primitive.isDestroyed?.()) {
-                                try {
-                                    primitive.update?.(scene.frameState);
-                                } catch (updateError) {
-                                    console.warn('Primitive update failed during recovery:', updateError);
-                                }
-                            }
-                        });
-                        
-                        // Request a fresh render
-                        scene.requestRender();
-                        console.log('✅ Scene recovery completed');
-                        
-                    } catch (recoveryError) {
-                        console.error('Scene recovery failed:', recoveryError);
-                        // Last resort: reload the page
-                        console.warn('Critical error - page reload may be necessary');
-                    }
-                }, 100);
-            }
-        };
-        
-        this.viewer.scene.renderError.addEventListener(this.orthographicErrorHandler);
-    }
-
-    /**
-     * Disables automatic camera adjustments that cause texture destruction
-     */
-    disableAutomaticCameraAdjustments() {
-        try {
-            const camera = this.viewer.scene.camera;
-            
-            // Store original methods before overriding
-            if (!this.originalCameraMethods) {
-                this.originalCameraMethods = {
-                    _adjustOrthographicFrustum: camera._adjustOrthographicFrustum,
-                    calculateOrthographicFrustumWidth: camera.calculateOrthographicFrustumWidth
-                };
-            }
-            
-            // Override problematic camera adjustment methods
-            camera._adjustOrthographicFrustum = function() {
-                // Disable automatic orthographic frustum adjustments
-                console.log('🚫 Blocked automatic orthographic frustum adjustment');
-            };
-            
-            camera.calculateOrthographicFrustumWidth = function() {
-                // Return current width without recalculation
-                return this.frustum.width || 800;
-            };
-            
-            console.log('🔒 Disabled automatic camera adjustments for orthographic mode');
-            
-        } catch (error) {
-            console.warn('Failed to disable automatic camera adjustments:', error);
-        }
-    }
-
-    /**
-     * Re-enables automatic camera adjustments
-     */
-    enableAutomaticCameraAdjustments() {
-        try {
-            if (this.originalCameraMethods) {
-                const camera = this.viewer.scene.camera;
-                camera._adjustOrthographicFrustum = this.originalCameraMethods._adjustOrthographicFrustum;
-                camera.calculateOrthographicFrustumWidth = this.originalCameraMethods.calculateOrthographicFrustumWidth;
-                console.log('🔓 Re-enabled automatic camera adjustments');
-            }
-        } catch (error) {
-            console.warn('Failed to re-enable automatic camera adjustments:', error);
-        }
-    }
-
-    /**
-     * Set camera to perspective projection using Cesium's official API
-     */
-    setPerspectiveProjection() {
-        if (!this.isOrthographic) return;
-
-        try {
-            console.log('🔄 Switching to perspective projection using Cesium API...');
-            
-            // Use Cesium's built-in perspective switch method
-            this.viewer.scene.camera.switchToPerspectiveFrustum();
-            
-            // Re-enable automatic camera adjustments for perspective mode
-            this.enableAutomaticCameraAdjustments();
-            
-            this.isOrthographic = false;
-            console.log('✅ Successfully switched to perspective projection using Cesium API');
-            
-        } catch (error) {
-            console.error('❌ Error switching to perspective projection:', error);
-        }
-    }
-
-    /**
-     * Get current projection mode
-     * @returns {boolean} True if orthographic, false if perspective
-     */
-    isOrthographicProjection() {
-        return this.isOrthographic;
-    }
 
 }
 
 // Expose CesiumManager to the global scope
 window.CesiumManager = CesiumManager;
 
-// Global function to toggle orthographic projection for easy testing
-window.toggleOrthographic = function() {
-    if (window.map3D && window.map3D.toggleOrthographicProjection) {
-        window.map3D.toggleOrthographicProjection();
-        console.log(`Camera projection: ${window.map3D.isOrthographicProjection() ? 'Orthographic' : 'Perspective'}`);
-    } else {
-        console.warn('Cesium manager not available');
-    }
-};
 
 // Add global performance monitoring functions for both Google and Gaussian splat tilesets
 window.tilesetPerformance = {
