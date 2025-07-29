@@ -1116,26 +1116,18 @@ class CesiumManager {
     }
 
     /**
-     * Set orthographic projection optimized for site viewing with Gaussian Splats
+     * Set orthographic projection using Cesium's official API
      */
     setOrthographicProjectionForSite() {
         if (this.isOrthographic) return;
         
         try {
-            // Set up error handling for texture destruction issues
-            this.setupOrthographicErrorHandling();
+            console.log('🔄 Switching to orthographic projection using Cesium API...');
             
-            // Force a render cycle before switching to clear any pending operations
-            this.viewer.scene.requestRender();
+            // Use Cesium's built-in orthographic switch method
+            this.viewer.scene.camera.switchToOrthographicFrustum();
             
-            // Save the current perspective frustum
-            this.savedPerspectiveFrustum = this.viewer.scene.camera.frustum.clone();
-
-            // Calculate the ground area visible in the current view
-            const canvas = this.viewer.scene.canvas;
-            const aspectRatio = canvas.clientWidth / canvas.clientHeight;
-            
-            // Calculate width based on site bounds and any loaded Gaussian Splats
+            // Calculate appropriate width for site and any Gaussian Splats
             let width = 800; // Base width for site viewing
             
             // Check if Gaussian Splats are loaded and adjust width accordingly
@@ -1143,44 +1135,27 @@ class CesiumManager {
                 for (const [siteId, tileset] of window.gaussianSplatManager.loadedTilesets.entries()) {
                     if (tileset && tileset.boundingSphere) {
                         const splatRadius = tileset.boundingSphere.radius;
-                        // Ensure width covers the splat with extra generous buffer
-                        const requiredWidth = splatRadius * 5; // 5x radius = 2.5x diameter for extra visibility
+                        // Ensure width covers the splat with generous buffer
+                        const requiredWidth = splatRadius * 4; // 4x radius for good coverage
                         width = Math.max(width, requiredWidth);
                         console.log(`📐 Adjusting orthographic width for splat ${siteId}: radius=${splatRadius.toFixed(2)}m, required=${requiredWidth.toFixed(2)}m`);
                     }
                 }
             }
-
-            // Create and assign orthographic frustum
-            const orthographicFrustum = new Cesium.OrthographicFrustum({
-                width: width,
-                aspectRatio: aspectRatio,
-                near: 1.0, // Standard near plane
-                far: 10000000.0 // Standard far plane
-            });
             
-            // Disable automatic frustum adjustments to prevent texture destruction
-            this.disableAutomaticCameraAdjustments();
+            // Adjust the width of the orthographic frustum
+            const frustum = this.viewer.scene.camera.frustum;
+            if (frustum instanceof Cesium.OrthographicFrustum) {
+                frustum.width = width;
+                console.log(`📏 Set orthographic frustum width to ${width}m`);
+            }
             
-            this.viewer.scene.camera.frustum = orthographicFrustum;
-            
-            // Request render to update the scene
-            this.viewer.scene.requestRender();
-
             this.isOrthographic = true;
-            console.log('Switched to orthographic projection for site viewing');
+            console.log('✅ Successfully switched to orthographic projection using Cesium API');
             
         } catch (error) {
-            console.error('Error switching to orthographic projection:', error);
-            // Attempt to restore perspective projection on error
-            try {
-                if (this.savedPerspectiveFrustum) {
-                    this.viewer.scene.camera.frustum = this.savedPerspectiveFrustum.clone();
-                    this.viewer.scene.requestRender();
-                }
-            } catch (restoreError) {
-                console.error('Failed to restore perspective projection:', restoreError);
-            }
+            console.error('❌ Error switching to orthographic projection:', error);
+            this.isOrthographic = false;
         }
     }
 
@@ -1285,37 +1260,22 @@ class CesiumManager {
     }
 
     /**
-     * Set camera to perspective projection
+     * Set camera to perspective projection using Cesium's official API
      */
     setPerspectiveProjection() {
         if (!this.isOrthographic) return;
 
         try {
-            // Re-enable automatic camera adjustments for perspective mode
-            this.enableAutomaticCameraAdjustments();
+            console.log('🔄 Switching to perspective projection using Cesium API...');
             
-            // Restore the saved perspective frustum or create a new one
-            if (this.savedPerspectiveFrustum) {
-                this.viewer.scene.camera.frustum = this.savedPerspectiveFrustum.clone();
-            } else {
-                // Create default perspective frustum
-            this.viewer.scene.camera.frustum = new Cesium.PerspectiveFrustum({
-                fov: Cesium.Math.PI_OVER_THREE, // 60 degrees
-                aspectRatio: this.viewer.scene.canvas.clientWidth / this.viewer.scene.canvas.clientHeight,
-                near: 1.0,
-                far: 10000000.0
-            });
-            }
-
+            // Use Cesium's built-in perspective switch method
+            this.viewer.scene.camera.switchToPerspectiveFrustum();
+            
             this.isOrthographic = false;
-            
-            // Request render to update the scene
-            this.viewer.scene.requestRender();
-            
-            console.log('Switched to perspective projection');
+            console.log('✅ Successfully switched to perspective projection using Cesium API');
             
         } catch (error) {
-            console.error('Error switching to perspective projection:', error);
+            console.error('❌ Error switching to perspective projection:', error);
         }
     }
 
