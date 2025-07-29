@@ -34,6 +34,10 @@ class CesiumManager {
         this.isUsingTerrain = false;
         this.photorealisticTileset = null;
         
+        // Track camera projection mode
+        this.isOrthographic = false;
+        this.savedPerspectiveFrustum = null;
+        
         // Suppress console warnings by intercepting console.warn temporarily
         const originalWarn = console.warn;
         console.warn = function(...args) {
@@ -1055,10 +1059,102 @@ class CesiumManager {
         }
     }
 
+    /**
+     * Toggle between perspective and orthographic camera projection
+     */
+    toggleOrthographicProjection() {
+        if (this.isOrthographic) {
+            this.setPerspectiveProjection();
+        } else {
+            this.setOrthographicProjection();
+        }
+    }
+
+    /**
+     * Set camera to orthographic projection
+     */
+    setOrthographicProjection() {
+        if (this.isOrthographic) return;
+
+        // Save the current perspective frustum
+        this.savedPerspectiveFrustum = this.viewer.scene.camera.frustum.clone();
+
+        // Calculate orthographic frustum dimensions based on current view
+        const canvas = this.viewer.scene.canvas;
+        const camera = this.viewer.scene.camera;
+        
+        // Get the current camera height above ground
+        const cameraHeight = camera.positionCartographic.height;
+        
+        // Calculate the ground area visible in the current view
+        const aspectRatio = canvas.clientWidth / canvas.clientHeight;
+        
+        // Scale factor based on camera height (larger area for higher cameras)
+        const scaleFactor = Math.max(1, cameraHeight / 1000); // Adjust scaling as needed
+        
+        // Set orthographic frustum dimensions
+        const width = 500 * scaleFactor; // Base width in meters
+        const height = width / aspectRatio;
+
+        // Create and assign orthographic frustum
+        this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
+            left: -width / 2,
+            right: width / 2,
+            top: height / 2,
+            bottom: -height / 2,
+            near: 1.0,
+            far: 10000000.0
+        });
+
+        this.isOrthographic = true;
+        console.log('Switched to orthographic projection');
+    }
+
+    /**
+     * Set camera to perspective projection
+     */
+    setPerspectiveProjection() {
+        if (!this.isOrthographic) return;
+
+        // Restore the saved perspective frustum or create a new one
+        if (this.savedPerspectiveFrustum) {
+            this.viewer.scene.camera.frustum = this.savedPerspectiveFrustum.clone();
+        } else {
+            // Create default perspective frustum
+            this.viewer.scene.camera.frustum = new Cesium.PerspectiveFrustum({
+                fov: Cesium.Math.PI_OVER_THREE, // 60 degrees
+                aspectRatio: this.viewer.scene.canvas.clientWidth / this.viewer.scene.canvas.clientHeight,
+                near: 1.0,
+                far: 10000000.0
+            });
+        }
+
+        this.isOrthographic = false;
+        console.log('Switched to perspective projection');
+    }
+
+    /**
+     * Get current projection mode
+     * @returns {boolean} True if orthographic, false if perspective
+     */
+    isOrthographicProjection() {
+        return this.isOrthographic;
+    }
+
 }
 
 // Expose CesiumManager to the global scope
 window.CesiumManager = CesiumManager;
+
+// Global function to toggle orthographic projection for easy testing
+window.toggleOrthographic = function() {
+    if (window.map3D && window.map3D.toggleOrthographicProjection) {
+        window.map3D.toggleOrthographicProjection();
+        console.log(`Camera projection: ${window.map3D.isOrthographicProjection() ? 'Orthographic' : 'Perspective'}`);
+    } else {
+        console.warn('Cesium manager not available');
+    }
+};
 
 // Add global performance monitoring functions for both Google and Gaussian splat tilesets
 window.tilesetPerformance = {
