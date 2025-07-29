@@ -2159,10 +2159,10 @@ class GaussianSplatManager {
                 const distance = Cesium.Cartesian3.distance(cameraPos, splatCenter);
                 
                 // Calculate required width to fully encompass the splat
-                // Use the maximum of: splat diameter * 2, or distance to splat + splat radius
+                // Use the maximum of: splat diameter * 2.5, or distance to splat + splat radius * 2
                 const requiredWidth = Math.max(
-                    splatRadius * 4, // 4x radius = 2x diameter for generous visibility
-                    distance + splatRadius * 2 // Ensure splat fits even if offset from center
+                    splatRadius * 5, // 5x radius = 2.5x diameter for extra generous visibility
+                    distance + splatRadius * 3 // Ensure splat fits even if offset from center with extra buffer
                 );
                 
                 const currentWidth = frustum.width;
