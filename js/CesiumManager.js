@@ -867,29 +867,29 @@ class CesiumManager {
         try {
             // Configuring Google Photorealistic tileset performance
             
-            // AGGRESSIVE: Minimize Google Photorealistic tiles to maximize Gaussian Splat performance
-            // Since users barely interact with Google tiles, we heavily prioritize Gaussian Splats
-            tileset.maximumScreenSpaceError = 96;           // 12x lower quality than Gaussian splats (8 vs 96)
-            tileset.skipLevelOfDetail = true;               // Enable aggressive LOD skipping
-            tileset.baseScreenSpaceError = 8192;            // Very high base error for minimal detail
-            tileset.skipScreenSpaceErrorFactor = 32;        // Skip many intermediate levels
-            tileset.skipLevels = 3;                         // Skip 3 levels when possible
-            tileset.immediatelyLoadDesiredLevelOfDetail = false; // Never block on Google tile detail
-            tileset.loadSiblings = false;                   // Never load unnecessary siblings
-            tileset.cullWithChildrenBounds = true;          // Aggressive culling
-            tileset.cullRequestsWhileMoving = true;         // Maximum culling during movement
-            tileset.cullRequestsWhileMovingMultiplier = 500.0; // 6x more aggressive than Gaussian splats (80 -> 500)
-            tileset.progressiveResolutionHeightFraction = 0.1; // Load only lowest resolution first
-            tileset.preferLeaves = true;                    // Always prefer leaf nodes
+            // BALANCED: Start with low quality but allow gradual improvement during idle periods
+            // Maintain aggressive culling during motion while enabling background quality enhancement
+            tileset.maximumScreenSpaceError = 48;           // IMPROVED: 6x lower than Gaussian splats (was 96, now 48)
+            tileset.skipLevelOfDetail = true;               // Enable LOD skipping but allow progression
+            tileset.baseScreenSpaceError = 4096;            // IMPROVED: Reduced from 8192 to allow better base quality
+            tileset.skipScreenSpaceErrorFactor = 16;        // IMPROVED: Reduced from 32 to 16 for better intermediate levels
+            tileset.skipLevels = 2;                         // IMPROVED: Reduced from 3 to 2 levels
+            tileset.immediatelyLoadDesiredLevelOfDetail = false; // Still don't block on Google tile detail
+            tileset.loadSiblings = false;                   // Still don't load unnecessary siblings
+            tileset.cullWithChildrenBounds = true;          // Keep aggressive culling
+            tileset.cullRequestsWhileMoving = true;         // Keep maximum culling during movement (this is key!)
+            tileset.cullRequestsWhileMovingMultiplier = 500.0; // MAINTAIN aggressive culling during motion
+            tileset.progressiveResolutionHeightFraction = 0.3; // IMPROVED: 0.1 -> 0.3 for better progressive loading
+            tileset.preferLeaves = true;                    // Keep leaf preference
             
             // MINIMAL memory allocation - redirect resources to Gaussian Splats
             tileset.maximumMemoryUsage = 128;               // Half the memory of Gaussian splats (256 -> 128MB)
             
-            // EXTREME dynamic degradation for Google tiles
+            // BALANCED: Dynamic quality that allows improvement during idle periods
             tileset.dynamicScreenSpaceError = true;
-            tileset.dynamicScreenSpaceErrorDensity = 0.001;   // Much more aggressive density
-            tileset.dynamicScreenSpaceErrorFactor = 24.0;    // 4x more aggressive than before (6 -> 24)
-            tileset.dynamicScreenSpaceErrorHeightFalloff = 0.1; // Degrade quality much faster with distance
+            tileset.dynamicScreenSpaceErrorDensity = 0.01;    // IMPROVED: Less aggressive (0.001 -> 0.01) for better idle quality
+            tileset.dynamicScreenSpaceErrorFactor = 12.0;     // IMPROVED: Reduced aggression (24 -> 12) for better background quality
+            tileset.dynamicScreenSpaceErrorHeightFalloff = 0.2; // IMPROVED: Less steep falloff (0.1 -> 0.2) for better distance quality
             
             // NEVER preload Google tiles - all resources to Gaussian Splats
             tileset.preloadWhenHidden = false;              // Never preload
@@ -910,6 +910,9 @@ class CesiumManager {
                 console.log('Google Photorealistic tileset registered with UnifiedLODManager');
             }
             
+            // BACKGROUND QUALITY ENHANCEMENT: Allow gradual improvement during idle periods
+            this.setupBackgroundQualityImprovement(tileset);
+            
             // DISABLED: Individual camera optimization replaced by unified handler in GaussianSplatManager
             // this.setupPhotorealisticCameraOptimization(tileset);
             
@@ -918,6 +921,83 @@ class CesiumManager {
         } catch (error) {
             console.error("Error configuring Google Photorealistic tileset performance:", error);
         }
+    }
+    
+    /**
+     * Sets up background quality improvement for Google Photorealistic tiles during idle periods
+     * @param {Cesium.Cesium3DTileset} tileset - The Google Photorealistic tileset
+     */
+    setupBackgroundQualityImprovement(tileset) {
+        let idleQualityTimer = null;
+        let currentQualityLevel = 0; // 0 = base quality, higher = better quality
+        const maxQualityLevel = 3;
+        let isIdle = false;
+        
+        // Base settings (what we start with)
+        const baseSSE = tileset.maximumScreenSpaceError; // 48
+        const qualityLevels = [
+            { sse: 48, skipLevels: 2, skipFactor: 16 }, // Level 0: Base (current)
+            { sse: 32, skipLevels: 2, skipFactor: 12 }, // Level 1: Better
+            { sse: 24, skipLevels: 1, skipFactor: 8 },  // Level 2: Much better  
+            { sse: 16, skipLevels: 1, skipFactor: 6 }   // Level 3: Best idle quality
+        ];
+        
+        const improveQuality = () => {
+            if (!isIdle || currentQualityLevel >= maxQualityLevel) return;
+            
+            currentQualityLevel++;
+            const level = qualityLevels[currentQualityLevel];
+            
+            // Apply gradual quality improvement
+            tileset.maximumScreenSpaceError = level.sse;
+            tileset.skipLevels = level.skipLevels;
+            tileset.skipScreenSpaceErrorFactor = level.skipFactor;
+            
+            console.log(`🔧 Google tiles idle quality improved to level ${currentQualityLevel} (SSE: ${level.sse})`);
+            
+            // Schedule next improvement if not at max
+            if (currentQualityLevel < maxQualityLevel) {
+                idleQualityTimer = setTimeout(improveQuality, 5000); // Every 5 seconds during idle
+            }
+        };
+        
+        const resetQuality = () => {
+            if (currentQualityLevel === 0) return;
+            
+            // Immediately reset to base quality for motion performance
+            const baseLevel = qualityLevels[0];
+            tileset.maximumScreenSpaceError = baseLevel.sse;
+            tileset.skipLevels = baseLevel.skipLevels;
+            tileset.skipScreenSpaceErrorFactor = baseLevel.skipFactor;
+            
+            currentQualityLevel = 0;
+            console.log(`⚡ Google tiles quality reset to base level for motion (SSE: ${baseLevel.sse})`);
+        };
+        
+        // Listen to camera movement events
+        if (window.map3D && window.map3D.viewer) {
+            const camera = window.map3D.viewer.camera;
+            
+            camera.moveStart.addEventListener(() => {
+                isIdle = false;
+                if (idleQualityTimer) {
+                    clearTimeout(idleQualityTimer);
+                    idleQualityTimer = null;
+                }
+                resetQuality(); // Immediately reset quality for motion performance
+            });
+            
+            camera.moveEnd.addEventListener(() => {
+                // Start idle timer after movement stops
+                if (idleQualityTimer) clearTimeout(idleQualityTimer);
+                idleQualityTimer = setTimeout(() => {
+                    isIdle = true;
+                    improveQuality(); // Start improving quality after 3 seconds of idle
+                }, 3000); // Wait 3 seconds after movement stops
+            });
+        }
+        
+        console.log('🎯 Google Photorealistic background quality improvement enabled');
     }
     
     /**
