@@ -634,21 +634,20 @@ class GaussianSplatManager {
                     }
                 }
                     
-                    // Only update if significantly different to avoid constant changes
-                    if (Math.abs(tileset.maximumScreenSpaceError - targetSSE) > 2) {
-                        const updateStart = performance.now();
-                        tileset.maximumScreenSpaceError = targetSSE;
-                        const updateEnd = performance.now();
-                        const totalTime = performance.now() - startTime;
-                        
-                        // Distance LOD updated
-                    }
-                    
-                    // Log timing even when no update needed if it's slow
+                // Only update if significantly different to avoid constant changes
+                if (Math.abs(tileset.maximumScreenSpaceError - targetSSE) > 2) {
+                    const updateStart = performance.now();
+                    tileset.maximumScreenSpaceError = targetSSE;
+                    const updateEnd = performance.now();
                     const totalTime = performance.now() - startTime;
-                    if (totalTime > 2 && Math.abs(tileset.maximumScreenSpaceError - targetSSE) <= 2) {
-                        console.log(`🟡 Distance LOD check for ${siteId}: no update needed but took ${totalTime.toFixed(2)}ms`);
-                    }
+                    
+                    // Distance LOD updated
+                }
+                
+                // Log timing even when no update needed if it's slow
+                const totalTime = performance.now() - startTime;
+                if (totalTime > 2 && Math.abs(tileset.maximumScreenSpaceError - targetSSE) <= 2) {
+                    console.log(`🟡 Distance LOD check for ${siteId}: no update needed but took ${totalTime.toFixed(2)}ms`);
                 }
             } catch (error) {
                 console.warn(`🟡 Error in distance-based LOD for ${siteId}:`, error);
