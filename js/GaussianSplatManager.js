@@ -289,9 +289,26 @@ class GaussianSplatManager {
             console.log(`Restoring splat for site: ${siteId}`);
             
             try {
-                // Reload the tileset
+                // Reload the tileset with optimized settings
                 console.log(`Reloading tileset from: ${splatData.tilesetUrl}`);
-                const tileset = await Cesium.Cesium3DTileset.fromUrl(splatData.tilesetUrl);
+                const tileset = await Cesium.Cesium3DTileset.fromUrl(splatData.tilesetUrl, {
+                    // Same performance settings as initial load
+                    maximumScreenSpaceError: 8,
+                    maximumMemoryUsage: 256,
+                    cullRequestsWhileMoving: true,
+                    cullRequestsWhileMovingMultiplier: 60.0,
+                    preloadWhenHidden: false,
+                    preloadFlightDestinations: false,
+                    immediatelyLoadDesiredLevelOfDetail: false,
+                    skipLevelOfDetail: false,
+                    dynamicScreenSpaceError: true,
+                    dynamicScreenSpaceErrorDensity: 0.5,
+                    dynamicScreenSpaceErrorFactor: 8.0,
+                    enableShowOutline: false,
+                    enableDebugWireframe: false,
+                    cacheBytes: 536870912,
+                    maximumCacheOverflowBytes: 134217728
+                });
                 
                 // Restore model matrix if it was modified
                 if (splatData.modelMatrix) {
@@ -501,37 +518,16 @@ class GaussianSplatManager {
                 }, Cesium.ScreenSpaceEventType.WHEEL);
             }
             
-            // Monitor tileset loading progress with debouncing to prevent thrashing
-            let lastGaussianSSEUpdate = Date.now();
-            let gaussianCurrentSSE = 16;
+            // DISABLED: Load progress SSE adjustment replaced by UnifiedLODManager
+            // Dynamic SSE adjustment is now handled by the unified system to prevent conflicts
+            // The UnifiedLODManager tracks load activity and adjusts quality accordingly
             
+            // Optional: Lightweight logging for debugging (no SSE modification)
             tileset.loadProgress.addEventListener((numberOfPendingRequests, numberOfTilesProcessing) => {
                 const totalActive = numberOfPendingRequests + numberOfTilesProcessing;
-                const now = Date.now();
-                
-                // Only adjust SSE every 3 seconds to prevent oscillation
-                if (now - lastGaussianSSEUpdate > 3000) {
-                    let targetSSE = 16; // Starting quality (higher for faster load)
-                    
-                    // Simple quality reduction - less aggressive than Google tiles
-                    if (totalActive > 8) {
-                        targetSSE = 24; // Modest quality reduction
-                    } else if (totalActive === 0) {
-                        targetSSE = 12; // Good quality when not loading
-                    }
-                    
-                    // Only update if there's a meaningful change
-                    if (Math.abs(gaussianCurrentSSE - targetSSE) >= 4) {
-                        gaussianCurrentSSE = targetSSE;
-                        tileset.maximumScreenSpaceError = gaussianCurrentSSE;
-                        lastGaussianSSEUpdate = now;
-                        console.log(`Gaussian Splat SSE updated: ${totalActive} active → SSE: ${gaussianCurrentSSE}`);
-                    }
-                }
-                
-                // Reduced logging for Gaussian splats
-                if (totalActive === 1 || totalActive === 0) {
-                    // Gaussian Splat tiles status updated
+                // Minimal logging only for significant events
+                if (totalActive === 0) {
+                    console.log(`Gaussian Splat ${siteId}: Loading completed`);
                 }
             });
             
@@ -586,66 +582,18 @@ class GaussianSplatManager {
     }
     
     /**
-     * Sets up distance-based level of detail adjustment
+     * Registers tileset with unified LOD management system
      * @param {Cesium.Cesium3DTileset} tileset - The tileset to configure
      * @param {string} siteId - Site identifier
      */
     setupDistanceBasedLOD(tileset, siteId) {
-        // Set up distance-based quality adjustment
-        const distanceUpdateInterval = setInterval(() => {
-            if (tileset.isDestroyed?.()) {
-                clearInterval(distanceUpdateInterval);
-                return;
-            }
-            
-            try {
-                const startTime = performance.now();
-                
-                // Use distance-based quality (standard perspective mode)
-                const cameraPosition = this.viewer.camera.position;
-                const tilesetCenter = tileset.boundingSphere?.center;
-                let targetSSE = 16; // Default quality
-                
-                if (tilesetCenter) {
-                    const distance = Cesium.Cartesian3.distance(cameraPosition, tilesetCenter);
-                    
-                    // Adjust screen space error based on distance
-                    if (distance < 50) {
-                        targetSSE = 4;    // High quality when close
-                    } else if (distance < 150) {
-                        targetSSE = 8;    // Medium quality
-                    } else if (distance < 500) {
-                        targetSSE = 16;   // Lower quality at medium distance
-                    } else {
-                        targetSSE = 32;   // Lowest quality when far
-                    }
-                }
-                    
-                // Only update if significantly different to avoid constant changes
-                if (Math.abs(tileset.maximumScreenSpaceError - targetSSE) > 2) {
-                    const updateStart = performance.now();
-                    tileset.maximumScreenSpaceError = targetSSE;
-                    const updateEnd = performance.now();
-                    const totalTime = performance.now() - startTime;
-                    
-                    // Distance LOD updated
-                }
-                
-                // Log timing even when no update needed if it's slow
-                const totalTime = performance.now() - startTime;
-                if (totalTime > 2 && Math.abs(tileset.maximumScreenSpaceError - targetSSE) <= 2) {
-                    console.log(`🟡 Distance LOD check for ${siteId}: no update needed but took ${totalTime.toFixed(2)}ms`);
-                }
-            } catch (error) {
-                console.warn(`🟡 Error in distance-based LOD for ${siteId}:`, error);
-            }
-        }, 500); // Update every 500ms
-        
-        // Store interval ID for cleanup
-        if (!this.distanceUpdateIntervals) {
-            this.distanceUpdateIntervals = new Map();
+        // Register with unified LOD manager instead of individual system
+        if (window.unifiedLODManager) {
+            window.unifiedLODManager.registerTileset(siteId, tileset, 'gaussian');
+            console.log(`Gaussian Splat ${siteId} registered with UnifiedLODManager`);
+        } else {
+            console.warn(`UnifiedLODManager not available for ${siteId} - LOD management disabled`);
         }
-        this.distanceUpdateIntervals.set(siteId, distanceUpdateInterval);
     }
     
     /**
@@ -653,7 +601,14 @@ class GaussianSplatManager {
      * This prevents multiple competing handlers from causing performance issues
      */
     createUnifiedCameraHandler() {
+        // CRITICAL FIX: Don't recreate if handler already exists (prevents exponential event listeners)
+        if (window.unifiedCameraHandler) {
+            console.log('UnifiedCameraHandler already exists - skipping creation to prevent duplicate event listeners');
+            return;
+        }
+        
         // Creating unified camera movement handler
+        console.log('Creating new UnifiedCameraHandler');
         
         window.unifiedCameraHandler = {
             handler: new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas),
@@ -661,67 +616,93 @@ class GaussianSplatManager {
             timeout: null,
             lastCameraPosition: null,
             lastCameraOrientation: null,
-            movementThreshold: 0.1, // Minimum camera change to trigger optimization (meters/radians)
+            movementThreshold: 1.0, // Increased from 0.1 to 1.0 meters/radians for less sensitivity
             eventCount: 0,
+            lastProcessTime: 0,
+            minProcessInterval: 8, // Process at most every 8ms (120fps max for movement detection)
+            timeoutActive: false, // Track if timeout is already set to avoid thrashing
             
-            // Check if camera has moved significantly
+            // CRITICAL GC OPTIMIZATION: Pre-allocated objects to avoid garbage collection during movement
+            _tempCartographic: new Cesium.Cartographic(),
+            _lastCameraSpeed: 0,
+            _cameraSpeedSamples: [],
+            
+            // Check if camera has moved significantly with zero-allocation calculations
             hasSignificantMovement: () => {
                 const camera = this.viewer.camera;
-                const currentPos = camera.position.clone();
-                const currentOrientation = {
-                    heading: camera.heading,
-                    pitch: camera.pitch,
-                    roll: camera.roll
-                };
+                
+                // CRITICAL: Use pre-existing cartographic object to avoid GC pressure
+                camera.positionCartographic.clone(window.unifiedCameraHandler._tempCartographic);
+                const currentHeight = window.unifiedCameraHandler._tempCartographic.height;
+                const currentHeading = camera.heading;
+                const currentPitch = camera.pitch;
                 
                 if (!window.unifiedCameraHandler.lastCameraPosition) {
-                    window.unifiedCameraHandler.lastCameraPosition = currentPos;
-                    window.unifiedCameraHandler.lastCameraOrientation = currentOrientation;
+                    // Initialize with current values (one-time allocation)
+                    window.unifiedCameraHandler.lastCameraPosition = { height: currentHeight };
+                    window.unifiedCameraHandler.lastCameraOrientation = { 
+                        heading: currentHeading, 
+                        pitch: currentPitch 
+                    };
                     return false;
                 }
                 
-                // Check position change (in meters)
-                const positionDistance = Cesium.Cartesian3.distance(
-                    currentPos, 
-                    window.unifiedCameraHandler.lastCameraPosition
-                );
+                // Check height change (much faster than 3D distance, no allocation)
+                const heightDiff = Math.abs(currentHeight - window.unifiedCameraHandler.lastCameraPosition.height);
                 
-                // Check orientation change (in radians)
-                const headingDiff = Math.abs(currentOrientation.heading - window.unifiedCameraHandler.lastCameraOrientation.heading);
-                const pitchDiff = Math.abs(currentOrientation.pitch - window.unifiedCameraHandler.lastCameraOrientation.pitch);
-                const rollDiff = Math.abs(currentOrientation.roll - window.unifiedCameraHandler.lastCameraOrientation.roll);
+                // Check orientation change (only heading and pitch - roll is rarely used, no allocation)
+                const headingDiff = Math.abs(currentHeading - window.unifiedCameraHandler.lastCameraOrientation.heading);
+                const pitchDiff = Math.abs(currentPitch - window.unifiedCameraHandler.lastCameraOrientation.pitch);
                 
-                const hasMovement = positionDistance > window.unifiedCameraHandler.movementThreshold ||
-                                  headingDiff > window.unifiedCameraHandler.movementThreshold ||
-                                  pitchDiff > window.unifiedCameraHandler.movementThreshold ||
-                                  rollDiff > window.unifiedCameraHandler.movementThreshold;
+                // CRITICAL: Use optimized thresholds for immediate response but avoid over-processing
+                const hasMovement = heightDiff > (window.unifiedCameraHandler.movementThreshold * 2) || // 2m height change  
+                                  headingDiff > (window.unifiedCameraHandler.movementThreshold * 0.1) ||  // 0.1 radian heading change
+                                  pitchDiff > (window.unifiedCameraHandler.movementThreshold * 0.1);     // 0.1 radian pitch change
                 
                 if (hasMovement) {
-                    window.unifiedCameraHandler.lastCameraPosition = currentPos;
-                    window.unifiedCameraHandler.lastCameraOrientation = currentOrientation;
+                    // Calculate camera movement speed for adaptive quality
+                    const totalMovement = heightDiff + (headingDiff * 100) + (pitchDiff * 100); // Scale orientation changes
+                    window.unifiedCameraHandler._cameraSpeedSamples.push(totalMovement);
+                    
+                    // Keep only last 5 samples for speed calculation
+                    if (window.unifiedCameraHandler._cameraSpeedSamples.length > 5) {
+                        window.unifiedCameraHandler._cameraSpeedSamples.shift();
+                    }
+                    
+                    // Calculate average speed
+                    const avgSpeed = window.unifiedCameraHandler._cameraSpeedSamples.reduce((a, b) => a + b, 0) / window.unifiedCameraHandler._cameraSpeedSamples.length;
+                    window.unifiedCameraHandler._lastCameraSpeed = avgSpeed;
+                    
+                    // Update cached values efficiently (no allocation)
+                    window.unifiedCameraHandler.lastCameraPosition.height = currentHeight;
+                    window.unifiedCameraHandler.lastCameraOrientation.heading = currentHeading;
+                    window.unifiedCameraHandler.lastCameraOrientation.pitch = currentPitch;
                 }
                 
                 return hasMovement;
             },
             
-            // Optimized movement handler - only triggers on significant camera changes
+            // Intelligent movement handler with time-based debouncing
             startMovement: () => {
-                window.unifiedCameraHandler.eventCount++;
+                const now = performance.now();
                 
-                // Only process every 5th event to reduce overhead during smooth movement
-                if (window.unifiedCameraHandler.eventCount % 5 !== 0) {
-                    // Still reset the end timeout to prevent premature restoration
-                    if (window.unifiedCameraHandler.timeout) {
-                        clearTimeout(window.unifiedCameraHandler.timeout);
+                // Time-based throttling: Process at most every 8ms for immediate response
+                if (now - window.unifiedCameraHandler.lastProcessTime < window.unifiedCameraHandler.minProcessInterval) {
+                    // Set timeout only once to avoid timeout thrashing
+                    if (!window.unifiedCameraHandler.timeoutActive) {
+                        window.unifiedCameraHandler.timeoutActive = true;
+                        window.unifiedCameraHandler.timeout = setTimeout(() => {
+                            window.unifiedCameraHandler.isMoving = false;
+                            window.unifiedCameraHandler.timeoutActive = false;
+                            // Camera movement ended efficiently
+                        }, 300); // Longer timeout for smoother experience
                     }
-                    window.unifiedCameraHandler.timeout = setTimeout(() => {
-                        window.unifiedCameraHandler.isMoving = false;
-                        // Camera movement ended (no optimization triggered)
-                    }, 200);
-                    return;
+                    return; // Skip processing but timeout is managed
                 }
                 
-                // Check if this is significant movement
+                window.unifiedCameraHandler.lastProcessTime = now;
+                
+                // Check if this is significant movement (only when we actually process)
                 if (!window.unifiedCameraHandler.hasSignificantMovement()) {
                     return;
                 }
@@ -730,43 +711,72 @@ class GaussianSplatManager {
                     const startTime = performance.now();
                     window.unifiedCameraHandler.isMoving = true;
                 
-                    // Optimize Google Photorealistic tiles
-                    if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
-                        window.map3D.optimizePhotorealisticForMovement(true);
+                    // CRITICAL: Enable high frequency rendering during camera movement
+                    if (window.renderManager) {
+                        window.renderManager.enableHighFrequency();
                     }
-                    
-                    // Optimize all Gaussian splats
-                    if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
-                        window.gaussianSplatManager.optimizeForMovement(true);
+                
+                    // SMOKING GUN: Aggressively reduce Gaussian Splat quality during motion for 60+fps
+                    if (window.gaussianSplatManager) {
+                        const cameraSpeed = window.unifiedCameraHandler._lastCameraSpeed || 0;
+                        window.gaussianSplatManager.enterMotionMode(cameraSpeed);
+                    }
+                
+                    // Optimize all tilesets through unified LOD manager
+                    if (window.unifiedLODManager) {
+                        window.unifiedLODManager.optimizeForMovement(true);
+                    } else {
+                        // Fallback to individual optimization if unified manager not available
+                        if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
+                            window.map3D.optimizePhotorealisticForMovement(true);
+                        }
+                        if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
+                            window.gaussianSplatManager.optimizeForMovement(true);
+                        }
                     }
                     
                     const totalTime = performance.now() - startTime;
                     // Camera movement optimization started
                 }
                 
-                // Always clear and reset the end timeout on movement
-                if (window.unifiedCameraHandler.timeout) {
+                // Efficiently manage restoration timeout (avoid thrashing)
+                if (window.unifiedCameraHandler.timeoutActive) {
                     clearTimeout(window.unifiedCameraHandler.timeout);
                 }
                 
-                // Set end timeout for restoration
+                // Set restoration timeout with proper state management
+                window.unifiedCameraHandler.timeoutActive = true;
                 window.unifiedCameraHandler.timeout = setTimeout(() => {
                     const startTime = performance.now();
                     window.unifiedCameraHandler.isMoving = false;
+                    window.unifiedCameraHandler.timeoutActive = false;
                     
-                    // Restore Google Photorealistic tiles
-                    if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
-                        window.map3D.optimizePhotorealisticForMovement(false);
+                    // CRITICAL: Disable high frequency rendering when movement ends
+                    if (window.renderManager) {
+                        window.renderManager.disableHighFrequency();
                     }
                     
-                    // Restore all Gaussian splats
-                    if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
-                        window.gaussianSplatManager.optimizeForMovement(false);
+                    // SMOKING GUN: Progressively restore Gaussian Splat quality after motion stops
+                    if (window.gaussianSplatManager) {
+                        window.gaussianSplatManager.exitMotionMode();
+                    }
+                    
+                    // Restore all tilesets through unified LOD manager
+                    if (window.unifiedLODManager) {
+                        window.unifiedLODManager.optimizeForMovement(false);
+                    } else {
+                        // Fallback to individual restoration if unified manager not available
+                        if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
+                            window.map3D.optimizePhotorealisticForMovement(false);
+                        }
+                        if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
+                            window.gaussianSplatManager.optimizeForMovement(false);
+                        }
                     }
                     
                     const totalTime = performance.now() - startTime;
-                    // Camera movement optimization restored
-                }, 200); // Slightly longer timeout for smoother experience
+                    // Camera movement optimization restored efficiently
+                }, 300); // Longer timeout reduces thrashing during rapid movement
             }
         };
         
@@ -802,7 +812,8 @@ class GaussianSplatManager {
             averageLoadTime: 0,
             lastFrameTime: performance.now(),
             frameCount: 0,
-            fps: 0
+            fps: 0,
+            performanceInterval: null  // Store interval ID for cleanup
         };
         
         // Monitor tile loading
@@ -824,34 +835,32 @@ class GaussianSplatManager {
             console.warn(`Tile failed for ${siteId}: Total failed=${stats.tilesFailed}`, error);
         });
         
-        // Monitor frame rate impact
-        const frameMonitor = () => {
-            if (tileset.isDestroyed?.()) return;
+        // Monitor frame rate impact with lightweight 5-second sampling (no 60fps loops)
+        const performanceSampler = () => {
+            if (tileset.isDestroyed?.()) {
+                clearInterval(stats.performanceInterval);
+                return;
+            }
             
             const now = performance.now();
             const deltaTime = now - stats.lastFrameTime;
-            stats.frameCount++;
             
-            if (stats.frameCount % 60 === 0) { // Update every 60 frames
-                stats.fps = 1000 / (deltaTime / 60);
-                
-                // Performance stats logging removed for cleaner console output
-                if (stats.frameCount % 300 === 0) { // Every 5 seconds at 60fps
-                    // Performance monitoring continues without console spam
-                    
-                    // Just log performance stats without triggering completion
-                    if (!this.performanceStatsLogged) {
-                        this.performanceStatsLogged = true;
-                        console.log('Performance stats logged for first time');
-                    }
-                }
+            // Simple FPS estimation based on time delta (no frame counting)
+            if (deltaTime > 0) {
+                stats.fps = 1000 / deltaTime;
             }
             
             stats.lastFrameTime = now;
-            requestAnimationFrame(frameMonitor);
+            
+            // Minimal logging - only first time to reduce console spam
+            if (!this.performanceStatsLogged) {
+                this.performanceStatsLogged = true;
+                console.log(`Performance monitoring enabled for ${siteId} with 5-second sampling`);
+            }
         };
         
-        requestAnimationFrame(frameMonitor);
+        // Use 5-second interval instead of 60fps animation frame
+        stats.performanceInterval = setInterval(performanceSampler, 5000);
         this.performanceStats.set(siteId, stats);
     }
     
@@ -1211,11 +1220,26 @@ class GaussianSplatManager {
                 // Remove terrain clipping if it exists
                 this.removeTerrainClipping(siteId);
                 
-                // Clean up distance-based LOD intervals
+                // Unregister from unified LOD manager
+                if (window.unifiedLODManager) {
+                    window.unifiedLODManager.unregisterTileset(siteId);
+                }
+                
+                // Clean up legacy distance-based LOD intervals (if any remain)
                 if (this.distanceUpdateIntervals && this.distanceUpdateIntervals.has(siteId)) {
                     clearInterval(this.distanceUpdateIntervals.get(siteId));
                     this.distanceUpdateIntervals.delete(siteId);
-                    console.log(`Distance LOD monitoring stopped for site: ${siteId}`);
+                    console.log(`Legacy distance LOD monitoring stopped for site: ${siteId}`);
+                }
+                
+                // Clean up performance monitoring intervals
+                if (this.performanceStats && this.performanceStats.has(siteId)) {
+                    const stats = this.performanceStats.get(siteId);
+                    if (stats.performanceInterval) {
+                        clearInterval(stats.performanceInterval);
+                        console.log(`Performance monitoring stopped for site: ${siteId}`);
+                    }
+                    this.performanceStats.delete(siteId);
                 }
                 
                 this.loadedTilesets.delete(siteId);
@@ -1250,11 +1274,34 @@ class GaussianSplatManager {
             this.distanceUpdateIntervals.clear();
         }
         
-        // Clean up camera movement handler
+        // Clean up all performance monitoring intervals
+        if (this.performanceStats) {
+            for (const [siteId, stats] of this.performanceStats.entries()) {
+                if (stats.performanceInterval) {
+                    clearInterval(stats.performanceInterval);
+                    console.log(`Performance monitoring stopped for site: ${siteId}`);
+                }
+            }
+            this.performanceStats.clear();
+        }
+        
+        // Clean up unified camera movement handler (only if this is the last splat manager)
+        if (window.unifiedCameraHandler && this.loadedTilesets.size === 0) {
+            if (window.unifiedCameraHandler.handler) {
+                window.unifiedCameraHandler.handler.destroy();
+            }
+            if (window.unifiedCameraHandler.timeout) {
+                clearTimeout(window.unifiedCameraHandler.timeout);
+            }
+            window.unifiedCameraHandler = null;
+            console.log('Unified camera movement handler destroyed (all splats unloaded)');
+        }
+        
+        // Clean up legacy camera movement handler
         if (this.cameraMovementHandler) {
             this.cameraMovementHandler.destroy();
             this.cameraMovementHandler = null;
-            console.log('Camera movement handler destroyed');
+            console.log('Legacy camera movement handler destroyed');
         }
         
         // Remove all loading indicators
@@ -1284,6 +1331,104 @@ class GaussianSplatManager {
     }
     
     /**
+     * SMOKING GUN: Enters motion mode with speed-adaptive quality reduction for 60+fps
+     * @param {number} cameraSpeed - Current camera movement speed for adaptive quality
+     */
+    enterMotionMode(cameraSpeed = 0) {
+        if (this.motionModeActive) return; // Already in motion mode
+        
+        this.motionModeActive = true;
+        const startTime = performance.now();
+        
+        // Store original quality settings for restoration
+        this.originalQualitySettings = new Map();
+        
+        for (const [siteId, tileset] of this.loadedTilesets.entries()) {
+            if (!tileset || tileset.isDestroyed?.()) continue;
+            
+            // Store original settings
+            this.originalQualitySettings.set(siteId, {
+                maximumScreenSpaceError: tileset.maximumScreenSpaceError,
+                cullRequestsWhileMovingMultiplier: tileset.cullRequestsWhileMovingMultiplier,
+                immediatelyLoadDesiredLevelOfDetail: tileset.immediatelyLoadDesiredLevelOfDetail
+            });
+            
+            // CRITICAL: Speed-adaptive quality reduction for smooth motion
+            // Faster camera movement = lower quality for better frame rate
+            const speedFactor = Math.min(cameraSpeed / 10, 3.0); // Cap at 3x reduction
+            const motionSSE = Math.max(32, 8 * (2 + speedFactor)); // 32-96 SSE based on speed
+            const motionCulling = Math.max(120.0, 60 * (2 + speedFactor)); // 120-300 culling based on speed
+            
+            tileset.maximumScreenSpaceError = motionSSE;           // Adaptive quality (8 -> 32-96)
+            tileset.cullRequestsWhileMovingMultiplier = motionCulling; // Adaptive culling (60 -> 120-300)
+            tileset.immediatelyLoadDesiredLevelOfDetail = false; // Skip detailed LOD loading
+            
+            // Additional motion optimizations
+            if (tileset.pointCloudShading) {
+                tileset.pointCloudShading.attenuation = true;     // Enable distance attenuation
+                tileset.pointCloudShading.geometricErrorScale = 2.0; // Reduce detail further
+            }
+        }
+        
+        const totalTime = performance.now() - startTime;
+        console.log(`🟡 Motion Mode ENABLED: ${this.loadedTilesets.size} splats optimized in ${totalTime.toFixed(2)}ms (speed: ${cameraSpeed.toFixed(2)})`);
+    }
+    
+    /**
+     * SMOKING GUN: Exits motion mode with progressive quality restoration
+     */
+    exitMotionMode() {
+        if (!this.motionModeActive) return; // Not in motion mode
+        
+        this.motionModeActive = false;
+        const startTime = performance.now();
+        
+        // Progressive quality restoration over 1 second to avoid frame drops
+        const restoreQuality = (step = 0) => {
+            const maxSteps = 4; // Restore quality over 4 steps
+            const stepProgress = step / maxSteps;
+            
+            for (const [siteId, tileset] of this.loadedTilesets.entries()) {
+                if (!tileset || tileset.isDestroyed?.()) continue;
+                
+                const originalSettings = this.originalQualitySettings.get(siteId);
+                if (!originalSettings) continue;
+                
+                // Progressive interpolation from motion quality to full quality
+                const motionSSE = 64;
+                const targetSSE = originalSettings.maximumScreenSpaceError;
+                const currentSSE = motionSSE + (targetSSE - motionSSE) * stepProgress;
+                
+                tileset.maximumScreenSpaceError = Math.round(currentSSE);
+                
+                // Restore other settings on final step
+                if (step === maxSteps - 1) {
+                    tileset.cullRequestsWhileMovingMultiplier = originalSettings.cullRequestsWhileMovingMultiplier;
+                    tileset.immediatelyLoadDesiredLevelOfDetail = originalSettings.immediatelyLoadDesiredLevelOfDetail;
+                    
+                    // Restore point cloud shading
+                    if (tileset.pointCloudShading) {
+                        tileset.pointCloudShading.attenuation = false;
+                        tileset.pointCloudShading.geometricErrorScale = 1.0;
+                    }
+                }
+            }
+            
+            // Continue restoration or finish
+            if (step < maxSteps - 1) {
+                setTimeout(() => restoreQuality(step + 1), 250); // 250ms between steps
+            } else {
+                this.originalQualitySettings.clear();
+                const totalTime = performance.now() - startTime;
+                console.log(`🟢 Motion Mode DISABLED: Quality restored in ${totalTime.toFixed(2)}ms`);
+            }
+        };
+        
+        // Start progressive restoration
+        restoreQuality(0);
+    }
+    
+    /**
      * Gets statistics about loaded splats
      * @returns {Object} - Statistics object
      */
@@ -1296,7 +1441,8 @@ class GaussianSplatManager {
             loadedSites: loadedSites,
             loadingCount: this.loadingIndicators.size,
             loadingSites: loadingSites,
-            isLoading: this.isLoading
+            isLoading: this.isLoading,
+            motionModeActive: this.motionModeActive || false
         };
     }
     
@@ -1450,8 +1596,35 @@ class GaussianSplatManager {
                 try {
                     // Tileset creation in background thread logging removed for cleaner console output
                     
-                    // Load tileset - this will still block, but we've yielded control first
-                    const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl);
+                    // CRITICAL: Load tileset with performance-optimized settings for 60+fps
+                    const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl, {
+                        // PERFORMANCE CRITICAL: Gaussian Splat rendering optimizations
+                        maximumScreenSpaceError: 8,              // Lower = higher quality, higher = more performance
+                        maximumMemoryUsage: 256,                 // Limit memory usage (MB) for better performance
+                        
+                        // CAMERA MOVEMENT OPTIMIZATIONS - CRITICAL for 60+fps
+                        cullRequestsWhileMoving: true,           // Skip tile requests during camera movement
+                        cullRequestsWhileMovingMultiplier: 60.0, // VERY aggressive culling for 60+fps movement
+                        
+                        // LOADING OPTIMIZATIONS  
+                        preloadWhenHidden: false,                // Don't load tiles when not visible
+                        preloadFlightDestinations: false,        // Don't preload flight destinations
+                        immediatelyLoadDesiredLevelOfDetail: false, // Load tiles incrementally for smoother experience
+                        
+                        // RENDERING OPTIMIZATIONS
+                        skipLevelOfDetail: false,                // Keep LOD for performance
+                        dynamicScreenSpaceError: true,          // Adjust quality based on movement
+                        dynamicScreenSpaceErrorDensity: 0.5,    // More aggressive dynamic adjustment
+                        dynamicScreenSpaceErrorFactor: 8.0,     // Higher factor for more performance during movement
+                        
+                        // GAUSSIAN SPLAT SPECIFIC OPTIMIZATIONS
+                        enableShowOutline: false,               // Disable expensive outline rendering
+                        enableDebugWireframe: false,            // Disable debug wireframe
+                        
+                        // MEMORY AND CACHE OPTIMIZATIONS
+                        cacheBytes: 536870912,                  // 512MB cache for better streaming
+                        maximumCacheOverflowBytes: 134217728    // 128MB overflow buffer
+                    });
                     
                     // Tileset creation logging removed for cleaner console output
                     

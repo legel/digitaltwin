@@ -1972,7 +1972,7 @@ function navigateToSite(bounds, visualize = true) {
 
 /**
  * Initializes all the required systems and sets them on the window object.
- * This includes the CesiumManager, GoogleMaps2DManager, and UserManager.
+ * This includes the CesiumManager and UserManager.
  */
 async function allSystemsGo() {
     // Update loading message for initialization
@@ -1990,28 +1990,97 @@ async function allSystemsGo() {
         // Force initial render to prevent glitchy transition
         window.map3D.viewer.scene.requestRender();
         
-        // Set up camera movement handlers to trigger renders for on-demand rendering
+        // CRITICAL FIX: Enhanced render management for smooth camera movement
+        window.renderManager = {
+            lastRenderTime: 0,
+            minRenderInterval: 8, // 120fps maximum for smoother camera movement  
+            renderPending: false,
+            renderTimeout: null,
+            highFrequencyMode: false, // Flag for camera movement periods
+            
+            // Enable high frequency rendering during camera movement
+            enableHighFrequency: function() {
+                this.highFrequencyMode = true;
+                
+                // CRITICAL: Dynamic resolution scaling for GPU bandwidth optimization
+                if (window.map3D && window.map3D.viewer) {
+                    // Reduce resolution during movement for 60+fps performance
+                    window.map3D.viewer.resolutionScale = 0.75; // 75% resolution during movement
+                }
+            },
+            
+            // Return to normal frequency after movement
+            disableHighFrequency: function() {
+                this.highFrequencyMode = false;
+                
+                // Restore full resolution when movement stops
+                if (window.map3D && window.map3D.viewer) {
+                    window.map3D.viewer.resolutionScale = 1.0; // Full resolution when idle
+                }
+            },
+            
+            requestRender: function() {
+                const now = performance.now();
+                
+                // During high frequency mode (camera movement), render immediately
+                if (this.highFrequencyMode) {
+                    window.map3D.viewer.scene.requestRender();
+                    this.lastRenderTime = now;
+                    
+                    // Clear any pending render
+                    if (this.renderPending) {
+                        clearTimeout(this.renderTimeout);
+                        this.renderPending = false;
+                    }
+                    return;
+                }
+                
+                // Normal mode: throttle to prevent render spam
+                if (now - this.lastRenderTime < this.minRenderInterval) {
+                    if (!this.renderPending) {
+                        this.renderPending = true;
+                        const delay = this.minRenderInterval - (now - this.lastRenderTime);
+                        this.renderTimeout = setTimeout(() => {
+                            window.map3D.viewer.scene.requestRender();
+                            this.lastRenderTime = performance.now();
+                            this.renderPending = false;
+                        }, delay);
+                    }
+                    return;
+                }
+                
+                // Safe to render immediately
+                window.map3D.viewer.scene.requestRender();
+                this.lastRenderTime = now;
+                
+                // Clear any pending render
+                if (this.renderPending) {
+                    clearTimeout(this.renderTimeout);
+                    this.renderPending = false;
+                }
+            }
+        };
+        
+        // Set up camera movement handlers with intelligent render management
         const camera = window.map3D.viewer.scene.camera;
         camera.moveStart.addEventListener(() => {
-            // Start continuous rendering during camera movement
-            window.map3D.viewer.scene.requestRender();
+            window.renderManager.enableHighFrequency();
+            window.renderManager.requestRender();
         });
         
         camera.moveEnd.addEventListener(() => {
-            // Ensure final render when movement stops
-            window.map3D.viewer.scene.requestRender();
+            window.renderManager.disableHighFrequency();
+            window.renderManager.requestRender();
         });
         
-        // Also trigger renders for mouse/touch interactions (with passive listeners)
-        const canvas = window.map3D.viewer.scene.canvas;
-        canvas.addEventListener('mousedown', () => window.map3D.viewer.scene.requestRender(), { passive: true });
-        canvas.addEventListener('wheel', () => window.map3D.viewer.scene.requestRender(), { passive: true });
-        canvas.addEventListener('touchstart', () => window.map3D.viewer.scene.requestRender(), { passive: true });
+        // REMOVED: Individual mouse event render triggers (handled by unified camera handler)
+        // This eliminates render request spam during mouse interaction
     }
 
-    // Instantiate the GoogleMaps2DManager and wait for it to be ready
-    window.map2D = await new GoogleMaps2DManager('map2D');
-    // Google Map object is ready
+    // GoogleMaps2D removed to improve performance
+
+    // Initialize unified LOD manager for consolidated Level of Detail management
+    window.unifiedLODManager = new UnifiedLODManager(window.map3D.viewer);
 
     // Instantiate the UserManager and store it globally
     window.user = new UserManager(window.map3D);
