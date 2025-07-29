@@ -601,36 +601,23 @@ class GaussianSplatManager {
             try {
                 const startTime = performance.now();
                 
-                // Check if we're in orthographic mode
-                const isOrthographic = window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection();
+                // Use distance-based quality (standard perspective mode)
+                const cameraPosition = this.viewer.camera.position;
+                const tilesetCenter = tileset.boundingSphere?.center;
+                let targetSSE = 16; // Default quality
                 
-                let targetSSE;
-                
-                if (isOrthographic) {
-                    // In orthographic mode, use fixed high quality since distance is not meaningful
-                    targetSSE = 8; // Fixed medium-high quality for orthographic projection
-                } else {
-                    // In perspective mode, use distance-based quality
-                    const cameraPosition = this.viewer.camera.position;
-                    const tilesetCenter = tileset.boundingSphere?.center;
+                if (tilesetCenter) {
+                    const distance = Cesium.Cartesian3.distance(cameraPosition, tilesetCenter);
                     
-                    if (tilesetCenter) {
-                        const distanceCalcStart = performance.now();
-                        const distance = Cesium.Cartesian3.distance(cameraPosition, tilesetCenter);
-                        const distanceCalcEnd = performance.now();
-                        
-                        // Adjust screen space error based on distance
-                        if (distance < 50) {
-                            targetSSE = 4;    // High quality when close
-                        } else if (distance < 150) {
-                            targetSSE = 8;    // Medium quality
-                        } else if (distance < 500) {
-                            targetSSE = 16;   // Lower quality at medium distance
-                        } else {
-                            targetSSE = 32;   // Lowest quality when far
-                        }
+                    // Adjust screen space error based on distance
+                    if (distance < 50) {
+                        targetSSE = 4;    // High quality when close
+                    } else if (distance < 150) {
+                        targetSSE = 8;    // Medium quality
+                    } else if (distance < 500) {
+                        targetSSE = 16;   // Lower quality at medium distance
                     } else {
-                        targetSSE = 16; // Default for perspective mode
+                        targetSSE = 32;   // Lowest quality when far
                     }
                 }
                     
@@ -1473,83 +1460,6 @@ class GaussianSplatManager {
                         this.viewer.scene.primitives.add(tileset);
                         console.log('Gaussian Splat added to scene');
                         
-                        // Debug orthographic mode compatibility
-                        const isOrthographic = window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection();
-                        if (isOrthographic) {
-                            console.log('🔍 ORTHOGRAPHIC DEBUG - Tileset properties:', {
-                                show: tileset.show,
-                                maximumScreenSpaceError: tileset.maximumScreenSpaceError,
-                                cullWithChildrenBounds: tileset.cullWithChildrenBounds,
-                                cullRequestsWhileMoving: tileset.cullRequestsWhileMoving,
-                                dynamicScreenSpaceError: tileset.dynamicScreenSpaceError,
-                                immediatelyLoadDesiredLevelOfDetail: tileset.immediatelyLoadDesiredLevelOfDetail,
-                                skipLevelOfDetail: tileset.skipLevelOfDetail,
-                                boundingSphere: tileset.boundingSphere ? {
-                                    center: tileset.boundingSphere.center,
-                                    radius: tileset.boundingSphere.radius
-                                } : 'undefined'
-                            });
-                            
-                            // Force visibility settings for orthographic mode
-                            tileset.show = true;
-                            tileset.cullWithChildrenBounds = false;
-                            tileset.cullRequestsWhileMoving = false;
-                            tileset.dynamicScreenSpaceError = false;
-                            tileset.immediatelyLoadDesiredLevelOfDetail = true;
-                            tileset.skipLevelOfDetail = false;
-                            tileset.maximumScreenSpaceError = 4; // High quality for orthographic
-                            
-                            console.log('🔧 ORTHOGRAPHIC - Applied forced visibility settings');
-                            
-                            // Adjust orthographic frustum width to accommodate this splat
-                            setTimeout(() => {
-                                this.adjustOrthographicFrustumForSplat(tileset, siteId);
-                            }, 500); // Delay to let Cesium's official orthographic switch stabilize
-                            
-                            // Debug camera position relative to splat
-                            setTimeout(() => {
-                                const camera = this.viewer.camera;
-                                const cameraPos = camera.position;
-                                const cameraCartographic = Cesium.Cartographic.fromCartesian(cameraPos);
-                                const frustum = camera.frustum;
-                                
-                                console.log('📷 ORTHOGRAPHIC CAMERA DEBUG:', {
-                                    position: {
-                                        longitude: Cesium.Math.toDegrees(cameraCartographic.longitude).toFixed(6),
-                                        latitude: Cesium.Math.toDegrees(cameraCartographic.latitude).toFixed(6),
-                                        height: cameraCartographic.height.toFixed(2)
-                                    },
-                                    frustum: {
-                                        width: frustum.width,
-                                        aspectRatio: frustum.aspectRatio,
-                                        near: frustum.near,
-                                        far: frustum.far
-                                    },
-                                    direction: {
-                                        heading: Cesium.Math.toDegrees(camera.heading).toFixed(2),
-                                        pitch: Cesium.Math.toDegrees(camera.pitch).toFixed(2),
-                                        roll: Cesium.Math.toDegrees(camera.roll).toFixed(2)
-                                    }
-                                });
-                                
-                                if (tileset.boundingSphere) {
-                                    const splatCenter = tileset.boundingSphere.center;
-                                    const splatCartographic = Cesium.Cartographic.fromCartesian(splatCenter);
-                                    const distance = Cesium.Cartesian3.distance(cameraPos, splatCenter);
-                                    
-                                    console.log('🎯 SPLAT vs CAMERA:', {
-                                        splatCenter: {
-                                            longitude: Cesium.Math.toDegrees(splatCartographic.longitude).toFixed(6),
-                                            latitude: Cesium.Math.toDegrees(splatCartographic.latitude).toFixed(6),
-                                            height: splatCartographic.height.toFixed(2)
-                                        },
-                                        distance: distance.toFixed(2) + 'm',
-                                        splatRadius: tileset.boundingSphere.radius.toFixed(2) + 'm',
-                                        withinFrustumWidth: distance < (frustum.width / 2) ? 'YES' : 'NO'
-                                    });
-                                }
-                            }, 1000);
-                        }
                         
                         // Store the loaded tileset
                         this.loadedTilesets.set(siteId, tileset);
@@ -2142,54 +2052,6 @@ class GaussianSplatManager {
         }
     }
     
-    /**
-     * Adjusts orthographic frustum width to accommodate a Gaussian Splat
-     * @param {Cesium.Cesium3DTileset} tileset - The loaded tileset
-     * @param {string} siteId - Site identifier
-     */
-    adjustOrthographicFrustumForSplat(tileset, siteId) {
-        try {
-            const camera = this.viewer.camera;
-            const frustum = camera.frustum;
-            
-            if (tileset.boundingSphere && frustum instanceof Cesium.OrthographicFrustum) {
-                const splatRadius = tileset.boundingSphere.radius;
-                const splatCenter = tileset.boundingSphere.center;
-                const cameraPos = camera.position;
-                const distance = Cesium.Cartesian3.distance(cameraPos, splatCenter);
-                
-                // Calculate required width to fully encompass the splat
-                // Use the maximum of: splat diameter * 2.5, or distance to splat + splat radius * 2
-                const requiredWidth = Math.max(
-                    splatRadius * 5, // 5x radius = 2.5x diameter for extra generous visibility
-                    distance + splatRadius * 3 // Ensure splat fits even if offset from center with extra buffer
-                );
-                
-                const currentWidth = frustum.width;
-                
-                if (requiredWidth > currentWidth) {
-                    console.log(`📐 EXPANDING orthographic frustum for ${siteId}:`, {
-                        currentWidth: currentWidth.toFixed(2),
-                        requiredWidth: requiredWidth.toFixed(2),
-                        splatRadius: splatRadius.toFixed(2),
-                        distance: distance.toFixed(2)
-                    });
-                    
-                    // Update frustum width using official API approach
-                    frustum.width = requiredWidth;
-                    
-                    // Single render request - let Cesium handle the rest
-                    this.viewer.scene.requestRender();
-                    
-                    console.log(`✅ Orthographic frustum expanded to ${requiredWidth.toFixed(2)}m width for splat visibility`);
-                } else {
-                    console.log(`✅ Orthographic frustum width (${currentWidth.toFixed(2)}m) sufficient for splat (needs ${requiredWidth.toFixed(2)}m)`);
-                }
-            }
-        } catch (error) {
-            console.error(`Error adjusting orthographic frustum for ${siteId}:`, error);
-        }
-    }
 
     /**
      * Removes all terrain clipping
