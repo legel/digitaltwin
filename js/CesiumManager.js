@@ -1152,12 +1152,17 @@ class CesiumManager {
             }
 
             // Create and assign orthographic frustum
-            this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
+            const orthographicFrustum = new Cesium.OrthographicFrustum({
                 width: width,
                 aspectRatio: aspectRatio,
                 near: 1.0, // Standard near plane
                 far: 10000000.0 // Standard far plane
             });
+            
+            // Disable automatic frustum adjustments to prevent texture destruction
+            this.disableAutomaticCameraAdjustments();
+            
+            this.viewer.scene.camera.frustum = orthographicFrustum;
             
             // Request render to update the scene
             this.viewer.scene.requestRender();
@@ -1231,30 +1236,87 @@ class CesiumManager {
     }
 
     /**
+     * Disables automatic camera adjustments that cause texture destruction
+     */
+    disableAutomaticCameraAdjustments() {
+        try {
+            const camera = this.viewer.scene.camera;
+            
+            // Store original methods before overriding
+            if (!this.originalCameraMethods) {
+                this.originalCameraMethods = {
+                    _adjustOrthographicFrustum: camera._adjustOrthographicFrustum,
+                    calculateOrthographicFrustumWidth: camera.calculateOrthographicFrustumWidth
+                };
+            }
+            
+            // Override problematic camera adjustment methods
+            camera._adjustOrthographicFrustum = function() {
+                // Disable automatic orthographic frustum adjustments
+                console.log('🚫 Blocked automatic orthographic frustum adjustment');
+            };
+            
+            camera.calculateOrthographicFrustumWidth = function() {
+                // Return current width without recalculation
+                return this.frustum.width || 800;
+            };
+            
+            console.log('🔒 Disabled automatic camera adjustments for orthographic mode');
+            
+        } catch (error) {
+            console.warn('Failed to disable automatic camera adjustments:', error);
+        }
+    }
+
+    /**
+     * Re-enables automatic camera adjustments
+     */
+    enableAutomaticCameraAdjustments() {
+        try {
+            if (this.originalCameraMethods) {
+                const camera = this.viewer.scene.camera;
+                camera._adjustOrthographicFrustum = this.originalCameraMethods._adjustOrthographicFrustum;
+                camera.calculateOrthographicFrustumWidth = this.originalCameraMethods.calculateOrthographicFrustumWidth;
+                console.log('🔓 Re-enabled automatic camera adjustments');
+            }
+        } catch (error) {
+            console.warn('Failed to re-enable automatic camera adjustments:', error);
+        }
+    }
+
+    /**
      * Set camera to perspective projection
      */
     setPerspectiveProjection() {
         if (!this.isOrthographic) return;
 
-        // Restore the saved perspective frustum or create a new one
-        if (this.savedPerspectiveFrustum) {
-            this.viewer.scene.camera.frustum = this.savedPerspectiveFrustum.clone();
-        } else {
-            // Create default perspective frustum
+        try {
+            // Re-enable automatic camera adjustments for perspective mode
+            this.enableAutomaticCameraAdjustments();
+            
+            // Restore the saved perspective frustum or create a new one
+            if (this.savedPerspectiveFrustum) {
+                this.viewer.scene.camera.frustum = this.savedPerspectiveFrustum.clone();
+            } else {
+                // Create default perspective frustum
             this.viewer.scene.camera.frustum = new Cesium.PerspectiveFrustum({
                 fov: Cesium.Math.PI_OVER_THREE, // 60 degrees
                 aspectRatio: this.viewer.scene.canvas.clientWidth / this.viewer.scene.canvas.clientHeight,
                 near: 1.0,
                 far: 10000000.0
             });
-        }
+            }
 
-        this.isOrthographic = false;
-        
-        // Request render to update the scene
-        this.viewer.scene.requestRender();
-        
-        console.log('Switched to perspective projection');
+            this.isOrthographic = false;
+            
+            // Request render to update the scene
+            this.viewer.scene.requestRender();
+            
+            console.log('Switched to perspective projection');
+            
+        } catch (error) {
+            console.error('Error switching to perspective projection:', error);
+        }
     }
 
     /**
