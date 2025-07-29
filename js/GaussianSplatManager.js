@@ -1502,7 +1502,9 @@ class GaussianSplatManager {
                             console.log('🔧 ORTHOGRAPHIC - Applied forced visibility settings');
                             
                             // Adjust orthographic frustum width to accommodate this splat
-                            this.adjustOrthographicFrustumForSplat(tileset, siteId);
+                            setTimeout(() => {
+                                this.adjustOrthographicFrustumForSplat(tileset, siteId);
+                            }, 100); // Small delay to let initial rendering stabilize
                             
                             // Debug camera position relative to splat
                             setTimeout(() => {
@@ -2174,15 +2176,15 @@ class GaussianSplatManager {
                     });
                     
                     // Update frustum width while preserving other properties
-                    const newFrustum = new Cesium.OrthographicFrustum({
-                        width: requiredWidth,
-                        aspectRatio: frustum.aspectRatio,
-                        near: frustum.near,
-                        far: frustum.far
-                    });
+                    // Use a more conservative approach to prevent texture destruction
+                    frustum.width = requiredWidth;
                     
-                    camera.frustum = newFrustum;
+                    // Force scene update without destroying existing resources
                     this.viewer.scene.requestRender();
+                    
+                    // Additional render requests to ensure stability
+                    setTimeout(() => this.viewer.scene.requestRender(), 50);
+                    setTimeout(() => this.viewer.scene.requestRender(), 100);
                     
                     console.log(`✅ Orthographic frustum expanded to ${requiredWidth.toFixed(2)}m width for splat visibility`);
                 } else {

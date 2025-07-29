@@ -1120,9 +1120,16 @@ class CesiumManager {
      */
     setOrthographicProjectionForSite() {
         if (this.isOrthographic) return;
-
-        // Save the current perspective frustum
-        this.savedPerspectiveFrustum = this.viewer.scene.camera.frustum.clone();
+        
+        try {
+            // Set up error handling for texture destruction issues
+            this.setupOrthographicErrorHandling();
+            
+            // Force a render cycle before switching to clear any pending operations
+            this.viewer.scene.requestRender();
+            
+            // Save the current perspective frustum
+            this.savedPerspectiveFrustum = this.viewer.scene.camera.frustum.clone();
 
         // Calculate the ground area visible in the current view
         const canvas = this.viewer.scene.canvas;
@@ -1155,8 +1162,68 @@ class CesiumManager {
         // Request render to update the scene
         this.viewer.scene.requestRender();
 
-        this.isOrthographic = true;
-        console.log('Switched to orthographic projection for site viewing');
+            this.isOrthographic = true;
+            console.log('Switched to orthographic projection for site viewing');
+            
+        } catch (error) {
+            console.error('Error switching to orthographic projection:', error);
+            // Attempt to restore perspective projection on error
+            try {
+                if (this.savedPerspectiveFrustum) {
+                    this.viewer.scene.camera.frustum = this.savedPerspectiveFrustum.clone();
+                    this.viewer.scene.requestRender();
+                }
+            } catch (restoreError) {
+                console.error('Failed to restore perspective projection:', restoreError);
+            }
+        }
+    }
+
+    /**
+     * Sets up error handling for orthographic projection issues
+     */
+    setupOrthographicErrorHandling() {
+        // Remove existing error listeners to avoid duplicates
+        this.viewer.scene.renderError.removeAllEventListeners();
+        
+        // Add comprehensive error handling
+        this.viewer.scene.renderError.addEventListener((scene, error) => {
+            console.error('Cesium rendering error:', error);
+            
+            if (error.message && (error.message.includes('destroyed') || error.message.includes('Texture'))) {
+                console.warn('🚨 Detected texture destruction error - attempting recovery...');
+                
+                // Pause rendering briefly
+                scene.requestRender = function() {}; // Temporarily disable render requests
+                
+                setTimeout(() => {
+                    try {
+                        // Re-enable rendering
+                        scene.requestRender = Cesium.Scene.prototype.requestRender;
+                        
+                        // Force scene reset
+                        scene.primitives._primitives.forEach(primitive => {
+                            if (primitive && !primitive.isDestroyed?.()) {
+                                try {
+                                    primitive.update?.(scene.frameState);
+                                } catch (updateError) {
+                                    console.warn('Primitive update failed during recovery:', updateError);
+                                }
+                            }
+                        });
+                        
+                        // Request a fresh render
+                        scene.requestRender();
+                        console.log('✅ Scene recovery completed');
+                        
+                    } catch (recoveryError) {
+                        console.error('Scene recovery failed:', recoveryError);
+                        // Last resort: reload the page
+                        console.warn('Critical error - page reload may be necessary');
+                    }
+                }, 100);
+            }
+        });
     }
 
     /**
