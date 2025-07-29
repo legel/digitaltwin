@@ -16,7 +16,7 @@ class CesiumManager {
         // Set the Cesium Ion access token
         Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5MjliMTAwZC0yNTE4LTQ5MDMtODRlYy00MGIxMTg4NTQ0YzkiLCJpZCI6MjQzMTg3LCJpYXQiOjE3NDk2MDQ4MzZ9.u83AqBjOkC2ESDQsylIlYSwE8Br5Je0Hchir3zi3KG8";
 
-        // Initialize the Cesium Viewer with the desired configuration (no terrain initially)
+        // Initialize the Cesium Viewer with GPU-optimized configuration
         this.viewer = new Cesium.Viewer(containerId, {
             timeline: false,
             animation: false,
@@ -28,6 +28,26 @@ class CesiumManager {
             navigationHelpButton: false,
             selectionIndicator: false,  // Disable the green selection box
             infoBox: false,  // Disable the info box popup
+            
+            // CRITICAL: GPU Performance Optimizations
+            contextOptions: {
+                webgl: {
+                    alpha: false,                    // Disable alpha channel for performance
+                    depth: true,                     // Keep depth buffer (needed for 3D)
+                    stencil: false,                  // Disable stencil buffer (not needed)
+                    antialias: false,                // Disable multisampling for performance
+                    premultipliedAlpha: false,       // Disable premultiplied alpha
+                    preserveDrawingBuffer: false,    // Don't preserve buffer (performance)
+                    powerPreference: "high-performance", // Request high-performance GPU
+                    failIfMajorPerformanceCaveat: false, // Don't fail on performance issues
+                    desynchronized: true             // Enable desynchronized rendering for lower latency
+                }
+            },
+            
+            // CRITICAL: Disable expensive Cesium features
+            useBrowserRecommendedResolution: false,  // Use full device resolution
+            orderIndependentTranslucency: false,     // Disable expensive transparency
+            shadows: false                           // Disable shadow mapping
         });
         
         // Track current base layer mode
@@ -59,11 +79,47 @@ class CesiumManager {
         // Enable picking through translucent objects
         this.viewer.scene.pickTranslucentDepth = true;
         
-        // GPU Efficiency Settings - Enable on-demand rendering to save GPU
+        // CRITICAL: Optimize Scene Rendering for Smooth Camera Movement
         this.viewer.scene.requestRenderMode = true; // Only render when needed
         this.viewer.scene.maximumRenderTimeChange = Infinity; // Don't auto-render for time changes
         
-        // Initial render to ensure scene appears
+        // BALANCED: Scene optimizations that maintain visual quality
+        // this.viewer.scene.globe.enableLighting = false;      // Keep lighting for visual quality
+        // this.viewer.scene.globe.dynamicAtmosphereLighting = false; // Keep atmosphere for quality
+        // this.viewer.scene.globe.showGroundAtmosphere = false;     // Keep ground atmosphere
+        this.viewer.scene.skyBox.show = true;               // Keep skybox for visual quality
+        this.viewer.scene.sun.show = true;                  // Keep sun for natural lighting
+        this.viewer.scene.moon.show = true;                 // Keep moon for completeness
+        
+        // Only disable the most expensive features during movement
+        this.viewer.scene.logarithmicDepthBuffer = false;   // This can cause camera issues
+        // this.viewer.scene.fxaa = false;                     // Keep FXAA for visual quality
+        
+        // Maintain full resolution
+        this.viewer.resolutionScale = 1.0;                  // Full resolution
+        
+        // RESTORED: Camera Controller with Performance Optimizations
+        const controller = this.viewer.scene.screenSpaceCameraController;
+        
+        // Keep default camera controls but optimize performance-critical settings only
+        // controller.inertiaSpin = 0.9;        // Keep default for natural feel
+        // controller.inertiaTranslate = 0.9;   // Keep default for natural feel  
+        // controller.inertiaZoom = 0.8;        // Keep default for natural feel
+        
+        // Keep default event types (don't override - this may have broken orbit controls)
+        // controller.translateEventTypes = DEFAULT
+        // controller.tiltEventTypes = DEFAULT 
+        // controller.zoomEventTypes = DEFAULT
+        
+        // Only optimize the most performance-critical settings
+        controller.enableCollisionDetection = false;  // Disable expensive collision detection
+        controller.minimumZoomDistance = 1.0;         // Allow very close zoom
+        controller.maximumZoomDistance = 40075000;    // Earth circumference in meters
+        
+        // Ensure inputs are enabled (this should be default)
+        controller.enableInputs = true;
+        
+        // Initial render to ensure scene appears (will use renderManager once available)
         this.viewer.scene.requestRender();
         
         // Initialize in perspective mode (default)
@@ -71,8 +127,12 @@ class CesiumManager {
         // Add click handler for debugging (can be removed later)
         const handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
         handler.setInputAction((click) => {
-            // Request render for click interactions
-            this.viewer.scene.requestRender();
+            // Request render for click interactions via render manager if available
+            if (window.renderManager) {
+                window.renderManager.requestRender();
+            } else {
+                this.viewer.scene.requestRender();
+            }
             const pickedObject = this.viewer.scene.pick(click.position);
             // console.log('Click detected, picked object:', pickedObject); // Commented out to reduce noise
             
@@ -835,6 +895,12 @@ class CesiumManager {
             tileset.preloadWhenHidden = false;              // Don't preload when not visible
             tileset.preloadFlightDestinations = false;      // Don't preload flight destinations
             
+            // Register with unified LOD manager for consolidated LOD management
+            if (window.unifiedLODManager) {
+                window.unifiedLODManager.registerTileset('google-photorealistic', tileset, 'google');
+                console.log('Google Photorealistic tileset registered with UnifiedLODManager');
+            }
+            
             // DISABLED: Individual camera optimization replaced by unified handler in GaussianSplatManager
             // this.setupPhotorealisticCameraOptimization(tileset);
             
@@ -941,8 +1007,8 @@ class CesiumManager {
             }
         });
         
-        // Set up distance-based optimization for Google tiles
-        this.setupPhotorealisticDistanceLOD(tileset);
+        // DISABLED: Distance-based optimization replaced by UnifiedLODManager
+        // this.setupPhotorealisticDistanceLOD(tileset);
     }
     
     /**

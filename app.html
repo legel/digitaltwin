@@ -18,8 +18,7 @@
     <!-- 3D View CSS library -->
     <link href="/css/styles.css" rel="stylesheet">
 
-    <!-- 2D Map CSS -->
-    <link href="/css/GoogleMaps2D.css" rel="stylesheet">
+    <!-- GoogleMaps2D CSS removed to improve performance -->
 
     <!-- Menu and View Switch CSS -->
     <link href="/css/menu.css" rel="stylesheet">
@@ -96,8 +95,7 @@
     <!-- Cesium 3D Container -->
     <div id="cesiumContainer"></div>
 
-    <!-- Google Maps 2D Container, hidden initially -->
-    <div id="map2D" style="display: none;"></div>
+    <!-- GoogleMaps2D container removed to improve performance -->
 
     <!-- Terrain 3D Logo -->
     <img id="logo" src="/images/ecodash_white_cropped.webp" alt="Terrain 3D Logo">
@@ -184,7 +182,8 @@
 
     <!-- Map Managers -->
     <script src="/js/CesiumManager.js"></script>
-    <script src="/js/GoogleMaps2DManager.js"></script>
+    <!-- GoogleMaps2DManager.js removed to improve performance -->
+    <script src="/js/UnifiedLODManager.js"></script>
     <script src="/js/UserManager.js"></script>
     <script src="/js/GaussianSplatManager.js"></script>
 
