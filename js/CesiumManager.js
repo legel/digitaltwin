@@ -1127,6 +1127,9 @@ class CesiumManager {
             // Use Cesium's built-in orthographic switch method
             this.viewer.scene.camera.switchToOrthographicFrustum();
             
+            // Disable automatic adjustments that cause texture destruction
+            this.disableAutomaticCameraAdjustments();
+            
             // Calculate appropriate width for site and any Gaussian Splats
             let width = 800; // Base width for site viewing
             
@@ -1270,6 +1273,9 @@ class CesiumManager {
             
             // Use Cesium's built-in perspective switch method
             this.viewer.scene.camera.switchToPerspectiveFrustum();
+            
+            // Re-enable automatic camera adjustments for perspective mode
+            this.enableAutomaticCameraAdjustments();
             
             this.isOrthographic = false;
             console.log('✅ Successfully switched to perspective projection using Cesium API');
