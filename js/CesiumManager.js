@@ -1131,36 +1131,36 @@ class CesiumManager {
             // Save the current perspective frustum
             this.savedPerspectiveFrustum = this.viewer.scene.camera.frustum.clone();
 
-        // Calculate the ground area visible in the current view
-        const canvas = this.viewer.scene.canvas;
-        const aspectRatio = canvas.clientWidth / canvas.clientHeight;
-        
-        // Calculate width based on site bounds and any loaded Gaussian Splats
-        let width = 800; // Base width for site viewing
-        
-        // Check if Gaussian Splats are loaded and adjust width accordingly
-        if (window.gaussianSplatManager && window.gaussianSplatManager.loadedTilesets) {
-            for (const [siteId, tileset] of window.gaussianSplatManager.loadedTilesets.entries()) {
-                if (tileset && tileset.boundingSphere) {
-                    const splatRadius = tileset.boundingSphere.radius;
-                    // Ensure width covers the splat with generous buffer
-                    const requiredWidth = (splatRadius * 2) * 3; // 3x diameter for good visibility
-                    width = Math.max(width, requiredWidth);
-                    console.log(`📐 Adjusting orthographic width for splat ${siteId}: radius=${splatRadius.toFixed(2)}m, required=${requiredWidth.toFixed(2)}m`);
+            // Calculate the ground area visible in the current view
+            const canvas = this.viewer.scene.canvas;
+            const aspectRatio = canvas.clientWidth / canvas.clientHeight;
+            
+            // Calculate width based on site bounds and any loaded Gaussian Splats
+            let width = 800; // Base width for site viewing
+            
+            // Check if Gaussian Splats are loaded and adjust width accordingly
+            if (window.gaussianSplatManager && window.gaussianSplatManager.loadedTilesets) {
+                for (const [siteId, tileset] of window.gaussianSplatManager.loadedTilesets.entries()) {
+                    if (tileset && tileset.boundingSphere) {
+                        const splatRadius = tileset.boundingSphere.radius;
+                        // Ensure width covers the splat with generous buffer
+                        const requiredWidth = (splatRadius * 2) * 3; // 3x diameter for good visibility
+                        width = Math.max(width, requiredWidth);
+                        console.log(`📐 Adjusting orthographic width for splat ${siteId}: radius=${splatRadius.toFixed(2)}m, required=${requiredWidth.toFixed(2)}m`);
+                    }
                 }
             }
-        }
 
-        // Create and assign orthographic frustum
-        this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
-            width: width,
-            aspectRatio: aspectRatio,
-            near: 1.0, // Standard near plane
-            far: 10000000.0 // Standard far plane
-        });
-        
-        // Request render to update the scene
-        this.viewer.scene.requestRender();
+            // Create and assign orthographic frustum
+            this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
+                width: width,
+                aspectRatio: aspectRatio,
+                near: 1.0, // Standard near plane
+                far: 10000000.0 // Standard far plane
+            });
+            
+            // Request render to update the scene
+            this.viewer.scene.requestRender();
 
             this.isOrthographic = true;
             console.log('Switched to orthographic projection for site viewing');
@@ -1183,11 +1183,13 @@ class CesiumManager {
      * Sets up error handling for orthographic projection issues
      */
     setupOrthographicErrorHandling() {
-        // Remove existing error listeners to avoid duplicates
-        this.viewer.scene.renderError.removeAllEventListeners();
+        // Store reference to avoid duplicate listeners
+        if (this.orthographicErrorHandler) {
+            return; // Already set up
+        }
         
         // Add comprehensive error handling
-        this.viewer.scene.renderError.addEventListener((scene, error) => {
+        this.orthographicErrorHandler = (scene, error) => {
             console.error('Cesium rendering error:', error);
             
             if (error.message && (error.message.includes('destroyed') || error.message.includes('Texture'))) {
@@ -1223,7 +1225,9 @@ class CesiumManager {
                     }
                 }, 100);
             }
-        });
+        };
+        
+        this.viewer.scene.renderError.addEventListener(this.orthographicErrorHandler);
     }
 
     /**
