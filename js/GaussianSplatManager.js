@@ -292,18 +292,19 @@ class GaussianSplatManager {
                 // Reload the tileset with optimized settings
                 console.log(`Reloading tileset from: ${splatData.tilesetUrl}`);
                 const tileset = await Cesium.Cesium3DTileset.fromUrl(splatData.tilesetUrl, {
-                    // Same performance settings as initial load
-                    maximumScreenSpaceError: 8,
-                    maximumMemoryUsage: 256,
+                    // UPDATED: Match enhanced Gaussian Splat prioritization settings
+                    maximumScreenSpaceError: 6,              // Higher quality (8 -> 6)
+                    maximumMemoryUsage: 512,                 // Double memory (256 -> 512MB)
                     cullRequestsWhileMoving: true,
-                    cullRequestsWhileMovingMultiplier: 60.0,
-                    preloadWhenHidden: false,
-                    preloadFlightDestinations: false,
-                    immediatelyLoadDesiredLevelOfDetail: false,
+                    cullRequestsWhileMovingMultiplier: 30.0, // Less aggressive (60 -> 30) for more splats
+                    preloadWhenHidden: true,                 // NOW preload (false -> true)
+                    preloadFlightDestinations: true,        // NOW preload destinations (false -> true)
+                    immediatelyLoadDesiredLevelOfDetail: true, // Prioritize detail (false -> true)
                     skipLevelOfDetail: false,
                     dynamicScreenSpaceError: true,
-                    dynamicScreenSpaceErrorDensity: 0.5,
-                    dynamicScreenSpaceErrorFactor: 8.0,
+                    dynamicScreenSpaceErrorDensity: 0.8,     // Less aggressive (0.5 -> 0.8)
+                    dynamicScreenSpaceErrorFactor: 4.0,      // Lower factor (8 -> 4)
+                    processingPriority: 1000,               // Maximum priority
                     enableShowOutline: false,
                     enableDebugWireframe: false,
                     cacheBytes: 536870912,
@@ -654,10 +655,10 @@ class GaussianSplatManager {
                 const headingDiff = Math.abs(currentHeading - window.unifiedCameraHandler.lastCameraOrientation.heading);
                 const pitchDiff = Math.abs(currentPitch - window.unifiedCameraHandler.lastCameraOrientation.pitch);
                 
-                // CRITICAL: Use optimized thresholds for immediate response but avoid over-processing
-                const hasMovement = heightDiff > (window.unifiedCameraHandler.movementThreshold * 2) || // 2m height change  
-                                  headingDiff > (window.unifiedCameraHandler.movementThreshold * 0.1) ||  // 0.1 radian heading change
-                                  pitchDiff > (window.unifiedCameraHandler.movementThreshold * 0.1);     // 0.1 radian pitch change
+                // PRIORITIZED: Ultra-sensitive thresholds for immediate Gaussian Splat optimization
+                const hasMovement = heightDiff > (window.unifiedCameraHandler.movementThreshold * 0.5) || // HALVED: 0.5m height change (was 2m)
+                                  headingDiff > (window.unifiedCameraHandler.movementThreshold * 0.05) || // HALVED: 0.05 radian heading (was 0.1)
+                                  pitchDiff > (window.unifiedCameraHandler.movementThreshold * 0.05);    // HALVED: 0.05 radian pitch (was 0.1)
                 
                 if (hasMovement) {
                     // Calculate camera movement speed for adaptive quality
@@ -776,7 +777,7 @@ class GaussianSplatManager {
                     
                     const totalTime = performance.now() - startTime;
                     // Camera movement optimization restored efficiently
-                }, 300); // Longer timeout reduces thrashing during rapid movement
+                }, 150); // FASTER timeout (300->150ms) to restore Gaussian Splat quality quicker
             }
         };
         
@@ -1353,15 +1354,15 @@ class GaussianSplatManager {
                 immediatelyLoadDesiredLevelOfDetail: tileset.immediatelyLoadDesiredLevelOfDetail
             });
             
-            // CRITICAL: Speed-adaptive quality reduction for smooth motion
-            // Faster camera movement = lower quality for better frame rate
-            const speedFactor = Math.min(cameraSpeed / 10, 3.0); // Cap at 3x reduction
-            const motionSSE = Math.max(32, 8 * (2 + speedFactor)); // 32-96 SSE based on speed
-            const motionCulling = Math.max(120.0, 60 * (2 + speedFactor)); // 120-300 culling based on speed
+            // PRIORITIZED: Speed-adaptive quality with MORE splats rendered during motion
+            // Since Google tiles are heavily reduced, we can render more Gaussian Splats during movement
+            const speedFactor = Math.min(cameraSpeed / 15, 2.0); // Reduced speed factor (10->15, 3->2) for less degradation
+            const motionSSE = Math.max(16, 6 * (1.5 + speedFactor)); // HIGHER quality during motion (32->16, better than 6*1.5=9 to 6*3.5=21)
+            const motionCulling = Math.max(60.0, 30 * (1.5 + speedFactor)); // LESS aggressive culling (120->60, 60->30) for MORE splats
             
-            tileset.maximumScreenSpaceError = motionSSE;           // Adaptive quality (8 -> 32-96)
-            tileset.cullRequestsWhileMovingMultiplier = motionCulling; // Adaptive culling (60 -> 120-300)
-            tileset.immediatelyLoadDesiredLevelOfDetail = false; // Skip detailed LOD loading
+            tileset.maximumScreenSpaceError = motionSSE;           // IMPROVED quality during motion (32-96 -> 16-21)  
+            tileset.cullRequestsWhileMovingMultiplier = motionCulling; // LESS culling (120-300 -> 60-105) for MORE splats
+            tileset.immediatelyLoadDesiredLevelOfDetail = true; // PRIORITIZE detailed LOD loading for splats
             
             // Additional motion optimizations
             if (tileset.pointCloudShading) {
@@ -1383,9 +1384,9 @@ class GaussianSplatManager {
         this.motionModeActive = false;
         const startTime = performance.now();
         
-        // Progressive quality restoration over 1 second to avoid frame drops
+        // FASTER: Progressive quality restoration over 0.5 seconds for quicker Gaussian Splat quality return
         const restoreQuality = (step = 0) => {
-            const maxSteps = 4; // Restore quality over 4 steps
+            const maxSteps = 2; // FASTER: Restore quality over 2 steps instead of 4
             const stepProgress = step / maxSteps;
             
             for (const [siteId, tileset] of this.loadedTilesets.entries()) {
@@ -1416,7 +1417,7 @@ class GaussianSplatManager {
             
             // Continue restoration or finish
             if (step < maxSteps - 1) {
-                setTimeout(() => restoreQuality(step + 1), 250); // 250ms between steps
+                setTimeout(() => restoreQuality(step + 1), 125); // FASTER: 125ms between steps (was 250ms)
             } else {
                 this.originalQualitySettings.clear();
                 const totalTime = performance.now() - startTime;
@@ -1599,23 +1600,27 @@ class GaussianSplatManager {
                     // CRITICAL: Load tileset with performance-optimized settings for 60+fps
                     const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl, {
                         // PERFORMANCE CRITICAL: Gaussian Splat rendering optimizations
-                        maximumScreenSpaceError: 8,              // Lower = higher quality, higher = more performance
-                        maximumMemoryUsage: 256,                 // Limit memory usage (MB) for better performance
+                        // MAXIMIZED: Since Google tiles are deprioritized, we can be more generous with Gaussian Splats
+                        maximumScreenSpaceError: 6,              // Even higher quality than before (8 -> 6)
+                        maximumMemoryUsage: 512,                 // Double memory allocation (256 -> 512MB) from Google tiles
                         
-                        // CAMERA MOVEMENT OPTIMIZATIONS - CRITICAL for 60+fps
+                        // CAMERA MOVEMENT OPTIMIZATIONS - MAXIMIZED for Gaussian Splat priority
                         cullRequestsWhileMoving: true,           // Skip tile requests during camera movement
-                        cullRequestsWhileMovingMultiplier: 60.0, // VERY aggressive culling for 60+fps movement
+                        cullRequestsWhileMovingMultiplier: 30.0, // LESS aggressive than before to render MORE splats (60 -> 30)
                         
-                        // LOADING OPTIMIZATIONS  
-                        preloadWhenHidden: false,                // Don't load tiles when not visible
-                        preloadFlightDestinations: false,        // Don't preload flight destinations
-                        immediatelyLoadDesiredLevelOfDetail: false, // Load tiles incrementally for smoother experience
+                        // LOADING OPTIMIZATIONS - PRIORITIZED for Gaussian Splats
+                        preloadWhenHidden: true,                 // NOW preload Gaussian Splats (resources freed from Google)
+                        preloadFlightDestinations: true,        // NOW preload destinations for Gaussian Splats
+                        immediatelyLoadDesiredLevelOfDetail: true, // PRIORITIZE immediate high-detail loading for splats
                         
-                        // RENDERING OPTIMIZATIONS
-                        skipLevelOfDetail: false,                // Keep LOD for performance
-                        dynamicScreenSpaceError: true,          // Adjust quality based on movement
-                        dynamicScreenSpaceErrorDensity: 0.5,    // More aggressive dynamic adjustment
-                        dynamicScreenSpaceErrorFactor: 8.0,     // Higher factor for more performance during movement
+                        // RENDERING OPTIMIZATIONS - ENHANCED for Gaussian Splat priority
+                        skipLevelOfDetail: false,                // Keep LOD but with priority
+                        dynamicScreenSpaceError: true,          // Smart quality adjustment based on movement
+                        dynamicScreenSpaceErrorDensity: 0.8,    // LESS aggressive dynamic adjustment (0.5 -> 0.8) for better quality
+                        dynamicScreenSpaceErrorFactor: 4.0,     // LOWER factor (8 -> 4) to maintain more quality during movement
+                        
+                        // PRIORITY: Gaussian Splats get maximum processing priority
+                        processingPriority: 1000,               // Highest possible priority (opposite of Google tiles)
                         
                         // GAUSSIAN SPLAT SPECIFIC OPTIMIZATIONS
                         enableShowOutline: false,               // Disable expensive outline rendering

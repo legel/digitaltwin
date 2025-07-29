@@ -867,33 +867,42 @@ class CesiumManager {
         try {
             // Configuring Google Photorealistic tileset performance
             
-            // Performance optimizations for Google Photorealistic tiles
-            // These tiles are typically much larger and more detailed than Gaussian splats
-            tileset.maximumScreenSpaceError = 12;           // Slightly higher than Gaussian splats (8) for better performance
-            tileset.skipLevelOfDetail = true;               // Enable LOD skipping
-            tileset.baseScreenSpaceError = 2048;            // Higher base error for more aggressive LOD
-            tileset.skipScreenSpaceErrorFactor = 12;        // Skip intermediate levels
-            tileset.skipLevels = 1;                         // Skip levels when possible
-            tileset.immediatelyLoadDesiredLevelOfDetail = false; // Don't block on high-detail tiles
-            tileset.loadSiblings = false;                   // Don't load unnecessary siblings
-            tileset.cullWithChildrenBounds = true;          // Better culling
-            tileset.cullRequestsWhileMoving = true;         // Aggressive culling during movement
-            tileset.cullRequestsWhileMovingMultiplier = 80.0; // More aggressive than Gaussian splats
-            tileset.progressiveResolutionHeightFraction = 0.4; // Load lower resolution first
-            tileset.preferLeaves = true;                    // Prefer leaf nodes
+            // AGGRESSIVE: Minimize Google Photorealistic tiles to maximize Gaussian Splat performance
+            // Since users barely interact with Google tiles, we heavily prioritize Gaussian Splats
+            tileset.maximumScreenSpaceError = 96;           // 12x lower quality than Gaussian splats (8 vs 96)
+            tileset.skipLevelOfDetail = true;               // Enable aggressive LOD skipping
+            tileset.baseScreenSpaceError = 8192;            // Very high base error for minimal detail
+            tileset.skipScreenSpaceErrorFactor = 32;        // Skip many intermediate levels
+            tileset.skipLevels = 3;                         // Skip 3 levels when possible
+            tileset.immediatelyLoadDesiredLevelOfDetail = false; // Never block on Google tile detail
+            tileset.loadSiblings = false;                   // Never load unnecessary siblings
+            tileset.cullWithChildrenBounds = true;          // Aggressive culling
+            tileset.cullRequestsWhileMoving = true;         // Maximum culling during movement
+            tileset.cullRequestsWhileMovingMultiplier = 500.0; // 6x more aggressive than Gaussian splats (80 -> 500)
+            tileset.progressiveResolutionHeightFraction = 0.1; // Load only lowest resolution first
+            tileset.preferLeaves = true;                    // Always prefer leaf nodes
             
-            // Memory management - Google tiles can be very memory intensive
-            tileset.maximumMemoryUsage = 512;               // Higher than Gaussian splats (256MB)
+            // MINIMAL memory allocation - redirect resources to Gaussian Splats
+            tileset.maximumMemoryUsage = 128;               // Half the memory of Gaussian splats (256 -> 128MB)
             
-            // Dynamic screen space error for better performance at distance
+            // EXTREME dynamic degradation for Google tiles
             tileset.dynamicScreenSpaceError = true;
-            tileset.dynamicScreenSpaceErrorDensity = 0.00278;
-            tileset.dynamicScreenSpaceErrorFactor = 6.0;    // More aggressive than Gaussian splats
-            tileset.dynamicScreenSpaceErrorHeightFalloff = 0.25;
+            tileset.dynamicScreenSpaceErrorDensity = 0.001;   // Much more aggressive density
+            tileset.dynamicScreenSpaceErrorFactor = 24.0;    // 4x more aggressive than before (6 -> 24)
+            tileset.dynamicScreenSpaceErrorHeightFalloff = 0.1; // Degrade quality much faster with distance
             
-            // Preload optimization
-            tileset.preloadWhenHidden = false;              // Don't preload when not visible
-            tileset.preloadFlightDestinations = false;      // Don't preload flight destinations
+            // NEVER preload Google tiles - all resources to Gaussian Splats
+            tileset.preloadWhenHidden = false;              // Never preload
+            tileset.preloadFlightDestinations = false;      // Never preload destinations
+            
+            // ADDITIONAL: Reduce Google tile render priority
+            tileset.enableCollision = false;               // Disable collision detection
+            tileset.backFaceCulling = true;                // Enable back-face culling for performance
+            tileset.enableShowOutline = false;             // Disable outlines
+            tileset.enableDebugWireframe = false;          // Disable wireframes
+            
+            // MINIMAL processing priority for Google tiles
+            tileset.processingPriority = -1000;            // Lowest possible priority
             
             // Register with unified LOD manager for consolidated LOD management
             if (window.unifiedLODManager) {
