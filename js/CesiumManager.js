@@ -1098,10 +1098,8 @@ class CesiumManager {
 
         // Create and assign orthographic frustum
         this.viewer.scene.camera.frustum = new Cesium.OrthographicFrustum({
-            left: -width / 2,
-            right: width / 2,
-            top: height / 2,
-            bottom: -height / 2,
+            width: width,
+            aspectRatio: aspectRatio,
             near: 1.0,
             far: 10000000.0
         });
