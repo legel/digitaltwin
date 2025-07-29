@@ -1504,7 +1504,7 @@ class GaussianSplatManager {
                             // Adjust orthographic frustum width to accommodate this splat
                             setTimeout(() => {
                                 this.adjustOrthographicFrustumForSplat(tileset, siteId);
-                            }, 100); // Small delay to let initial rendering stabilize
+                            }, 500); // Delay to let Cesium's official orthographic switch stabilize
                             
                             // Debug camera position relative to splat
                             setTimeout(() => {
@@ -2175,16 +2175,11 @@ class GaussianSplatManager {
                         distance: distance.toFixed(2)
                     });
                     
-                    // Update frustum width while preserving other properties
-                    // Use a more conservative approach to prevent texture destruction
+                    // Update frustum width using official API approach
                     frustum.width = requiredWidth;
                     
-                    // Force scene update without destroying existing resources
+                    // Single render request - let Cesium handle the rest
                     this.viewer.scene.requestRender();
-                    
-                    // Additional render requests to ensure stability
-                    setTimeout(() => this.viewer.scene.requestRender(), 50);
-                    setTimeout(() => this.viewer.scene.requestRender(), 100);
                     
                     console.log(`✅ Orthographic frustum expanded to ${requiredWidth.toFixed(2)}m width for splat visibility`);
                 } else {
