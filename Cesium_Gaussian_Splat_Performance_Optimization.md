@@ -68,7 +68,7 @@ const gaussianSplatTileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl, {
 // Configure background tilesets with minimal resource allocation
 function configureBackgroundTileset(tileset) {
     // AGGRESSIVE: Minimize background tiles to maximize Gaussian Splat performance
-    tileset.maximumScreenSpaceError = 96;           // 12x lower quality than Gaussian splats
+    tileset.maximumScreenSpaceError = 48;           // Starting SSE for background tiles
     tileset.skipLevelOfDetail = true;               // Enable aggressive LOD skipping
     tileset.baseScreenSpaceError = 8192;            // Very high base error for minimal detail
     tileset.skipScreenSpaceErrorFactor = 32;        // Skip many intermediate levels
@@ -399,7 +399,77 @@ class HighFrequencyRenderManager {
 }
 ```
 
-### 6. Usage Example
+### 6. Background Quality Improvement System
+
+```javascript
+// Progressive background tile quality improvement during idle periods
+class BackgroundQualityManager {
+    constructor() {
+        this.qualityLevels = [48, 32, 24, 16]; // Progressive SSE improvement
+        this.currentLevel = 0;
+        this.isIdle = false;
+        this.improvementTimeout = null;
+        this.backgroundTilesets = [];
+    }
+    
+    registerBackgroundTileset(tileset) {
+        this.backgroundTilesets.push(tileset);
+    }
+    
+    startIdlePeriod() {
+        if (this.isIdle) return;
+        
+        this.isIdle = true;
+        this.currentLevel = 0;
+        this.scheduleQualityImprovement();
+        console.log('🔍 Background quality improvement started');
+    }
+    
+    endIdlePeriod() {
+        if (!this.isIdle) return;
+        
+        this.isIdle = false;
+        if (this.improvementTimeout) {
+            clearTimeout(this.improvementTimeout);
+            this.improvementTimeout = null;
+        }
+        
+        // Reset to base quality immediately when movement starts
+        this.backgroundTilesets.forEach(tileset => {
+            if (!tileset.isDestroyed()) {
+                tileset.maximumScreenSpaceError = 48; // Reset to base quality
+            }
+        });
+        
+        this.currentLevel = 0;
+        console.log('⚡ Background quality reset for movement');
+    }
+    
+    scheduleQualityImprovement() {
+        if (!this.isIdle || this.currentLevel >= this.qualityLevels.length - 1) {
+            return;
+        }
+        
+        const delay = this.currentLevel === 0 ? 500 : 1000; // 500ms first, then 1s intervals
+        
+        this.improvementTimeout = setTimeout(() => {
+            this.currentLevel++;
+            const targetSSE = this.qualityLevels[this.currentLevel];
+            
+            this.backgroundTilesets.forEach(tileset => {
+                if (!tileset.isDestroyed()) {
+                    tileset.maximumScreenSpaceError = targetSSE;
+                }
+            });
+            
+            console.log(`🔍 Background quality improved to SSE ${targetSSE}`);
+            this.scheduleQualityImprovement(); // Schedule next improvement
+        }, delay);
+    }
+}
+```
+
+### 7. Usage Example
 
 ```javascript
 // Initialize the complete system
@@ -423,16 +493,26 @@ const backgroundTileset = await Cesium.Cesium3DTileset.fromUrl('path/to/backgrou
 configureBackgroundTileset(backgroundTileset); // Apply minimal resource settings
 viewer.scene.primitives.add(backgroundTileset);
 
+// Create background quality manager
+const backgroundQualityManager = new BackgroundQualityManager();
+backgroundQualityManager.registerBackgroundTileset(backgroundTileset);
+
 // Setup camera event handlers for render requests
 const camera = viewer.camera;
 camera.moveStart.addEventListener(() => {
     window.renderManager.enableHighFrequency();
     window.renderManager.requestRender();
+    backgroundQualityManager.endIdlePeriod(); // Reset background quality
 });
 
 camera.moveEnd.addEventListener(() => {
     window.renderManager.disableHighFrequency();
     window.renderManager.requestRender();
+    
+    // Start background quality improvement after movement stops
+    setTimeout(() => {
+        backgroundQualityManager.startIdlePeriod();
+    }, 1000); // 1 second delay before starting improvements
 });
 ```
 
@@ -447,9 +527,10 @@ camera.moveEnd.addEventListener(() => {
 
 ### Resource Allocation
 - **Gaussian Splats**: 512MB memory, priority +1000, 6 SSE quality
-- **Background Tiles**: 128MB memory, priority -1000, 96 SSE quality
+- **Background Tiles**: 128MB memory, priority -1000, 48→16 SSE progressive quality
 - **GPU Bandwidth**: 25% reduction during movement via resolution scaling
 - **Memory Pressure**: Zero-allocation camera processing prevents GC pauses
+- **Background Enhancement**: 4-level progressive improvement during idle periods
 
 ## 🛠 Implementation Tips
 
@@ -458,6 +539,7 @@ camera.moveEnd.addEventListener(() => {
 2. **Resource prioritization**: Identify which tilesets users interact with most
 3. **Progressive implementation**: Apply optimizations incrementally and test
 4. **Monitor console output**: Use the motion mode logging to verify behavior
+5. **Background quality balance**: Allow progressive improvement without impacting motion performance
 
 ### Common Pitfalls
 - Don't disable all quality features - users notice extreme degradation
@@ -468,6 +550,7 @@ camera.moveEnd.addEventListener(() => {
 ### Debugging
 - Check console for motion mode activation: `🟡 Motion Mode ENABLED`
 - Monitor quality restoration: `🟢 Motion Mode DISABLED`
+- Watch background quality improvements: `🔍 Background quality improved to SSE X`
 - Verify render frequency switching with performance profiling tools
 - Use browser dev tools to monitor memory allocation and GC pressure
 

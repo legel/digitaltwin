@@ -15,12 +15,13 @@ This document details the comprehensive performance optimization system implemen
 ### 1. Resource Prioritization (`CesiumManager.js`)
 
 **Google Photorealistic Tiles → MINIMIZED**:
-- 96 SSE (12x lower quality than Gaussian Splats)
+- 48→16 SSE (progressive quality improvement during idle periods)
 - 128MB memory allocation (half of Gaussian Splats)
 - 500x culling multiplier during movement
 - Lowest processing priority (-1000)
 - Extreme LOD skipping (3 levels, 32x skip factor)
 - Never preload to save resources for Gaussian Splats
+- Background quality improvement system for better visuals when idle
 
 **Gaussian Splats → MAXIMIZED**:
 - 6 SSE (higher quality than default 8)
@@ -51,6 +52,14 @@ This document details the comprehensive performance optimization system implemen
 - **Pre-allocated objects**: Cartographic calculations reuse objects to prevent GC pressure
 - **Cached camera data**: 200ms cache validity to reduce expensive calculations
 - **Batch property updates**: Minimize Cesium internal processing overhead
+
+### 5. Background Quality Enhancement (`CesiumManager.js`)
+
+**Progressive Quality System**:
+- **4-level progressive improvement**: 48 → 32 → 24 → 16 SSE during idle periods
+- **Immediate quality reset**: Returns to 48 SSE when camera movement starts
+- **Intelligent timing**: 500ms delay before first improvement, then 1s intervals
+- **Zero motion impact**: Quality improvements only occur during idle periods
 
 ## 📊 Performance Metrics
 
@@ -119,10 +128,11 @@ const currentSSE = motionSSE + (targetSSE - motionSSE) * stepProgress;
 - **Smooth camera interpolation** without frame skipping
 
 ### Resource Allocation
-- **Google Photorealistic tiles consume minimal resources** (96 SSE, 500x culling)
+- **Google Photorealistic tiles consume minimal resources** (48→16 SSE progressive, 500x culling)
 - **Gaussian Splats receive maximum system resources** (6 SSE, priority +1000)
 - **Memory efficiently allocated** (512MB to splats, 128MB to Google tiles)
 - **Processing priority enforced** throughout the render pipeline
+- **Background enhancement optimized** for idle periods without motion impact
 
 ### User Experience
 - **Zero lag tolerance achieved** for camera transformations
@@ -142,6 +152,12 @@ const currentSSE = motionSSE + (targetSSE - motionSSE) * stepProgress;
 - Verify Google Photorealistic tile settings remain at minimal resource allocation
 - Ensure UnifiedLODManager background processing remains disabled
 - Confirm motion mode detection thresholds haven't been increased
+
+### Recent Implementation: Background Quality Enhancement
+- **4-level progressive improvement**: Google tiles improve from 48 → 32 → 24 → 16 SSE
+- **Idle period detection**: Quality improvements only during camera idle periods
+- **Immediate reset**: Returns to base quality (48 SSE) when movement starts
+- **Zero performance impact**: Background improvements don't affect Gaussian Splat rendering
 
 ### Future Improvements
 - Consider GPU-specific optimizations based on detected hardware
