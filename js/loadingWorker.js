@@ -134,7 +134,7 @@ function animateProgress() {
 function completeLoading() {
     if (!isActive) return;
     
-    console.log('Web Worker: Loading completion triggered');
+    // Web Worker completion logging removed for cleaner console output
     
     // Quick acceleration to 100%
     const startProgress = currentProgress;

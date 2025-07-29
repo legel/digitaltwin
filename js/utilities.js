@@ -1315,11 +1315,7 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                         // Calculate the offset between GeoJSON altitude and Google Earth height
                         // Add a small additional offset to ensure polygons float above surface
                         const heightOffset = medianHeight - maxAltitude + 0.5;
-                        console.log(`Height sampling results:`);
-                        console.log(`  Sampled heights: ${sampledHeights.map(h => h.toFixed(2)).join(', ')}`);
-                        console.log(`  Median Google Earth height: ${medianHeight.toFixed(2)}m`);
-                        console.log(`  GeoJSON max altitude: ${maxAltitude.toFixed(2)}m`);
-                        console.log(`  Calculated offset: ${heightOffset.toFixed(2)}m`);
+                        // Height sampling results logging removed for cleaner console output
                         
                         // Store the offset to apply to all vertices
                         window.currentHeightOffset = heightOffset;
@@ -2101,7 +2097,7 @@ window.createColorLegend = createColorLegend;
 function initializeTerrainToggle() {
     const terrainToggleButton = document.getElementById('terrainToggleButton');
     if (!terrainToggleButton) {
-        console.warn('Terrain toggle button not found');
+        // Terrain toggle button not found - this is expected when button is not in DOM
         return;
     }
     

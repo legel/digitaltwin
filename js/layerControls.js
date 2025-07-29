@@ -164,7 +164,7 @@ function initializeLayerControls() {
     // Set up controls and initialize state after a brief delay to ensure DOM is ready
     setTimeout(() => {
         // Check site data and format
-        console.log('🔍 Initializing layer controls - checking currentSiteData:', window.currentSiteData);
+        // Layer controls initialization logging removed for cleaner console output
         if (window.currentSiteData) {
             console.log('🔍 Found currentSiteData with features:', window.currentSiteData.features?.length || 0);
             const format = detectGeoJsonFormat(window.currentSiteData.features[0]);
@@ -429,8 +429,8 @@ function setupEcologicalMetricsControls() {
  * Analyzes GeoJSON to extract PA categories
  */
 function analyzePACategories(geoJsonData) {
-    console.log('🔍 analyzePACategories called with data:', geoJsonData);
-    console.log('🔍 Total features to analyze:', geoJsonData?.features?.length || 0);
+    // PA categories analysis initialization logging removed for cleaner console output
+    // Total features analysis logging removed for cleaner console output
     
     const categories = new Map();
     const categorizedPAs = new Map(); // Map of category -> array of PAs
@@ -492,9 +492,8 @@ function analyzePACategories(geoJsonData) {
  * Populates PA category checkboxes
  */
 function populatePACategories(categories, categorizedPAs) {
-    console.log('🎯 populatePACategories called');
-    console.log('🎯 Categories received:', categories);
-    console.log('🎯 CategorizedPAs received:', categorizedPAs);
+    // PA categories population logging removed for cleaner console output
+    // PA categories and data logging removed for cleaner console output
     
     const container = document.getElementById('plantableSubOptions');
     if (!container) {
@@ -502,7 +501,7 @@ function populatePACategories(categories, categorizedPAs) {
         return;
     }
     
-    console.log('🎯 Container found, clearing innerHTML');
+    // Container clearing logging removed for cleaner console output
     container.innerHTML = '';
     
     if (!categories || categories.size === 0) {
