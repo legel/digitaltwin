@@ -941,10 +941,17 @@ function zoomToFeature(featureName, featureType) {
     }
     const radius = maxDistance / 2;
     
-    // Calculate height where radius appears as 50% of screen height
-    const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
-    const targetCoverage = 0.5; // 50% of screen height
-    const height = radius / (targetCoverage * Math.tan(fov / 2));
+    // Calculate height based on camera projection mode
+    let height;
+    if (window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection()) {
+        // For orthographic projection, use a simpler height calculation
+        height = Math.max(radius * 4, 200); // Scale based on radius with minimum height
+    } else {
+        // For perspective projection, use FOV-based calculation
+        const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
+        const targetCoverage = 0.5; // 50% of screen height
+        height = radius / (targetCoverage * Math.tan(fov / 2));
+    }
     
     // Apply minimum height constraint
     const minHeight = 100; // 100 meters minimum
@@ -1037,10 +1044,17 @@ function zoomToNPACategory(categoryName) {
     }
     const radius = maxDistance / 2;
     
-    // Calculate height where radius appears as 50% of screen height
-    const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
-    const targetCoverage = 0.5; // 50% of screen height
-    const height = radius / (targetCoverage * Math.tan(fov / 2));
+    // Calculate height based on camera projection mode
+    let height;
+    if (window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection()) {
+        // For orthographic projection, use a simpler height calculation
+        height = Math.max(radius * 4, 200); // Scale based on radius with minimum height
+    } else {
+        // For perspective projection, use FOV-based calculation
+        const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
+        const targetCoverage = 0.5; // 50% of screen height
+        height = radius / (targetCoverage * Math.tan(fov / 2));
+    }
     
     // Apply minimum height constraint
     const minHeight = 100; // 100 meters minimum
