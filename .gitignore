@@ -48,3 +48,6 @@ build/
 # Local development
 local/
 .local/
+
+# Claude Code Files
+.claude/

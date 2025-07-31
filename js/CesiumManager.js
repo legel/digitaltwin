@@ -3,7 +3,7 @@
  */
 class CesiumManager {
     constructor(containerId, debug = false) {
-        console.log("Initializing Cesium Viewer");
+        // Initializing Cesium Viewer
 
 	this.debug = debug;
 
@@ -14,9 +14,9 @@ class CesiumManager {
         }
 
         // Set the Cesium Ion access token
-        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YWU4NTA5OC1mNDk4LTRjM2EtYmViZS1kZmFlZWE1OWUzNzUiLCJpZCI6MjQzMTg3LCJpYXQiOjE3MjY5Nzc3NzZ9.VvafdUTRTMh-QrH-ut-_l8SLL99Z9VIdCwRs-25PUDM";
+        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5MjliMTAwZC0yNTE4LTQ5MDMtODRlYy00MGIxMTg4NTQ0YzkiLCJpZCI6MjQzMTg3LCJpYXQiOjE3NDk2MDQ4MzZ9.u83AqBjOkC2ESDQsylIlYSwE8Br5Je0Hchir3zi3KG8";
 
-        // Initialize the Cesium Viewer with the desired configuration
+        // Initialize the Cesium Viewer with GPU-optimized configuration
         this.viewer = new Cesium.Viewer(containerId, {
             timeline: false,
             animation: false,
@@ -24,36 +24,115 @@ class CesiumManager {
             baseLayerPicker: false,
             fullscreenButton: false,
             homeButton: false,
-            geocoder: false,
+            geocoder: false,  // Disable geocoder search bar
             navigationHelpButton: false,
             selectionIndicator: false,  // Disable the green selection box
             infoBox: false,  // Disable the info box popup
+            
+            // CRITICAL: GPU Performance Optimizations
+            contextOptions: {
+                webgl: {
+                    alpha: false,                    // Disable alpha channel for performance
+                    depth: true,                     // Keep depth buffer (needed for 3D)
+                    stencil: false,                  // Disable stencil buffer (not needed)
+                    antialias: false,                // Disable multisampling for performance
+                    premultipliedAlpha: false,       // Disable premultiplied alpha
+                    preserveDrawingBuffer: false,    // Don't preserve buffer (performance)
+                    powerPreference: "high-performance", // Request high-performance GPU
+                    failIfMajorPerformanceCaveat: false, // Don't fail on performance issues
+                    desynchronized: true             // Enable desynchronized rendering for lower latency
+                }
+            },
+            
+            // CRITICAL: Disable expensive Cesium features
+            useBrowserRecommendedResolution: false,  // Use full device resolution
+            orderIndependentTranslucency: false,     // Disable expensive transparency
+            shadows: false                           // Disable shadow mapping
         });
+        
+        // Track current base layer mode
+        this.isUsingTerrain = false;
+        this.photorealisticTileset = null;
+        
+        // Track camera projection mode
+        this.savedPerspectiveFrustum = null;
+        
+        // Suppress console warnings by intercepting console.warn temporarily
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            const message = args.join(' ');
+            // Suppress the specific Google geocoder warning
+            if (message.includes('Only the Google geocoder can be used with Google Photorealistic 3D Tiles')) {
+                return; // Suppress this specific warning
+            }
+            return originalWarn.apply(console, args);
+        };
+        
+        // Restore console.warn after a short delay to allow tileset loading
+        setTimeout(() => {
+            console.warn = originalWarn;
+        }, 5000);
 
         // Enable rendering the sky
         this.viewer.scene.skyAtmosphere.show = true;
         
-        // Add Cesium World Terrain for proper ground elevation (without trees/buildings)
-        // This gives us the actual terrain elevation without trees/buildings
-        this.viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
-            url: Cesium.IonResource.fromAssetId(1), // Cesium World Terrain
-            requestWaterMask: false,
-            requestVertexNormals: false
-        });
-        
-        // Enable depth testing against terrain for proper rendering
-        this.viewer.scene.globe.depthTestAgainstTerrain = true;
-        
-        // Reduce terrain detail for better performance
-        this.viewer.scene.globe.terrainExaggeration = 1.0; // No vertical exaggeration
-        this.viewer.scene.globe.maximumScreenSpaceError = 4; // Lower quality for better performance (default is 2)
-        
         // Enable picking through translucent objects
         this.viewer.scene.pickTranslucentDepth = true;
+        
+        // CRITICAL: Optimize Scene Rendering for Smooth Camera Movement
+        this.viewer.scene.requestRenderMode = true; // Only render when needed
+        this.viewer.scene.maximumRenderTimeChange = Infinity; // Don't auto-render for time changes
+        
+        // BALANCED: Scene optimizations that maintain visual quality
+        // this.viewer.scene.globe.enableLighting = false;      // Keep lighting for visual quality
+        // this.viewer.scene.globe.dynamicAtmosphereLighting = false; // Keep atmosphere for quality
+        // this.viewer.scene.globe.showGroundAtmosphere = false;     // Keep ground atmosphere
+        this.viewer.scene.skyBox.show = true;               // Keep skybox for visual quality
+        this.viewer.scene.sun.show = true;                  // Keep sun for natural lighting
+        this.viewer.scene.moon.show = true;                 // Keep moon for completeness
+        
+        // Only disable the most expensive features during movement
+        this.viewer.scene.logarithmicDepthBuffer = false;   // This can cause camera issues
+        // this.viewer.scene.fxaa = false;                     // Keep FXAA for visual quality
+        
+        // Maintain full resolution
+        this.viewer.resolutionScale = 1.0;                  // Full resolution
+        
+        // RESTORED: Camera Controller with Performance Optimizations
+        const controller = this.viewer.scene.screenSpaceCameraController;
+        
+        // Keep default camera controls but optimize performance-critical settings only
+        // controller.inertiaSpin = 0.9;        // Keep default for natural feel
+        // controller.inertiaTranslate = 0.9;   // Keep default for natural feel  
+        // controller.inertiaZoom = 0.8;        // Keep default for natural feel
+        
+        // Keep default event types (don't override - this may have broken orbit controls)
+        // controller.translateEventTypes = DEFAULT
+        // controller.tiltEventTypes = DEFAULT 
+        // controller.zoomEventTypes = DEFAULT
+        
+        // Only optimize the most performance-critical settings
+        controller.enableCollisionDetection = false;  // Disable expensive collision detection
+        controller.minimumZoomDistance = 1.0;         // Allow very close zoom
+        controller.maximumZoomDistance = 40075000;    // Earth circumference in meters
+        
+        // Ensure inputs are enabled (this should be default)
+        controller.enableInputs = true;
+        
+        // Initial render to ensure scene appears (will use renderManager once available)
+        this.viewer.scene.requestRender();
+        
+        // Initialize in perspective mode (default)
         
         // Add click handler for debugging (can be removed later)
         const handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
         handler.setInputAction((click) => {
+            // Request render for click interactions via render manager if available
+            if (window.renderManager) {
+                window.renderManager.requestRender();
+            } else {
+                this.viewer.scene.requestRender();
+            }
             const pickedObject = this.viewer.scene.pick(click.position);
             // console.log('Click detected, picked object:', pickedObject); // Commented out to reduce noise
             
@@ -214,27 +293,27 @@ class CesiumManager {
                 } else if (entityName && entityName.includes('NPA')) {
                     // This is a non-plantable area
                     const npaCategory = window.extractNPACategory?.(entityName);
-                    console.log('Clicked on NPA with category:', npaCategory);
+                    // NPA click logging removed for cleaner console output
                     
                     if (npaCategory && window.layerState?.npaCategories?.has(npaCategory)) {
-                        console.log('Found NPA category in state:', npaCategory);
+                        // NPA category state logging removed for cleaner console output
                         
                         // Ensure the non-plantable areas dropdown is open
                         const npaToggle = document.getElementById('nonPlantableAreasToggle');
                         const npaSubOptions = document.getElementById('nonPlantableSubOptions');
                         if (npaToggle && npaSubOptions && npaSubOptions.style.display !== 'block') {
-                            console.log('Opening non-plantable areas dropdown');
+                            // NPA dropdown opening logging removed for cleaner console output
                             npaToggle.click();
                         }
                         
                         // Find and click the radio button
                         setTimeout(() => {
                             const radio = document.querySelector(`.npa-category input[value="${npaCategory}"]`);
-                            console.log('Looking for NPA radio with value:', npaCategory, 'Found:', radio);
+                            // NPA radio button search logging removed for cleaner console output
                             if (radio) {
                                 radio.checked = true;
                                 radio.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('Selected NPA radio button');
+                                // NPA radio selection logging removed for cleaner console output
                             }
                         }, 100);
                     }
@@ -248,6 +327,7 @@ class CesiumManager {
         this.clickHandler = handler;
         
         // Debug function to list all polygon entities
+        // Debug function available but not auto-called to reduce console noise
         this.debugListPolygons = () => {
             const entities = this.viewer.entities.values;
             console.log(`Total entities: ${entities.length}`);
@@ -260,9 +340,6 @@ class CesiumManager {
             });
             console.log(`Total polygon entities: ${polygonCount}`);
         };
-        
-        // Call debug function after a delay to ensure entities are loaded
-        setTimeout(() => this.debugListPolygons(), 5000);
         
         // Handle entity selection
         this.viewer.selectedEntityChanged.addEventListener((entity) => {
@@ -399,20 +476,47 @@ class CesiumManager {
 
         this.finalDestination = null;
 
-        console.log("Cesium Viewer initialized:", this.viewer);
+        // Cesium Viewer initialized
 
         // Remove the credit container from the DOM
         const creditContainer = this.viewer._element.querySelector('.cesium-viewer-bottom');
         if (creditContainer) {
             creditContainer.remove();
-            console.log("Cesium credits removed from the DOM.");
+            // Cesium credits removed
         }
+
+        // Ensure clean state - explicitly disable globe and terrain for HQ mode
+        this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        this.viewer.scene.globe.show = false;
+        this.viewer.scene.globe.depthTestAgainstTerrain = false;
+        // Globe disabled for photorealistic 3D tiles
 
         // Add Photorealistic 3D Tileset
         this.addTileset();
 
-        // Set a default final destination
-        this.setFinalDestination(-80.21104660, 25.74188074, 194.69, 0.03691171, -0.80323003, 0.00000814);
+        // Set initial camera position facing down at Winter Garden site center
+        const centerPosition = {
+            longitude: -81.65905485,
+            latitude: 28.51935345, 
+            height: 67.0,   // 3x closer than previous 200m for better detail view
+            heading: 0.0,   // North-facing
+            pitch: -1.57,   // Facing straight down (90 degrees)
+            roll: 0.0       // No roll
+        };
+        
+        // Position camera immediately at the site center, facing down
+        this.viewer.camera.setView({
+            destination: Cesium.Cartesian3.fromDegrees(centerPosition.longitude, centerPosition.latitude, centerPosition.height),
+            orientation: {
+                heading: centerPosition.heading,
+                pitch: centerPosition.pitch,
+                roll: centerPosition.roll
+            }
+        });
+        
+        // Set this as the final destination for home button functionality
+        this.setFinalDestination(centerPosition.latitude, centerPosition.longitude, centerPosition.height, 
+                                centerPosition.heading, centerPosition.pitch, centerPosition.roll);
 
         const viewer3D = this.getViewer(); // Get the viewer from CesiumManager
 
@@ -445,18 +549,133 @@ class CesiumManager {
     }
 
     /**
-     * Adds the Google Photorealistic 3D Tileset to the scene.
+     * Adds the Google Photorealistic 3D Tileset to the scene with performance optimizations.
      * @returns {Promise<void>} - A promise that resolves when the tileset is added.
      */
     addTileset() {
-        console.log("Adding photorealistic tileset");
+        // Adding photorealistic tileset
         return Cesium.createGooglePhotorealistic3DTileset()
             .then(tileset => {
+                this.photorealisticTileset = tileset;
+                
+                // Apply performance optimizations to Google Photorealistic tileset
+                this.configurePhotorealisticPerformance(tileset);
+                
                 this.viewer.scene.primitives.add(tileset);
+                this.isUsingTerrain = false;
+                
+                // Google Photorealistic tileset loaded
+                
+                // Return the tileset so we can wait for it to be ready
+                return tileset;
             })
             .catch(error => {
                 console.error(`Error loading Photorealistic 3D Tiles tileset: ${error}`);
+                throw error;
             });
+    }
+    
+    /**
+     * Toggle between terrain and photorealistic 3D tiles
+     * ONLY manages photorealistic tiles and terrain - leaves everything else untouched
+     */
+    async toggleBaseTerrain() {
+        if (this.isUsingTerrain) {
+            // Switch to HQ mode: Remove terrain, add photorealistic tiles
+            try {
+                console.log("Switching to HQ mode (photorealistic 3D tiles)...");
+                
+                // 1. Remove terrain provider and disable globe for photorealistic tiles
+                this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+                this.viewer.scene.globe.show = false;
+                this.viewer.scene.globe.depthTestAgainstTerrain = false;
+                
+                // 2. Add photorealistic tileset if we don't have one
+                if (!this.photorealisticTileset) {
+                    const tileset = await this.addTileset();
+                    
+                    // 3. Recreate clipping from scratch (Cesium ownership issue requires fresh collections)
+                    if (window.gaussianSplatManager) {
+                        setTimeout(() => {
+                            console.log("Tileset loaded, recreating clipping polygons from scratch...");
+                            // Get site IDs first, then clear and recreate
+                            const siteIds = Array.from(window.gaussianSplatManager.clippingPolygons.keys());
+                            
+                            // Properly clean up outlines before clearing clipping polygons
+                            siteIds.forEach(siteId => {
+                                if (window.gaussianSplatManager.removeClippingVisualization) {
+                                    window.gaussianSplatManager.removeClippingVisualization(siteId);
+                                }
+                            });
+                            
+                            window.gaussianSplatManager.clippingPolygons.clear();
+                            
+                            // Recreate clipping for each site
+                            siteIds.forEach(siteId => {
+                                console.log(`Recreating clipping for site: ${siteId} due to Cesium ownership issues`);
+                                // Reload fresh from file (this creates new ClippingPolygonCollection)
+                                window.gaussianSplatManager.loadPrecomputedClipping(siteId, tileset)
+                                    .catch(error => {
+                                        console.error(`Failed to recreate clipping for ${siteId}:`, error);
+                                    });
+                            });
+                        }, 3000);
+                    }
+                }
+                
+                this.isUsingTerrain = false;
+                console.log("Successfully switched to HQ mode");
+                return false; // Not using terrain
+            } catch (error) {
+                console.error("Failed to switch to HQ mode:", error);
+                return true; // Keep using terrain
+            }
+        } else {
+            // Switch to PERF mode: Remove photorealistic tiles, add terrain
+            try {
+                console.log("Switching to PERF mode (terrain)...");
+                
+                // 1. Remove ONLY the tracked photorealistic tileset
+                if (this.photorealisticTileset) {
+                    // Clear clipping from tileset before removing it to prevent collection destruction
+                    if (this.photorealisticTileset.clippingPolygons) {
+                        this.photorealisticTileset.clippingPolygons = undefined;
+                    }
+                    
+                    // Clean up Google tileset performance monitoring
+                    this.cleanupPhotorealisticPerformance();
+                    
+                    if (this.viewer.scene.primitives.contains(this.photorealisticTileset)) {
+                        this.viewer.scene.primitives.remove(this.photorealisticTileset);
+                    }
+                    if (this.photorealisticTileset.destroy) {
+                        this.photorealisticTileset.destroy();
+                    }
+                    this.photorealisticTileset = null;
+                }
+                
+                // 2. Load terrain
+                this.viewer.terrainProvider = await Cesium.CesiumTerrainProvider.fromUrl(
+                    Cesium.IonResource.fromAssetId(1),
+                    {
+                        requestWaterMask: false,
+                        requestVertexNormals: false
+                    }
+                );
+                
+                // 3. Configure terrain settings
+                this.viewer.scene.globe.show = true;
+                this.viewer.scene.skyAtmosphere.show = true;
+                this.viewer.scene.globe.depthTestAgainstTerrain = true;
+                
+                this.isUsingTerrain = true;
+                console.log("Successfully switched to PERF mode");
+                return true; // Using terrain
+            } catch (error) {
+                console.error("Failed to switch to PERF mode:", error);
+                return false; // Keep using photorealistic
+            }
+        }
     }
     
     /**
@@ -639,9 +858,496 @@ class CesiumManager {
         // Clear stored colors
         this.originalEntityColors = null;
     }
+    
+    /**
+     * Configures performance optimizations for Google Photorealistic 3D Tileset
+     * @param {Cesium.Cesium3DTileset} tileset - The Google Photorealistic tileset
+     */
+    configurePhotorealisticPerformance(tileset) {
+        try {
+            // Configuring Google Photorealistic tileset performance
+            
+            // BALANCED: Start with low quality but allow gradual improvement during idle periods
+            // Maintain aggressive culling during motion while enabling background quality enhancement
+            tileset.maximumScreenSpaceError = 48;           // IMPROVED: 6x lower than Gaussian splats (was 96, now 48)
+            tileset.skipLevelOfDetail = true;               // Enable LOD skipping but allow progression
+            tileset.baseScreenSpaceError = 4096;            // IMPROVED: Reduced from 8192 to allow better base quality
+            tileset.skipScreenSpaceErrorFactor = 16;        // IMPROVED: Reduced from 32 to 16 for better intermediate levels
+            tileset.skipLevels = 2;                         // IMPROVED: Reduced from 3 to 2 levels
+            tileset.immediatelyLoadDesiredLevelOfDetail = false; // Still don't block on Google tile detail
+            tileset.loadSiblings = false;                   // Still don't load unnecessary siblings
+            tileset.cullWithChildrenBounds = true;          // Keep aggressive culling
+            tileset.cullRequestsWhileMoving = true;         // Keep maximum culling during movement (this is key!)
+            tileset.cullRequestsWhileMovingMultiplier = 500.0; // MAINTAIN aggressive culling during motion
+            tileset.progressiveResolutionHeightFraction = 0.3; // IMPROVED: 0.1 -> 0.3 for better progressive loading
+            tileset.preferLeaves = true;                    // Keep leaf preference
+            
+            // MINIMAL memory allocation - redirect resources to Gaussian Splats
+            tileset.maximumMemoryUsage = 128;               // Half the memory of Gaussian splats (256 -> 128MB)
+            
+            // BALANCED: Dynamic quality that allows improvement during idle periods
+            tileset.dynamicScreenSpaceError = true;
+            tileset.dynamicScreenSpaceErrorDensity = 0.01;    // IMPROVED: Less aggressive (0.001 -> 0.01) for better idle quality
+            tileset.dynamicScreenSpaceErrorFactor = 12.0;     // IMPROVED: Reduced aggression (24 -> 12) for better background quality
+            tileset.dynamicScreenSpaceErrorHeightFalloff = 0.2; // IMPROVED: Less steep falloff (0.1 -> 0.2) for better distance quality
+            
+            // NEVER preload Google tiles - all resources to Gaussian Splats
+            tileset.preloadWhenHidden = false;              // Never preload
+            tileset.preloadFlightDestinations = false;      // Never preload destinations
+            
+            // ADDITIONAL: Reduce Google tile render priority
+            tileset.enableCollision = false;               // Disable collision detection
+            tileset.backFaceCulling = true;                // Enable back-face culling for performance
+            tileset.enableShowOutline = false;             // Disable outlines
+            tileset.enableDebugWireframe = false;          // Disable wireframes
+            
+            // MINIMAL processing priority for Google tiles
+            tileset.processingPriority = -1000;            // Lowest possible priority
+            
+            // Register with unified LOD manager for consolidated LOD management
+            if (window.unifiedLODManager) {
+                window.unifiedLODManager.registerTileset('google-photorealistic', tileset, 'google');
+                console.log('Google Photorealistic tileset registered with UnifiedLODManager');
+            }
+            
+            // BACKGROUND QUALITY ENHANCEMENT: Allow gradual improvement during idle periods
+            this.setupBackgroundQualityImprovement(tileset);
+            
+            // DISABLED: Individual camera optimization replaced by unified handler in GaussianSplatManager
+            // this.setupPhotorealisticCameraOptimization(tileset);
+            
+            // Google Photorealistic tileset performance optimizations applied
+            
+        } catch (error) {
+            console.error("Error configuring Google Photorealistic tileset performance:", error);
+        }
+    }
+    
+    /**
+     * Sets up background quality improvement for Google Photorealistic tiles during idle periods
+     * @param {Cesium.Cesium3DTileset} tileset - The Google Photorealistic tileset
+     */
+    setupBackgroundQualityImprovement(tileset) {
+        let idleQualityTimer = null;
+        let currentQualityLevel = 0; // 0 = base quality, higher = better quality
+        const maxQualityLevel = 3;
+        let isIdle = false;
+        
+        // Base settings (what we start with)
+        const baseSSE = tileset.maximumScreenSpaceError; // 48
+        const qualityLevels = [
+            { sse: 48, skipLevels: 2, skipFactor: 16 }, // Level 0: Base (current)
+            { sse: 32, skipLevels: 2, skipFactor: 12 }, // Level 1: Better
+            { sse: 24, skipLevels: 1, skipFactor: 8 },  // Level 2: Much better  
+            { sse: 16, skipLevels: 1, skipFactor: 6 }   // Level 3: Best idle quality
+        ];
+        
+        const improveQuality = () => {
+            if (!isIdle || currentQualityLevel >= maxQualityLevel) return;
+            
+            currentQualityLevel++;
+            const level = qualityLevels[currentQualityLevel];
+            
+            // Apply gradual quality improvement
+            tileset.maximumScreenSpaceError = level.sse;
+            tileset.skipLevels = level.skipLevels;
+            tileset.skipScreenSpaceErrorFactor = level.skipFactor;
+            
+            console.log(`🔧 Google tiles idle quality improved to level ${currentQualityLevel} (SSE: ${level.sse})`);
+            
+            // Schedule next improvement if not at max
+            if (currentQualityLevel < maxQualityLevel) {
+                idleQualityTimer = setTimeout(improveQuality, 5000); // Every 5 seconds during idle
+            }
+        };
+        
+        const resetQuality = () => {
+            if (currentQualityLevel === 0) return;
+            
+            // Immediately reset to base quality for motion performance
+            const baseLevel = qualityLevels[0];
+            tileset.maximumScreenSpaceError = baseLevel.sse;
+            tileset.skipLevels = baseLevel.skipLevels;
+            tileset.skipScreenSpaceErrorFactor = baseLevel.skipFactor;
+            
+            currentQualityLevel = 0;
+            console.log(`⚡ Google tiles quality reset to base level for motion (SSE: ${baseLevel.sse})`);
+        };
+        
+        // Listen to camera movement events
+        if (window.map3D && window.map3D.viewer) {
+            const camera = window.map3D.viewer.camera;
+            
+            camera.moveStart.addEventListener(() => {
+                isIdle = false;
+                if (idleQualityTimer) {
+                    clearTimeout(idleQualityTimer);
+                    idleQualityTimer = null;
+                }
+                resetQuality(); // Immediately reset quality for motion performance
+            });
+            
+            camera.moveEnd.addEventListener(() => {
+                // Start idle timer after movement stops
+                if (idleQualityTimer) clearTimeout(idleQualityTimer);
+                idleQualityTimer = setTimeout(() => {
+                    isIdle = true;
+                    improveQuality(); // Start improving quality after 3 seconds of idle
+                }, 3000); // Wait 3 seconds after movement stops
+            });
+        }
+        
+        console.log('🎯 Google Photorealistic background quality improvement enabled');
+    }
+    
+    /**
+     * Sets up camera movement optimization specifically for Google Photorealistic tiles
+     * @param {Cesium.Cesium3DTileset} tileset - The Google tileset
+     */
+    setupPhotorealisticCameraOptimization(tileset) {
+        if (!this.photorealisticCameraHandler) {
+            this.photorealisticCameraHandler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
+            this.photorealisticCameraMoving = false;
+            this.photorealisticMovementTimeout = null;
+            
+            // Track camera movement for Google tiles (more aggressive than Gaussian splats)
+            const handleCameraMovement = () => {
+                const startTime = performance.now();
+                
+                if (!this.photorealisticCameraMoving) {
+                    this.photorealisticCameraMoving = true;
+                    const optimizeStart = performance.now();
+                    this.optimizePhotorealisticForMovement(true);
+                    const optimizeEnd = performance.now();
+                    console.log(`🔵 Google Camera Movement START - optimize took ${(optimizeEnd - optimizeStart).toFixed(2)}ms`);
+                }
+                
+                if (this.photorealisticMovementTimeout) {
+                    clearTimeout(this.photorealisticMovementTimeout);
+                }
+                
+                this.photorealisticMovementTimeout = setTimeout(() => {
+                    const restoreStart = performance.now();
+                    this.photorealisticCameraMoving = false;
+                    this.optimizePhotorealisticForMovement(false);
+                    const restoreEnd = performance.now();
+                    console.log(`🔵 Google Camera Movement END - restore took ${(restoreEnd - restoreStart).toFixed(2)}ms`);
+                }, 200); // Slightly longer delay than Gaussian splats
+                
+                const totalTime = performance.now() - startTime;
+                if (totalTime > 1) { // Only log if it takes more than 1ms
+                    console.log(`🔵 Google handleCameraMovement total: ${totalTime.toFixed(2)}ms`);
+                }
+            };
+            
+            // Wrap handlers with timing
+            this.photorealisticCameraHandler.setInputAction((event) => {
+                const overallStart = performance.now();
+                handleCameraMovement(event);
+                const overallEnd = performance.now();
+                
+                if (overallEnd - overallStart > 3) {
+                    console.log(`🔵 TOTAL Google mouse event: ${(overallEnd - overallStart).toFixed(2)}ms`);
+                }
+            }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+            
+            this.photorealisticCameraHandler.setInputAction((event) => {
+                const overallStart = performance.now();
+                handleCameraMovement(event);
+                const overallEnd = performance.now();
+                
+                if (overallEnd - overallStart > 3) {
+                    console.log(`🔵 TOTAL Google wheel event: ${(overallEnd - overallStart).toFixed(2)}ms`);
+                }
+            }, Cesium.ScreenSpaceEventType.WHEEL);
+        }
+        
+        // Monitor Google tile loading with hysteresis to prevent thrashing
+        let lastSSEUpdate = Date.now();
+        let currentSSE = 12;
+        
+        tileset.loadProgress.addEventListener((numberOfPendingRequests, numberOfTilesProcessing) => {
+            const totalActive = numberOfPendingRequests + numberOfTilesProcessing;
+            const now = Date.now();
+            
+            // Only adjust SSE if enough time has passed (prevent thrashing)
+            if (now - lastSSEUpdate > 2000) { // 2 second minimum between changes
+                let targetSSE = 12; // Base quality
+                
+                // Use hysteresis - different thresholds for increasing vs decreasing quality
+                if (totalActive > 15) {
+                    targetSSE = 32; // Reduce quality more gradually
+                } else if (totalActive > 10) {
+                    targetSSE = 20; // Intermediate quality
+                } // Keep base quality (12) for totalActive <= 10
+                
+                // Only update if the change is significant and in the right direction
+                if (Math.abs(currentSSE - targetSSE) >= 4) {
+                    currentSSE = targetSSE;
+                    tileset.maximumScreenSpaceError = currentSSE;
+                    lastSSEUpdate = now;
+                    console.log(`Google Photorealistic SSE updated: ${totalActive} active tiles → SSE: ${currentSSE}`);
+                }
+            }
+            
+            // Only log significant loading events to reduce noise
+            if (totalActive === 0 || totalActive % 5 === 0) {
+                console.log(`Google Photorealistic tiles: ${totalActive} active, SSE: ${tileset.maximumScreenSpaceError}`);
+            }
+        });
+        
+        // DISABLED: Distance-based optimization replaced by UnifiedLODManager
+        // this.setupPhotorealisticDistanceLOD(tileset);
+    }
+    
+    /**
+     * Optimizes Google Photorealistic tileset based on camera movement
+     * @param {boolean} isMoving - Whether camera is moving
+     */
+    optimizePhotorealisticForMovement(isMoving) {
+        const startTime = performance.now();
+        
+        if (this.photorealisticTileset && !this.photorealisticTileset.isDestroyed?.()) {
+            const tilesetUpdateStart = performance.now();
+            
+            if (isMoving) {
+                // More aggressive optimization for Google tiles during movement
+                this.photorealisticTileset.maximumScreenSpaceError = 32;
+                this.photorealisticTileset.cullRequestsWhileMoving = true;
+                this.photorealisticTileset.cullRequestsWhileMovingMultiplier = 100.0;
+                this.photorealisticTileset.immediatelyLoadDesiredLevelOfDetail = false;
+                this.photorealisticTileset.loadSiblings = false;
+            } else {
+                // Restore quality when movement stops
+                this.photorealisticTileset.maximumScreenSpaceError = 12;
+                this.photorealisticTileset.cullRequestsWhileMoving = false;
+                this.photorealisticTileset.immediatelyLoadDesiredLevelOfDetail = true;
+            }
+            
+            const tilesetUpdateEnd = performance.now();
+            const totalTime = performance.now() - startTime;
+            
+            // Google optimization adjusted
+        }
+    }
+    
+    /**
+     * Sets up distance-based LOD for Google Photorealistic tiles
+     * @param {Cesium.Cesium3DTileset} tileset - The Google tileset
+     */
+    setupPhotorealisticDistanceLOD(tileset) {
+        const distanceInterval = setInterval(() => {
+            if (tileset.isDestroyed?.()) {
+                clearInterval(distanceInterval);
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                const cameraHeight = this.viewer.camera.positionCartographic.height;
+                
+                // Adjust quality based on camera height (Google tiles work better with height-based LOD)
+                let targetSSE;
+                if (cameraHeight < 100) {
+                    targetSSE = 8;      // High quality when very close
+                } else if (cameraHeight < 300) {
+                    targetSSE = 12;     // Medium quality
+                } else if (cameraHeight < 1000) {
+                    targetSSE = 24;     // Lower quality at medium height
+                } else if (cameraHeight < 3000) {
+                    targetSSE = 48;     // Low quality at high altitude
+                } else {
+                    targetSSE = 96;     // Very low quality when very high
+                }
+                
+                // Only update if significantly different
+                if (Math.abs(tileset.maximumScreenSpaceError - targetSSE) > 4) {
+                    const updateStart = performance.now();
+                    tileset.maximumScreenSpaceError = targetSSE;
+                    const updateEnd = performance.now();
+                    const totalTime = performance.now() - startTime;
+                    
+                    console.log(`🔵 Google LOD update: height=${cameraHeight.toFixed(0)}m, SSE=${targetSSE} | update: ${(updateEnd - updateStart).toFixed(2)}ms, total: ${totalTime.toFixed(2)}ms`);
+                }
+                
+                // Log if slow even without update
+                const totalTime = performance.now() - startTime;
+                if (totalTime > 2 && Math.abs(tileset.maximumScreenSpaceError - targetSSE) <= 4) {
+                    console.log(`🔵 Google LOD check: no update needed but took ${totalTime.toFixed(2)}ms`);
+                }
+            } catch (error) {
+                console.warn('🔵 Error in Google Photorealistic distance-based LOD:', error);
+            }
+        }, 750); // Update less frequently than Gaussian splats
+        
+        // Store interval for cleanup
+        this.photorealisticDistanceInterval = distanceInterval;
+    }
+    
+    /**
+     * Cleans up Google Photorealistic tileset performance monitoring
+     */
+    cleanupPhotorealisticPerformance() {
+        try {
+            // Clean up camera movement handler
+            if (this.photorealisticCameraHandler) {
+                this.photorealisticCameraHandler.destroy();
+                this.photorealisticCameraHandler = null;
+                console.log('Google Photorealistic camera handler destroyed');
+            }
+            
+            // Clean up distance interval
+            if (this.photorealisticDistanceInterval) {
+                clearInterval(this.photorealisticDistanceInterval);
+                this.photorealisticDistanceInterval = null;
+                console.log('Google Photorealistic distance LOD monitoring stopped');
+            }
+            
+            // Clear movement timeout
+            if (this.photorealisticMovementTimeout) {
+                clearTimeout(this.photorealisticMovementTimeout);
+                this.photorealisticMovementTimeout = null;
+            }
+            
+            console.log('Google Photorealistic performance monitoring cleaned up');
+        } catch (error) {
+            console.error('Error cleaning up Google Photorealistic performance monitoring:', error);
+        }
+    }
+
 
 }
 
 // Expose CesiumManager to the global scope
 window.CesiumManager = CesiumManager;
+
+
+// Add global performance monitoring functions for both Google and Gaussian splat tilesets
+window.tilesetPerformance = {
+    /**
+     * Gets comprehensive performance info for all tilesets
+     */
+    getOverallStats: () => {
+        const stats = {
+            googlePhotorealistic: null,
+            gaussianSplats: {},
+            combinedMemoryUsage: 0,
+            activeTilesets: 0
+        };
+        
+        // Google Photorealistic stats
+        if (window.map3D && window.map3D.photorealisticTileset && !window.map3D.photorealisticTileset.isDestroyed?.()) {
+            const tileset = window.map3D.photorealisticTileset;
+            stats.googlePhotorealistic = {
+                maximumScreenSpaceError: tileset.maximumScreenSpaceError,
+                skipLevelOfDetail: tileset.skipLevelOfDetail,
+                maximumMemoryUsage: tileset.maximumMemoryUsage,
+                cullRequestsWhileMoving: tileset.cullRequestsWhileMoving,
+                ready: tileset.ready,
+                show: tileset.show
+            };
+            stats.activeTilesets++;
+            stats.combinedMemoryUsage += tileset.maximumMemoryUsage || 0;
+        }
+        
+        // Gaussian Splat stats
+        if (window.gaussianSplatManager) {
+            stats.gaussianSplats = window.gaussianSplatManager.getAllPerformanceStats();
+            stats.activeTilesets += Object.keys(stats.gaussianSplats).length;
+            
+            // Add memory usage from Gaussian splats
+            for (const siteStats of Object.values(stats.gaussianSplats)) {
+                stats.combinedMemoryUsage += siteStats.memoryUsageMB || 0;
+            }
+        }
+        
+        return stats;
+    },
+    
+    /**
+     * Logs comprehensive performance stats to console
+     */
+    logOverallStats: () => {
+        const stats = window.tilesetPerformance.getOverallStats();
+        console.log('=== COMPREHENSIVE TILESET PERFORMANCE STATS ===');
+        console.log(`Active Tilesets: ${stats.activeTilesets}`);
+        console.log(`Combined Memory Usage: ${stats.combinedMemoryUsage}MB`);
+        console.log('');
+        
+        if (stats.googlePhotorealistic) {
+            console.log('Google Photorealistic 3D Tiles:');
+            console.log(`  Screen Space Error: ${stats.googlePhotorealistic.maximumScreenSpaceError}`);
+            console.log(`  Skip LOD: ${stats.googlePhotorealistic.skipLevelOfDetail}`);
+            console.log(`  Memory Limit: ${stats.googlePhotorealistic.maximumMemoryUsage}MB`);
+            console.log(`  Cull During Movement: ${stats.googlePhotorealistic.cullRequestsWhileMoving}`);
+            console.log(`  Ready: ${stats.googlePhotorealistic.ready}`);
+            console.log(`  Visible: ${stats.googlePhotorealistic.show}`);
+            console.log('');
+        } else {
+            console.log('Google Photorealistic 3D Tiles: Not loaded');
+            console.log('');
+        }
+        
+        if (Object.keys(stats.gaussianSplats).length > 0) {
+            console.log('Gaussian Splats:');
+            for (const [siteId, siteStats] of Object.entries(stats.gaussianSplats)) {
+                console.log(`  Site: ${siteId}`);
+                console.log(`    FPS: ${siteStats.fps}`);
+                console.log(`    Tiles Loaded: ${siteStats.tilesLoaded}`);
+                console.log(`    Memory: ${siteStats.memoryUsageMB}MB`);
+                console.log(`    Load Time: ${siteStats.averageLoadTimeMs}ms`);
+            }
+        } else {
+            console.log('Gaussian Splats: None loaded');
+        }
+        
+        console.log('==============================================');
+    },
+    
+    /**
+     * Optimizes all tilesets for camera movement
+     */
+    optimizeAllForMovement: () => {
+        let optimized = 0;
+        
+        // Optimize Google Photorealistic
+        if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
+            window.map3D.optimizePhotorealisticForMovement(true);
+            optimized++;
+        }
+        
+        // Optimize Gaussian Splats
+        if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
+            window.gaussianSplatManager.optimizeForMovement(true);
+            const splatCount = window.gaussianSplatManager.loadedTilesets.size;
+            optimized += splatCount;
+        }
+        
+        console.log(`Optimized ${optimized} tilesets for camera movement`);
+    },
+    
+    /**
+     * Restores quality for all tilesets after movement
+     */
+    restoreAllQuality: () => {
+        let restored = 0;
+        
+        // Restore Google Photorealistic
+        if (window.map3D && window.map3D.optimizePhotorealisticForMovement) {
+            window.map3D.optimizePhotorealisticForMovement(false);
+            restored++;
+        }
+        
+        // Restore Gaussian Splats
+        if (window.gaussianSplatManager && window.gaussianSplatManager.optimizeForMovement) {
+            window.gaussianSplatManager.optimizeForMovement(false);
+            const splatCount = window.gaussianSplatManager.loadedTilesets.size;
+            restored += splatCount;
+        }
+        
+        console.log(`Restored quality for ${restored} tilesets`);
+    }
+};
+
+// Tileset performance monitoring available
 

@@ -131,7 +131,7 @@ function closeOtherDropdowns(currentDropdown) {
  * Initializes the layer control system
  */
 function initializeLayerControls() {
-    console.log('Initializing layer controls...');
+    // Initializing layer controls
     
     const layerControls = document.getElementById('layerControls');
     if (!layerControls) {
@@ -141,7 +141,7 @@ function initializeLayerControls() {
     
     // Prevent duplicate initialization
     if (layerControls.dataset.initialized === 'true') {
-        console.log('Layer controls already initialized, skipping...');
+        // Layer controls already initialized
         return;
     }
     layerControls.dataset.initialized = 'true';
@@ -163,20 +163,48 @@ function initializeLayerControls() {
     
     // Set up controls and initialize state after a brief delay to ensure DOM is ready
     setTimeout(() => {
-        console.log('Layer controls initialization - currentSiteData:', window.currentSiteData);
-        // First, analyze the data if Boyd format
+        // Check site data and format
+        // Layer controls initialization logging removed for cleaner console output
         if (window.currentSiteData) {
-            console.log('Checking format of first feature:', window.currentSiteData.features[0]);
+            console.log('🔍 Found currentSiteData with features:', window.currentSiteData.features?.length || 0);
             const format = detectGeoJsonFormat(window.currentSiteData.features[0]);
-            console.log('Detected format:', format);
+            console.log('🔍 Detected format:', format);
             if (format === 'boyd') {
+                console.log('✅ Boyd format detected - showing layer controls');
                 document.getElementById('layerControls').style.display = 'block';
-                console.log('Analyzing Boyd format data...');
                 analyzeNPACategories(window.currentSiteData);
                 analyzePACategories(window.currentSiteData);
+            } else {
+                console.log('❌ Not Boyd format - layer controls hidden');
             }
         } else {
-            console.log('No currentSiteData available during initialization');
+            console.log('❌ No currentSiteData available during initialization - setting up retry');
+            // Try again later when data might be available
+            let retryCount = 0;
+            const maxRetries = 10;
+            
+            const retryDataCheck = () => {
+                retryCount++;
+                console.log(`🔄 Retry ${retryCount}/${maxRetries} - checking for currentSiteData`);
+                
+                if (window.currentSiteData) {
+                    console.log('✅ Found currentSiteData on retry!', window.currentSiteData);
+                    const format = detectGeoJsonFormat(window.currentSiteData.features[0]);
+                    console.log('🔍 Detected format on retry:', format);
+                    if (format === 'boyd') {
+                        console.log('✅ Boyd format detected on retry - showing layer controls');
+                        document.getElementById('layerControls').style.display = 'block';
+                        analyzeNPACategories(window.currentSiteData);
+                        analyzePACategories(window.currentSiteData);
+                    }
+                } else if (retryCount < maxRetries) {
+                    setTimeout(retryDataCheck, 1000); // Retry every second
+                } else {
+                    console.error('❌ Failed to find currentSiteData after all retries');
+                }
+            };
+            
+            setTimeout(retryDataCheck, 1000);
         }
         
         // Then set up the controls
@@ -401,25 +429,44 @@ function setupEcologicalMetricsControls() {
  * Analyzes GeoJSON to extract PA categories
  */
 function analyzePACategories(geoJsonData) {
-    console.log('analyzePACategories called with', geoJsonData?.features?.length, 'features');
+    // PA categories analysis initialization logging removed for cleaner console output
+    // Total features analysis logging removed for cleaner console output
+    
     const categories = new Map();
     const categorizedPAs = new Map(); // Map of category -> array of PAs
     
-    geoJsonData.features.forEach(feature => {
+    if (!geoJsonData || !geoJsonData.features) {
+        console.error('❌ No geoJsonData or features provided to analyzePACategories');
+        return;
+    }
+    
+    let paFeatureCount = 0;
+    geoJsonData.features.forEach((feature, index) => {
+        // Feature parsing logging removed for cleaner console output
+        
         if (feature.properties.name && feature.properties.name.includes('PA') && !feature.properties.name.includes('NPA')) {
-            console.log('Found PA feature:', feature.properties.name);
+            paFeatureCount++;
+            // PA feature discovery logging removed for cleaner console output
+            
+            // Found PA feature
             const parsed = parseBoydName(feature.properties.name);
+            // PA name parsing logging removed for cleaner console output
+            
             const name = parsed.description || parsed.id;
             if (name && !categories.has(name)) {
-                categories.set(name, {
+                const categoryData = {
                     number: parsed.number,
                     category: categorizePADescription(parsed.description)
-                });
+                };
+                categories.set(name, categoryData);
+                // PA category addition logging removed for cleaner console output
             }
         }
     });
     
-    console.log('Found', categories.size, 'PA categories');
+    // PA analysis summary logging removed for cleaner console output
+    
+    // Found PA categories
     
     // Group by category
     categories.forEach((data, name) => {
@@ -437,7 +484,7 @@ function analyzePACategories(geoJsonData) {
     
     window.layerState.paCategories = categories;
     window.layerState.categorizedPAs = categorizedPAs;
-    console.log('Calling populatePACategories with', categories.size, 'categories');
+    // Calling populatePACategories
     populatePACategories(categories, categorizedPAs);
 }
 
@@ -445,13 +492,29 @@ function analyzePACategories(geoJsonData) {
  * Populates PA category checkboxes
  */
 function populatePACategories(categories, categorizedPAs) {
-    console.log('populatePACategories called with', categories.size, 'categories');
+    // PA categories population logging removed for cleaner console output
+    // PA categories and data logging removed for cleaner console output
+    
     const container = document.getElementById('plantableSubOptions');
     if (!container) {
-        console.error('plantableSubOptions container not found!');
+        console.error('❌ plantableSubOptions container not found!');
         return;
     }
+    
+    // Container clearing logging removed for cleaner console output
     container.innerHTML = '';
+    
+    if (!categories || categories.size === 0) {
+        console.error('❌ No categories provided to populatePACategories');
+        container.innerHTML = '<div style="color: white; padding: 10px;">No plantable areas found in data</div>';
+        return;
+    }
+    
+    if (!categorizedPAs || categorizedPAs.size === 0) {
+        console.error('❌ No categorizedPAs provided to populatePACategories');
+        container.innerHTML = '<div style="color: white; padding: 10px;">No categorized areas found</div>';
+        return;
+    }
     
     // Define category order
     const categoryOrder = [
@@ -550,21 +613,20 @@ function populatePACategories(categories, categorizedPAs) {
  * Analyzes GeoJSON to extract NPA categories
  */
 function analyzeNPACategories(geoJsonData) {
-    console.log('analyzeNPACategories called with', geoJsonData?.features?.length, 'features');
+    // analyzeNPACategories called
     const categories = new Map();
     
     geoJsonData.features.forEach(feature => {
         if (feature.properties.name && feature.properties.name.includes('NPA')) {
-            console.log('Found NPA feature:', feature.properties.name);
+            // Found NPA feature
             const category = extractNPACategory(feature.properties.name);
-            console.log('Extracted category:', category);
             if (category && !categories.has(category)) {
                 categories.set(category, npaCategoryColors[categories.size % npaCategoryColors.length]);
             }
         }
     });
     
-    console.log('Found', categories.size, 'NPA categories');
+    // Found NPA categories
     window.layerState.npaCategories = categories;
     populateNPACategories(categories);
 }
@@ -768,7 +830,13 @@ function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
     });
     
     entitiesToRemove.forEach(entity => {
-        viewer.entities.remove(entity);
+        try {
+            if (entity && !entity.isDestroyed && viewer.entities.contains(entity)) {
+                viewer.entities.remove(entity);
+            }
+        } catch (error) {
+            console.warn('Error removing entity:', error);
+        }
     });
     
     // Call the original visualization function
@@ -779,14 +847,14 @@ function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
  * Updates the old parameter filter system to work with new layer controls
  */
 function toggleParameterFilter(format) {
-    console.log('toggleParameterFilter called with format:', format);
+    // toggleParameterFilter called
     const layerControls = document.getElementById('layerControls');
     
     if (format === 'boyd') {
         layerControls.style.display = 'block';
         // Analyze PA and NPA categories for this site
         if (window.currentSiteData) {
-            console.log('Analyzing site data in toggleParameterFilter...');
+            // Analyzing site data
             analyzePACategories(window.currentSiteData);
             analyzeNPACategories(window.currentSiteData);
         } else {
@@ -873,10 +941,17 @@ function zoomToFeature(featureName, featureType) {
     }
     const radius = maxDistance / 2;
     
-    // Calculate height where radius appears as 50% of screen height
-    const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
-    const targetCoverage = 0.5; // 50% of screen height
-    const height = radius / (targetCoverage * Math.tan(fov / 2));
+    // Calculate height based on camera projection mode
+    let height;
+    if (window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection()) {
+        // For orthographic projection, use a simpler height calculation
+        height = Math.max(radius * 4, 200); // Scale based on radius with minimum height
+    } else {
+        // For perspective projection, use FOV-based calculation
+        const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
+        const targetCoverage = 0.5; // 50% of screen height
+        height = radius / (targetCoverage * Math.tan(fov / 2));
+    }
     
     // Apply minimum height constraint
     const minHeight = 100; // 100 meters minimum
@@ -921,7 +996,7 @@ function zoomToNPACategory(categoryName) {
     });
     
     if (npaFeatures.length === 0) {
-        console.log('No features found for NPA category:', categoryName);
+        // NPA feature search logging removed for cleaner console output
         return;
     }
     
@@ -969,22 +1044,23 @@ function zoomToNPACategory(categoryName) {
     }
     const radius = maxDistance / 2;
     
-    // Calculate height where radius appears as 50% of screen height
-    const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
-    const targetCoverage = 0.5; // 50% of screen height
-    const height = radius / (targetCoverage * Math.tan(fov / 2));
+    // Calculate height based on camera projection mode
+    let height;
+    if (window.map3D && window.map3D.isOrthographicProjection && window.map3D.isOrthographicProjection()) {
+        // For orthographic projection, use a simpler height calculation
+        height = Math.max(radius * 4, 200); // Scale based on radius with minimum height
+    } else {
+        // For perspective projection, use FOV-based calculation
+        const fov = viewer.camera.frustum.fov; // Vertical FOV in radians
+        const targetCoverage = 0.5; // 50% of screen height
+        height = radius / (targetCoverage * Math.tan(fov / 2));
+    }
     
     // Apply minimum height constraint
     const minHeight = 100; // 100 meters minimum
     const finalHeight = Math.max(height, minHeight);
     
-    console.log('NPA Camera positioning:', {
-        category: categoryName,
-        center: { lat: centerLat, lng: centerLng },
-        radius: radius,
-        calculatedHeight: height,
-        finalHeight: finalHeight
-    });
+    // NPA camera positioning logging removed for cleaner console output
     
     // Animate to position with camera facing straight down
     viewer.camera.flyTo({
@@ -1138,9 +1214,18 @@ function reverseCurrentAnimation(callback) {
  * Creates animated connection line extending from PA label
  */
 function createAnimatedConnectionLine(paLabel, callback) {
-    const paRect = paLabel.getBoundingClientRect();
-    const layerControlsPanel = document.getElementById('layerControls');
-    const panelRect = layerControlsPanel.getBoundingClientRect();
+    try {
+        console.log('🔗 Creating animated connection line');
+        
+        const paRect = paLabel.getBoundingClientRect();
+        const layerControlsPanel = document.getElementById('layerControls');
+        const panelRect = layerControlsPanel.getBoundingClientRect();
+        
+        if (!paRect || !panelRect) {
+            console.error('❌ Could not get bounding rects for connection line');
+            if (callback) callback();
+            return;
+        }
     
     // The oval extends 4px outside the label bounds
     const ovalPadding = 4;
@@ -1187,11 +1272,25 @@ function createAnimatedConnectionLine(paLabel, callback) {
         lineEndX: lineLeft
     });
     
-    // Animate line extension
-    requestAnimationFrame(() => {
-        line.style.width = `${lineWidth}px`;
-        setTimeout(callback, 300);
-    });
+        // Animate line extension
+        requestAnimationFrame(() => {
+            try {
+                if (line && line.parentNode) {
+                    line.style.width = `${lineWidth}px`;
+                }
+                setTimeout(() => {
+                    if (callback) callback();
+                }, 300);
+            } catch (error) {
+                console.error('❌ Error during connection line animation:', error);
+                if (callback) callback();
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error creating animated connection line:', error);
+        if (callback) callback();
+    }
 }
 
 /**
