@@ -89,7 +89,7 @@ class UserManager {
             const data = await response.json();
             this.iPAddress = data.ip;
             this.geoData = data;
-            console.log("GeoData:", data); // For debugging
+            // GeoData received
         } catch (error) {
             console.error("Failed to fetch geolocation data:", error);
         }

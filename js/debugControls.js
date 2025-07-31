@@ -89,6 +89,26 @@ function createDebugPanel() {
         </div>
         
         <div class="debug-section">
+            <label>Gaussian Splat GPS Translation (0.2m increments)</label>
+            <div class="button-group">
+                <button class="debug-button" onclick="adjustGPSTranslation('x', 0.2)">X +0.2m</button>
+                <button class="debug-button" onclick="adjustGPSTranslation('x', -0.2)">X -0.2m</button>
+            </div>
+            <div class="button-group">
+                <button class="debug-button" onclick="adjustGPSTranslation('y', 0.2)">Y +0.2m</button>
+                <button class="debug-button" onclick="adjustGPSTranslation('y', -0.2)">Y -0.2m</button>
+            </div>
+            <div class="button-group">
+                <button class="debug-button" onclick="adjustGPSTranslation('z', 0.2)">Z +0.2m</button>
+                <button class="debug-button" onclick="adjustGPSTranslation('z', -0.2)">Z -0.2m</button>
+            </div>
+            <div class="button-group">
+                <button class="debug-button" onclick="resetGPSTranslation()">Reset GPS</button>
+                <button class="debug-button" onclick="logCurrentGPSTranslation()">Log GPS</button>
+            </div>
+        </div>
+        
+        <div class="debug-section">
             <label>Actions</label>
             <div class="button-group">
                 <button class="debug-button" onclick="resetDebugSettings()">Reset All</button>
@@ -319,6 +339,122 @@ function exportDebugSettings() {
 }
 
 /**
+ * Initialize GPS translation tracking
+ */
+if (!window.gpsTranslationOffset) {
+    window.gpsTranslationOffset = { x: 0, y: 0, z: 0 };
+}
+
+/**
+ * Adjusts GPS translation for Gaussian Splats by modifying their transform matrix
+ * @param {string} axis - 'x', 'y', or 'z'
+ * @param {number} increment - Amount to adjust (in meters)
+ */
+function adjustGPSTranslation(axis, increment) {
+    // Update our tracking offset
+    window.gpsTranslationOffset[axis] += increment;
+    
+    console.log(`=== GPS Translation Adjustment ===`);
+    console.log(`Axis: ${axis.toUpperCase()}, Increment: ${increment}m`);
+    console.log(`Total offset: X=${window.gpsTranslationOffset.x}m, Y=${window.gpsTranslationOffset.y}m, Z=${window.gpsTranslationOffset.z}m`);
+    
+    // Apply to all loaded Gaussian Splats
+    if (window.gaussianSplatManager && window.gaussianSplatManager.loadedTilesets) {
+        let updatedCount = 0;
+        
+        for (const [siteId, tileset] of window.gaussianSplatManager.loadedTilesets.entries()) {
+            if (tileset && !tileset.isDestroyed?.()) {
+                // Get current transform matrix (4x4 matrix in column-major order)
+                const currentMatrix = tileset.modelMatrix.clone();
+                
+                // Create translation adjustment matrix
+                const translationMatrix = new Cesium.Matrix4();
+                const translation = new Cesium.Cartesian3();
+                
+                // Set translation based on axis (in ECEF coordinate system)
+                switch(axis) {
+                    case 'x':
+                        translation.x = increment;
+                        break;
+                    case 'y': 
+                        translation.y = increment;
+                        break;
+                    case 'z':
+                        translation.z = increment;
+                        break;
+                }
+                
+                // Create translation matrix
+                Cesium.Matrix4.fromTranslation(translation, translationMatrix);
+                
+                // Apply translation by multiplying current matrix with translation
+                const newMatrix = new Cesium.Matrix4();
+                Cesium.Matrix4.multiply(translationMatrix, currentMatrix, newMatrix);
+                
+                // Update the tileset's transform
+                tileset.modelMatrix = newMatrix;
+                
+                console.log(`Updated GPS translation for site: ${siteId}`);
+                console.log(`New translation (ECEF): X=${newMatrix[12]}, Y=${newMatrix[13]}, Z=${newMatrix[14]}`);
+                
+                updatedCount++;
+            }
+        }
+        
+        console.log(`Updated ${updatedCount} loaded Gaussian Splat(s)`);
+        
+        if (updatedCount === 0) {
+            console.warn('No Gaussian Splats found to update. Load a splat first.');
+        }
+    } else {
+        console.warn('GaussianSplatManager not available or no splats loaded');
+    }
+    
+    console.log(`==============================`);
+}
+
+/**
+ * Resets GPS translation to original position
+ */
+function resetGPSTranslation() {
+    console.log(`=== Resetting GPS Translation ===`);
+    console.log(`Current offset: X=${window.gpsTranslationOffset.x}m, Y=${window.gpsTranslationOffset.y}m, Z=${window.gpsTranslationOffset.z}m`);
+    
+    // Apply reverse translation to get back to original position
+    adjustGPSTranslation('x', -window.gpsTranslationOffset.x);
+    adjustGPSTranslation('y', -window.gpsTranslationOffset.y);
+    adjustGPSTranslation('z', -window.gpsTranslationOffset.z);
+    
+    // Reset tracking
+    window.gpsTranslationOffset = { x: 0, y: 0, z: 0 };
+    
+    console.log('GPS translation reset to original position');
+    console.log(`===============================`);
+}
+
+/**
+ * Logs current GPS translation information to console
+ */
+function logCurrentGPSTranslation() {
+    console.log(`=== Current GPS Translation Status ===`);
+    console.log(`Cumulative offset: X=${window.gpsTranslationOffset.x}m, Y=${window.gpsTranslationOffset.y}m, Z=${window.gpsTranslationOffset.z}m`);
+    
+    if (window.gaussianSplatManager && window.gaussianSplatManager.loadedTilesets) {
+        for (const [siteId, tileset] of window.gaussianSplatManager.loadedTilesets.entries()) {
+            if (tileset && !tileset.isDestroyed?.()) {
+                const matrix = tileset.modelMatrix;
+                console.log(`Site: ${siteId}`);
+                console.log(`  Current ECEF translation: X=${matrix[12]}, Y=${matrix[13]}, Z=${matrix[14]}`);
+                console.log(`  Full transform matrix:`, matrix);
+            }
+        }
+    } else {
+        console.log('No Gaussian Splats currently loaded');
+    }
+    console.log(`====================================`);
+}
+
+/**
  * Initializes debug controls
  */
 function initializeDebugControls() {
@@ -346,7 +482,6 @@ function initializeDebugControls() {
         }
     });
     
-    console.log('Debug controls available. Press Ctrl+D to toggle debug panel.');
 }
 
 // Expose functions globally
@@ -360,6 +495,9 @@ window.setVisualizationMode = setVisualizationMode;
 window.applyPreset = applyPreset;
 window.updateDebugUI = updateDebugUI;
 window.exportDebugSettings = exportDebugSettings;
+window.adjustGPSTranslation = adjustGPSTranslation;
+window.resetGPSTranslation = resetGPSTranslation;
+window.logCurrentGPSTranslation = logCurrentGPSTranslation;
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {

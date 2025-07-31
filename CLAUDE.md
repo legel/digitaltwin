@@ -122,11 +122,32 @@ All positions use:
 
 ### Development Workflow Priorities
 1. **Mesh-based rendering** (current phase): PIX4Dmatic integration with Cesium
-2. **Gaussian Splat integration** (future phase): Advanced photorealistic rendering
+2. **Gaussian Splat integration** (current phase): Advanced photorealistic rendering - IMPLEMENTED
 3. **Ecological model overlay**: Scientific data visualization on 3D twins
 4. **Commercial platform features**: Native plant marketplace integration
 
 ## Recent Implementations
+
+### Gaussian Splat Integration (3D Digital Twins)
+A comprehensive system for loading and managing 3D Gaussian Splat digital twins:
+
+#### Core Implementation
+- **GaussianSplatManager.js**: Complete management system for loading, displaying, and removing Gaussian splats
+- **Tileset Loading**: Uses `Cesium.Cesium3DTileset.fromUrl()` method with proper error handling
+- **Loading Indicators**: Visual feedback during splat loading with static canvas images
+- **Debug Controls**: Development button for removing splats when testing
+
+#### Technical Details
+- **File Structure**: Expects `tileset.json` and `content.glb` files in `/data/[site-id]/` directory
+- **Cesium Version**: Requires Cesium 1.131+ for proper Gaussian splat support
+- **Extension Support**: Handles `KHR_spz_gaussian_splats_compression` extension
+- **Camera Positioning**: Automatic optimal viewpoint when splat loads
+
+#### Polygon Visibility Enhancement
+- **Elevation Strategy**: All polygon outlines and fills elevated 3m above original position
+- **Depth Testing**: Disabled depth testing with `disableDepthTestDistance: Number.POSITIVE_INFINITY`
+- **Enhanced Materials**: Added `depthFailMaterial` and shadow disabling for better visibility
+- **Consistent Rendering**: Polygons and outlines at same elevation for uniform appearance
 
 ### Advanced Focus Panel Animation System
 A sophisticated animation sequence for the focus panel that provides smooth visual transitions:
