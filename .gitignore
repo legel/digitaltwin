@@ -37,6 +37,7 @@ yarn-error.log*
 # Build outputs (future)
 dist/
 build/
+cesium/
 *.min.js
 *.min.css
 
