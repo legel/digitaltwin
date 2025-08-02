@@ -65,7 +65,8 @@ document.addEventListener("DOMContentLoaded", function () {
      * Handles the "2D/3D view switch" button click.
      * Switches between 2D and 3D views, maintaining the current camera position and settings.
      */
-    if (viewSwitchButton) {
+    // DISABLED: This functionality is now handled by view2D.js
+    if (false && viewSwitchButton) {
         viewSwitchButton.addEventListener("click", async function () {
         if (window.is3DView) {
             // Switch from 3D to 2D
