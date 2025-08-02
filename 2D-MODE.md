@@ -61,18 +61,50 @@ finalHeight = max(heightForLat, heightForLon)
 - Click-to-log manual camera positioning
 - Real-time buffer percentage verification
 
+### Phase 1.5: Dynamic Background Screenshot System ✅ COMPLETED
+
+#### Core Features Implemented
+- **Dynamic Screenshot Capture**: Captures clean terrain + Gaussian splat backgrounds automatically when entering 2D mode
+- **Entity Visibility Management**: Temporarily hides all GeoJSON polygons, outlines, and points during screenshot
+- **Comprehensive Entity Detection**: Detects and hides all entity types (polygons, polylines, points, cylinders, outline entities)
+- **Performance-Optimized**: Uses `entity.show = false` approach for better performance than entity removal/recreation
+- **Automatic Download**: Screenshots automatically download for testing verification
+
+#### Technical Implementation
+- **Screenshot Timing**: Captures after camera positioning and Gaussian splat quality restoration (500ms delay)
+- **Entity Hiding Strategy**: Temporarily sets `entity.show = false` for all GeoJSON-related entities
+- **WebGL Buffer Capture**: Uses `gl.readPixels()` with vertical flip to handle `preserveDrawingBuffer: false`
+- **Restoration System**: Restores entity visibility after screenshot completion
+
+#### Entity Detection Logic
+```javascript
+const shouldHide = (
+    (entity.name && (
+        entity.name.startsWith('Site_') || 
+        entity.name.includes('PA') || 
+        entity.name.includes('NPA')
+    )) ||
+    entity.polygon || entity.point || entity.cylinder || entity.polyline ||
+    (entity.name && entity.name.includes('_Outline'))
+);
+```
+
 ### Current Status
 
 **✅ Working Features:**
 - 2D button calculates correct camera height (~520m for current site)
 - Smooth camera transitions with proper orientation (pitch: -90°, heading: 0°)
 - Aspect ratio adaptation (desktop, mobile, any screen size)
+- **Dynamic screenshot capture of clean terrain + Gaussian splat backgrounds**
+- **Automatic GeoJSON entity hiding/restoration during screenshot**
 - Clean, production-ready code with minimal logging
 
 **🎯 Validated Results:**
 - Desktop (2.10 AR): 519.6m height calculated
 - Mobile (0.62 AR): ~469m height calculated  
 - Buffer targeting: Constraining dimension gets ~40% buffer
+- **Screenshot capture: Successfully captures clean backgrounds without GeoJSON overlays**
+- **Entity management: All entity types (polygons, outlines, points) properly hidden/restored**
 - Cross-platform compatibility confirmed
 
 ## Next Phase: Advanced 2D Designer
