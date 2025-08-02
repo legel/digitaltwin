@@ -8,6 +8,7 @@ class View2DManager {
         this.is2DMode = false;
         this.saved3DView = null;
         this.viewSwitchButton = null;
+        this.screenshotInProgress = false; // Prevent multiple screenshot captures
     }
 
     /**
@@ -73,6 +74,13 @@ class View2DManager {
             complete: () => {
                 this.is2DMode = true;
                 this.updateButtonState();
+                
+                // Wait for Gaussian splat quality to restore, THEN capture screenshot
+                console.log('⏳ Camera positioned, waiting for splat quality restoration...');
+                setTimeout(() => {
+                    console.log('🎯 Starting screenshot capture sequence...');
+                    this.capture2DBackgroundScreenshot();
+                }, 500); // Wait for motion mode to complete
             }
         });
     }
@@ -482,6 +490,286 @@ class View2DManager {
         return Math.max(100, Math.min(20000, requiredHeight));
     }
 
+
+    /**
+     * Captures a screenshot of the Cesium scene with terrain and Gaussian splats only
+     * Temporarily hides UI elements and GeoJSON visualizations for clean background
+     */
+    async capture2DBackgroundScreenshot() {
+        if (!window.map3D || !window.map3D.viewer) {
+            console.warn('Cesium viewer not available for screenshot');
+            return null;
+        }
+
+        // Prevent multiple simultaneous screenshot captures
+        if (this.screenshotInProgress) {
+            console.log('Screenshot already in progress, skipping...');
+            return null;
+        }
+
+        this.screenshotInProgress = true;
+        const viewer = window.map3D.viewer;
+        console.log('📸 Capturing 2D background screenshot...');
+
+        try {
+            // Step 1: Hide UI elements
+            const uiElements = this.hideUIElements();
+
+            // Step 2: Hide GeoJSON polygons and points (save current entities)
+            const savedEntities = this.hideGeoJsonEntities(viewer);
+            
+            // Step 3: Set up screenshot capture AFTER hiding entities
+            const canvas = viewer.scene.canvas;
+            const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+            
+            if (!gl) {
+                throw new Error('WebGL context not available');
+            }
+
+            // Get current WebGL context attributes for debugging
+            const contextAttributes = gl.getContextAttributes();
+            console.log('Current preserveDrawingBuffer:', contextAttributes.preserveDrawingBuffer);
+            console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+            
+            // NOW set up the postRender callback for the next render (with hidden entities)
+            let imageDataURL = null;
+            let captureCompleted = false; // Flag to ensure callback only runs once
+            
+            const captureCallback = () => {
+                if (captureCompleted) return; // Prevent multiple executions
+                captureCompleted = true;
+                console.log('📸 Render complete, capturing screenshot...');
+                
+                // Try both methods and log results
+                
+                // Method 1: Standard toDataURL
+                const standardCapture = canvas.toDataURL('image/png');
+                console.log('Standard toDataURL result length:', standardCapture.length);
+                
+                // Method 2: WebGL readPixels
+                const width = canvas.width;
+                const height = canvas.height;
+                const pixels = new Uint8Array(width * height * 4);
+                
+                try {
+                    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+                    
+                    // Log pixel buffer info for debugging
+                    console.log('ReadPixels first 20 values:', Array.from(pixels.slice(0, 20)));
+                    
+                    // Check if image has any non-black pixels
+                    let hasNonBlackPixels = false;
+                    let nonBlackCount = 0;
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        if (pixels[i] > 0 || pixels[i + 1] > 0 || pixels[i + 2] > 0) {
+                            hasNonBlackPixels = true;
+                            nonBlackCount++;
+                        }
+                    }
+                    console.log('Has non-black pixels:', hasNonBlackPixels);
+                    console.log('Non-black pixel count:', nonBlackCount, 'out of', width * height);
+                    
+                    // Create image from pixels if we have data
+                    if (hasNonBlackPixels) {
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = width;
+                        tempCanvas.height = height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        
+                        const imageData = tempCtx.createImageData(width, height);
+                        
+                        // Flip vertically (WebGL is upside down)
+                        for (let y = 0; y < height; y++) {
+                            for (let x = 0; x < width; x++) {
+                                const srcIndex = ((height - y - 1) * width + x) * 4;
+                                const dstIndex = (y * width + x) * 4;
+                                
+                                imageData.data[dstIndex] = pixels[srcIndex];
+                                imageData.data[dstIndex + 1] = pixels[srcIndex + 1];
+                                imageData.data[dstIndex + 2] = pixels[srcIndex + 2];
+                                imageData.data[dstIndex + 3] = pixels[srcIndex + 3];
+                            }
+                        }
+                        
+                        tempCtx.putImageData(imageData, 0, 0);
+                        imageDataURL = tempCanvas.toDataURL('image/png');
+                        console.log('WebGL readPixels result length:', imageDataURL.length);
+                    } else {
+                        console.warn('⚠️ All pixels are black - WebGL buffer may be cleared');
+                    }
+                    
+                } catch (readPixelsError) {
+                    console.error('ReadPixels failed:', readPixelsError);
+                }
+                
+                // Use whichever method gave us a longer result (more data)
+                if (standardCapture.length > imageDataURL?.length || !imageDataURL) {
+                    imageDataURL = standardCapture;
+                    console.log('Using standard toDataURL result');
+                } else {
+                    console.log('Using WebGL readPixels result');
+                }
+                
+                // Store the image data (this happens inside the callback now)
+                this.background2DImage = imageDataURL;
+                
+                console.log('✅ 2D background screenshot captured');
+
+                // Download for testing (temporary) - moved inside callback
+                this.downloadScreenshotForTesting(imageDataURL);
+            };
+            
+            // Set up callback for the NEXT render (after entities are removed)
+            console.log('🎯 Setting up postRender callback for clean screenshot...');
+            viewer.scene.postRender.addEventListener(captureCallback, { once: true });
+            
+            // NOW render with removed entities
+            console.log('🔄 Rendering scene with removed entities...');
+            viewer.render();
+            
+            // Wait for the callback to complete
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Step 7: Restore UI elements and GeoJSON visualizations
+            this.restoreUIElements(uiElements);
+            this.restoreGeoJsonEntities(viewer, savedEntities);
+
+            return imageDataURL;
+
+        } catch (error) {
+            console.error('❌ Error capturing 2D background screenshot:', error);
+            return null;
+        } finally {
+            this.screenshotInProgress = false;
+        }
+    }
+
+    /**
+     * Temporarily hides UI elements for clean screenshot
+     * @returns {Array} - Array of elements with their original display styles
+     */
+    hideUIElements() {
+        const elementsToHide = [
+            '.layer-controls',
+            '.focus-panel',
+            '.connection-line',
+            '#viewSwitchButton',
+            '.reusable-button'
+        ];
+
+        const hiddenElements = [];
+
+        elementsToHide.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(element => {
+                hiddenElements.push({
+                    element: element,
+                    originalDisplay: element.style.display
+                });
+                element.style.display = 'none';
+            });
+        });
+
+        return hiddenElements;
+    }
+
+    /**
+     * Restores UI elements after screenshot
+     * @param {Array} hiddenElements - Array of elements to restore
+     */
+    restoreUIElements(hiddenElements) {
+        hiddenElements.forEach(({ element, originalDisplay }) => {
+            element.style.display = originalDisplay;
+        });
+    }
+
+    /**
+     * Temporarily hides GeoJSON entities for clean screenshot
+     * Uses visibility toggling instead of removal for better performance
+     * @param {Object} viewer - Cesium viewer
+     * @returns {Array} - Array of hidden entities for restoration
+     */
+    hideGeoJsonEntities(viewer) {
+        const savedEntities = [];
+        
+        console.log('🙈 Hiding entities for screenshot. Total entities:', viewer.entities.values.length);
+        
+        // Use COMPREHENSIVE logic to catch ALL entity types created by visualizeGeoJsonPolygons
+        viewer.entities.values.forEach(entity => {
+            const shouldHide = (
+                // Original detection logic
+                (entity.name && (
+                    entity.name.startsWith('Site_') || 
+                    entity.name.includes('PA') || 
+                    entity.name.includes('NPA')
+                )) ||
+                // Geometry-based detection
+                entity.polygon ||
+                entity.point ||
+                entity.cylinder ||
+                entity.polyline ||
+                // NEW: Outline entities (missed before!)
+                (entity.name && entity.name.includes('_Outline'))
+            );
+            
+            if (shouldHide) {
+                savedEntities.push({
+                    entity: entity,
+                    wasVisible: entity.show !== false
+                });
+                entity.show = false; // Hide instead of removing
+                
+                const entityType = entity.polygon ? '(polygon)' : 
+                                 entity.point ? '(point)' : 
+                                 entity.cylinder ? '(cylinder)' :
+                                 entity.polyline ? '(polyline)' : 
+                                 '(other)';
+                console.log('Hidden entity:', entity.name, entityType);
+            }
+        });
+
+        console.log('Hidden', savedEntities.length, 'entities');
+        
+        // Verify hiding by checking how many are now invisible
+        const hiddenCount = viewer.entities.values.filter(e => e.show === false).length;
+        console.log('🔍 Total hidden entities:', hiddenCount);
+        
+        return savedEntities; // Return saved state for restoration
+    }
+
+    /**
+     * Restores GeoJSON entities after screenshot by restoring visibility
+     * @param {Object} viewer - Cesium viewer
+     * @param {Array} savedEntities - Array of entities with saved visibility state
+     */
+    restoreGeoJsonEntities(viewer, savedEntities) {
+        console.log('👁️ Restoring', savedEntities.length, 'entities after screenshot');
+        
+        savedEntities.forEach(({ entity, wasVisible }) => {
+            if (wasVisible && !entity.isDestroyed) {
+                entity.show = true;
+            }
+        });
+        
+        // Verify restoration
+        const visibleCount = viewer.entities.values.filter(e => e.show !== false).length;
+        console.log('✅ Entities restored, total visible:', visibleCount);
+    }
+
+    /**
+     * Downloads screenshot for testing purposes (temporary)
+     * @param {string} imageDataURL - Base64 image data
+     */
+    downloadScreenshotForTesting(imageDataURL) {
+        const link = document.createElement('a');
+        link.download = `terrain-3d-2d-background-${Date.now()}.png`;
+        link.href = imageDataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('🔽 Screenshot downloaded for testing');
+    }
 
     /**
      * Updates the button text and state based on current mode
