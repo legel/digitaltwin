@@ -9,6 +9,7 @@ class View2DManager {
         this.saved3DView = null;
         this.viewSwitchButton = null;
         this.screenshotInProgress = false; // Prevent multiple screenshot captures
+        this.screenshotBounds = null; // Geographic bounds of the screenshot
     }
 
     /**
@@ -79,7 +80,20 @@ class View2DManager {
                 console.log('⏳ Camera positioned, waiting for splat quality restoration...');
                 setTimeout(() => {
                     console.log('🎯 Starting screenshot capture sequence...');
-                    this.capture2DBackgroundScreenshot();
+                    this.capture2DBackgroundScreenshot().then((screenshotData) => {
+                        console.log('🎯 Screenshot capture completed, activating Fabric canvas...');
+                        // After screenshot is captured, activate Fabric.js 2D canvas
+                        if (window.fabric2DManager) {
+                            window.fabric2DManager.activate();
+                        }
+                    }).catch((error) => {
+                        console.error('❌ Screenshot capture failed:', error);
+                        console.log('🔄 Activating Fabric canvas without background image...');
+                        // Still activate Fabric canvas even if screenshot fails
+                        if (window.fabric2DManager) {
+                            window.fabric2DManager.activate();
+                        }
+                    });
                 }, 500); // Wait for motion mode to complete
             }
         });
@@ -207,6 +221,11 @@ class View2DManager {
         }
 
         const viewer = window.map3D.viewer;
+
+        // Deactivate Fabric.js 2D canvas before switching
+        if (window.fabric2DManager) {
+            window.fabric2DManager.deactivate();
+        }
 
         // Animate back to saved 3D position
         viewer.camera.flyTo({
@@ -494,6 +513,7 @@ class View2DManager {
     /**
      * Captures a screenshot of the Cesium scene with terrain and Gaussian splats only
      * Temporarily hides UI elements and GeoJSON visualizations for clean background
+     * @returns {Promise<string>} Promise that resolves with the image data URL
      */
     async capture2DBackgroundScreenshot() {
         if (!window.map3D || !window.map3D.viewer) {
@@ -531,14 +551,24 @@ class View2DManager {
             console.log('Current preserveDrawingBuffer:', contextAttributes.preserveDrawingBuffer);
             console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
             
-            // NOW set up the postRender callback for the next render (with hidden entities)
-            let imageDataURL = null;
-            let captureCompleted = false; // Flag to ensure callback only runs once
-            
-            const captureCallback = () => {
-                if (captureCompleted) return; // Prevent multiple executions
-                captureCompleted = true;
-                console.log('📸 Render complete, capturing screenshot...');
+            // Create a promise that resolves when screenshot is actually captured
+            const screenshotPromise = new Promise((resolve, reject) => {
+                let imageDataURL = null;
+                let captureCompleted = false; // Flag to ensure callback only runs once
+                
+                // Add timeout as fallback in case postRender doesn't fire
+                const timeoutId = setTimeout(() => {
+                    if (!captureCompleted) {
+                        console.warn('⚠️ Screenshot capture timed out - postRender callback may not have fired');
+                        reject(new Error('Screenshot capture timeout'));
+                    }
+                }, 2000); // 2 second timeout
+                
+                const captureCallback = () => {
+                    if (captureCompleted) return; // Prevent multiple executions
+                    captureCompleted = true;
+                    clearTimeout(timeoutId); // Clear the timeout
+                    console.log('📸 Render complete, capturing screenshot...');
                 
                 // Try both methods and log results
                 
@@ -610,31 +640,44 @@ class View2DManager {
                     console.log('Using WebGL readPixels result');
                 }
                 
-                // Store the image data (this happens inside the callback now)
-                this.background2DImage = imageDataURL;
+                    // Store the image data (this happens inside the callback now)
+                    this.background2DImage = imageDataURL;
+                    
+                    console.log('✅ 2D background screenshot captured');
+                    
+                    // Calculate and store screenshot bounds for coordinate mapping
+                    this.calculateScreenshotBounds();
+                    
+                    // Resolve the promise with the captured image data
+                    resolve(imageDataURL);
+                };
                 
-                console.log('✅ 2D background screenshot captured');
-
-                // Download for testing (temporary) - moved inside callback
-                this.downloadScreenshotForTesting(imageDataURL);
-            };
+                // Set up callback for the NEXT render (after entities are removed)
+                console.log('🎯 Setting up postRender callback for clean screenshot...');
+                viewer.scene.postRender.addEventListener(captureCallback, { once: true });
+                
+                // NOW render with removed entities
+                console.log('🔄 Rendering scene with removed entities...');
+                viewer.render();
+            });
             
-            // Set up callback for the NEXT render (after entities are removed)
-            console.log('🎯 Setting up postRender callback for clean screenshot...');
-            viewer.scene.postRender.addEventListener(captureCallback, { once: true });
-            
-            // NOW render with removed entities
-            console.log('🔄 Rendering scene with removed entities...');
-            viewer.render();
-            
-            // Wait for the callback to complete
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Wait for the actual screenshot to complete
+            console.log('⏳ Waiting for screenshot capture to complete...');
+            let capturedImageData = null;
+            try {
+                capturedImageData = await screenshotPromise;
+            } catch (timeoutError) {
+                console.warn('⚠️ Screenshot capture failed, continuing without background image:', timeoutError.message);
+                // Continue with null image data - Fabric will use placeholder
+            }
             
             // Step 7: Restore UI elements and GeoJSON visualizations
             this.restoreUIElements(uiElements);
             this.restoreGeoJsonEntities(viewer, savedEntities);
 
-            return imageDataURL;
+            // Return the captured image data
+            console.log('📤 Screenshot method returning:', capturedImageData ? 'Image data available' : 'No image data');
+            return capturedImageData;
 
         } catch (error) {
             console.error('❌ Error capturing 2D background screenshot:', error);
@@ -757,18 +800,36 @@ class View2DManager {
     }
 
     /**
-     * Downloads screenshot for testing purposes (temporary)
-     * @param {string} imageDataURL - Base64 image data
+     * Calculates and stores the geographic bounds of the current screenshot
+     * Uses Cesium's computeViewRectangle to get exact lat/lon coordinates
      */
-    downloadScreenshotForTesting(imageDataURL) {
-        const link = document.createElement('a');
-        link.download = `terrain-3d-2d-background-${Date.now()}.png`;
-        link.href = imageDataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        console.log('🔽 Screenshot downloaded for testing');
+    calculateScreenshotBounds() {
+        if (!window.map3D || !window.map3D.viewer) {
+            console.warn('Cannot calculate screenshot bounds - no Cesium viewer available');
+            return;
+        }
+
+        const viewer = window.map3D.viewer;
+        const camera = viewer.camera;
+
+        // Get current view rectangle using Cesium's computeViewRectangle
+        const viewRectangle = camera.computeViewRectangle();
+
+        if (viewRectangle) {
+            this.screenshotBounds = {
+                west: Cesium.Math.toDegrees(viewRectangle.west),
+                east: Cesium.Math.toDegrees(viewRectangle.east),
+                south: Cesium.Math.toDegrees(viewRectangle.south),
+                north: Cesium.Math.toDegrees(viewRectangle.north)
+            };
+
+            console.log('📐 Screenshot bounds calculated:', this.screenshotBounds);
+            console.log(`   Width: ${(this.screenshotBounds.east - this.screenshotBounds.west).toFixed(6)}°`);
+            console.log(`   Height: ${(this.screenshotBounds.north - this.screenshotBounds.south).toFixed(6)}°`);
+        } else {
+            console.warn('⚠️ Could not compute view rectangle for screenshot bounds');
+            this.screenshotBounds = null;
+        }
     }
 
     /**

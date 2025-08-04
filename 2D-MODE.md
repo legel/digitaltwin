@@ -89,6 +89,52 @@ const shouldHide = (
 );
 ```
 
+### Phase 2: Fabric.js Canvas Integration ✅ COMPLETED
+
+#### Core Features Implemented
+- **Complete 3D/2D Transition**: Seamless switching between Cesium 3D and Fabric.js 2D canvas
+- **On-Demand Canvas Creation**: Canvas only created when entering 2D mode (zero impact on 3D mode)
+- **Promise-Based Screenshot System**: Reliable screenshot capture with proper async/await handling
+- **Geographic Bounds Calculation**: Uses Cesium's `computeViewRectangle()` for precise lat/lon bounds
+- **Coordinate Mapping System**: Full lat/lon to screen pixel conversion with bounds validation
+- **Clean Transitions**: Complete DOM cleanup when returning to 3D mode
+
+#### Technical Architecture
+
+**Key Files:**
+- `js/fabric2D.js` - Fabric.js 2D canvas manager (370+ lines, cleaned and optimized)
+- `js/view2D.js` - Enhanced with screenshot bounds calculation and promise-based capture
+- `app.html` - Fabric.js CDN integration
+
+**Screenshot Bounds System:**
+```javascript
+// Calculate exact geographic bounds of screenshot
+const viewRectangle = camera.computeViewRectangle();
+const bounds = {
+    west: Cesium.Math.toDegrees(viewRectangle.west),
+    east: Cesium.Math.toDegrees(viewRectangle.east),
+    south: Cesium.Math.toDegrees(viewRectangle.south),
+    north: Cesium.Math.toDegrees(viewRectangle.north)
+};
+```
+
+**Coordinate Mapping Algorithm:**
+```javascript
+// Convert lat/lon to screen pixels
+const normalizedX = (longitude - bounds.west) / (bounds.east - bounds.west);
+const normalizedY = (bounds.north - latitude) / (bounds.north - bounds.south);
+const screenX = normalizedX * canvas.width;
+const screenY = normalizedY * canvas.height;
+```
+
+#### Problem-Solving Journey
+
+1. **Initial Scrollbar Issues**: Canvas creation affected page layout
+2. **DOM Timing Problems**: Fixed by creating canvas on-demand only
+3. **Screenshot Reliability**: Moved from timeout-based to Promise-based screenshot capture
+4. **Coordinate System**: Implemented proper Y-axis flipping for screen coordinates
+5. **Bounds Validation**: Added comprehensive bounds checking for coordinate conversion
+
 ### Current Status
 
 **✅ Working Features:**
@@ -97,6 +143,10 @@ const shouldHide = (
 - Aspect ratio adaptation (desktop, mobile, any screen size)
 - **Dynamic screenshot capture of clean terrain + Gaussian splat backgrounds**
 - **Automatic GeoJSON entity hiding/restoration during screenshot**
+- **Complete 3D/2D canvas transitions with DOM cleanup**
+- **Geographic bounds calculation using Cesium's computeViewRectangle()**
+- **Lat/lon to screen pixel coordinate mapping system**
+- **Coordinate mapping validation with test dot placement**
 - Clean, production-ready code with minimal logging
 
 **🎯 Validated Results:**
@@ -105,36 +155,43 @@ const shouldHide = (
 - Buffer targeting: Constraining dimension gets ~40% buffer
 - **Screenshot capture: Successfully captures clean backgrounds without GeoJSON overlays**
 - **Entity management: All entity types (polygons, outlines, points) properly hidden/restored**
+- **Canvas transitions: Zero scrollbar issues, complete separation of 3D/2D modes**
+- **Coordinate mapping: Test dot accurately placed at first GeoJSON point location**
 - Cross-platform compatibility confirmed
 
-## Next Phase: Advanced 2D Designer
+## Next Phase: GeoJSON Polygon Rendering
 
-### Phase 2: WebGL Vertex Circles & Orthographic Projection
+### Phase 3: Full Polygon Visualization System
 
 #### Planned Features
-1. **Screen Coordinate Mapping**: Calculate pixel positions for all plantable area vertices
-2. **WebGL Vertex Visualization**: Render 5px blue circles (#072b2e) at each vertex
-3. **Perspective to Orthographic Transition**: Transform coordinates for 2D design mode
-4. **Animated Transitions**: 
-   - 1 second: Fade in vertex circles
-   - 1.5 seconds: Fade out Cesium scene to white background
-   - Animate logo change and vertex position transitions
-5. **Edge Rendering**: Connect vertices with 2px blue lines
-6. **2D Design Library Integration**: Higher-level UI framework for professional design tools
+1. **GeoJSON Polygon Rendering**: Render all plantable and non-plantable areas as Fabric.js polygons
+2. **Interactive Polygon Selection**: Click handling that integrates with existing PA/NPA selection system
+3. **Layer State Integration**: Show/hide polygons based on current layer visibility settings
+4. **Styling System**: Apply correct colors and styling based on PA/NPA type and selection state
+5. **Hover Effects**: Visual feedback when hovering over polygons
+6. **Focus Panel Integration**: Connect polygon clicks to existing focus panel system
 
-#### Technical Todos
+#### Technical Foundation ✅ READY
+
+**Completed Infrastructure:**
+- ✅ Coordinate mapping system (lat/lon to screen pixels)
+- ✅ Geographic bounds calculation from Cesium camera
+- ✅ Canvas transition system (3D ↔ 2D)
+- ✅ Screenshot background integration
+- ✅ Test dot validation system
 
 **Immediate Next Steps:**
-- [ ] Implement screen coordinate calculation for polygon vertices
-- [ ] Set up WebGL rendering system for vertex circles
-- [ ] Create perspective-to-orthographic coordinate transformation
-- [ ] Design smooth transition animations between 3D and 2D modes
+- [ ] Implement polygon rendering using existing coordinate mapping
+- [ ] Add click event handlers that integrate with existing PA selection system
+- [ ] Apply layer state styling (show/hide based on current layer visibility)
+- [ ] Connect to existing focus panel and UI synchronization
+- [ ] Add hover effects and visual feedback
 
-**Architecture Decisions Needed:**
-- [ ] Choose 2D UI/UX library (Canvas, SVG, WebGL framework)
-- [ ] Define 2D design tool requirements with landscape architects
-- [ ] Plan integration with plantable areas data structure
-- [ ] Design state management for 2D/3D mode persistence
+**Ready-to-Use Components:**
+- `latLonToScreenPixel()` - Convert any GeoJSON coordinate to screen position
+- `window.view2DManager.screenshotBounds` - Exact geographic bounds of current view
+- Existing PA/NPA parsing and categorization from utilities.js
+- Existing layer state management from layerControls.js
 
 ### Phase 3: Design Tools & User Experience
 
