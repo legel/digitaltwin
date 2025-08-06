@@ -67,6 +67,8 @@ class Fabric2DManager {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         
+        console.log(`📐 Preparing canvas for viewport: ${viewportWidth}x${viewportHeight}`);
+        
         // Initialize Fabric.js canvas with performance optimizations
         this.fabricCanvas = new fabric.Canvas('fabric2DCanvas', {
             width: viewportWidth,
@@ -87,19 +89,34 @@ class Fabric2DManager {
             stopContextMenu: false, // Allow context menu
             imageSmoothingEnabled: false, // Disable smoothing for crisp edges
             // Performance optimizations
-            backgroundColor: '#072b2e', // Ecodash blue background around splat boundaries
+            backgroundColor: '#000000', // Black background for blue logo visibility
             controlsAboveOverlay: false,
             centeredScaling: false,
             centeredRotation: false
         });
         
-        console.log(`📐 Canvas sized to viewport: ${viewportWidth}x${viewportHeight}`);
+        // CRITICAL: Force canvas to exact viewport dimensions using Fabric's API
+        this.fabricCanvas.setDimensions({
+            width: viewportWidth,
+            height: viewportHeight
+        });
+        
+        // Also set the wrapper element size
+        const canvasContainer = this.fabricCanvas.getElement().parentNode;
+        if (canvasContainer) {
+            canvasContainer.style.width = viewportWidth + 'px';
+            canvasContainer.style.height = viewportHeight + 'px';
+        }
+        
+        console.log(`📐 Canvas forced to viewport: ${viewportWidth}x${viewportHeight}`);
         
         // Handle window resize to keep canvas full-screen
         window.addEventListener('resize', () => {
             if (this.fabricCanvas) {
                 const newWidth = window.innerWidth;
                 const newHeight = window.innerHeight;
+                
+                // Use only Fabric's proper dimension setting method
                 this.fabricCanvas.setDimensions({
                     width: newWidth,
                     height: newHeight
@@ -122,6 +139,13 @@ class Fabric2DManager {
                 upperCanvas.style.pointerEvents = 'auto';
                 console.log('🔧 Upper canvas pointer events enabled');
             }
+            
+            // Force dimensions one more time after Fabric.js finishes initializing
+            this.fabricCanvas.setDimensions({
+                width: viewportWidth,
+                height: viewportHeight
+            });
+            console.log(`🔧 Final dimension enforcement: ${viewportWidth}x${viewportHeight}`);
         }, 100);
 
         // Set up event handlers
@@ -494,25 +518,11 @@ class Fabric2DManager {
             startY = null;
         });
         
-        // Add method to reset zoom and pan (Fabric.js native approach)
+        // Add method to reset zoom and pan (Fabric.js native approach) - kept for debugging
         this.resetViewport = () => {
             this.fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
             this.fabricCanvas.setZoom(1);
             console.log('🔄 Reset viewport to default');
-        };
-        
-        // Add method to fit background to screen (screenshot already fits perfectly)
-        this.fitToScreen = () => {
-            // Reset to 100% zoom (screenshot fits canvas) with no offset
-            this.fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-            this.fabricCanvas.setZoom(1);
-            
-            // Update object coordinates
-            this.fabricCanvas.forEachObject((obj) => {
-                obj.setCoords();
-            });
-            
-            console.log('🎯 Reset to perfect fit (100% zoom, no offset)');
         };
         
         // No clamping functions needed - allow free pan and zoom
@@ -749,7 +759,7 @@ class Fabric2DManager {
         // STEP 2: Get dimensions BEFORE hiding Cesium
         this.updateCanvasDimensions();
 
-        // STEP 3: Hide Cesium container
+        // STEP 3: Hide Cesium container (keep control panel visible)
         const cesiumContainer = document.getElementById('cesiumContainer');
         if (cesiumContainer) {
             cesiumContainer.style.display = 'none';
@@ -770,19 +780,16 @@ class Fabric2DManager {
         // STEP 6: Set background image from screenshot if available
         this.setBackgroundImage();
         
-        // STEP 6.5: Ensure Ecodash blue background is set (shows when panning/zooming out)
+        // STEP 6.5: Ensure black background is set (shows when panning/zooming out)
         setTimeout(() => {
-            this.fabricCanvas.setBackgroundColor('#072b2e', () => {
-                console.log('🎨 Ecodash blue background color applied after image load');
+            this.fabricCanvas.setBackgroundColor('#000000', () => {
+                console.log('🎨 Black background color applied after image load');
                 this.fabricCanvas.renderAll();
             });
         }, 100); // Small delay to ensure background image is loaded first
 
         // STEP 7: Render GeoJSON polygons on canvas
         this.renderGeoJsonPolygons();
-        
-        // STEP 8: Center the splat on screen with proper viewport bounds
-        this.fitToScreen();
 
         this.isActive = true;
         console.log('🎯 2D Fabric canvas mode activated successfully!');
@@ -921,7 +928,7 @@ class Fabric2DManager {
     }
 
     /**
-     * Sets the background image from the screenshot capture system
+     * Sets the background image from the screenshot capture system with perfect alignment
      */
     setBackgroundImage() {
         if (!this.fabricCanvas) return;
@@ -940,33 +947,240 @@ class Fabric2DManager {
                 const imgWidth = img.width;
                 const imgHeight = img.height;
                 
-                // Calculate scale factors to make screenshot fit canvas exactly
-                const scaleX = canvasWidth / imgWidth;
-                const scaleY = canvasHeight / imgHeight;
-                
                 console.log(`📐 Image dimensions: ${imgWidth}x${imgHeight}`);
                 console.log(`📐 Canvas dimensions: ${canvasWidth}x${canvasHeight}`);
-                console.log(`📏 Scale factors: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}`);
                 
-                this.fabricCanvas.setBackgroundImage(backgroundImage, 
-                    () => {
-                        // Ensure Ecodash blue background color using recommended method
-                        this.fabricCanvas.setBackgroundColor('#072b2e', this.fabricCanvas.renderAll.bind(this.fabricCanvas));
-                        console.log('✅ 2D background image set with Ecodash blue background');
-                    }, {
-                        scaleX: scaleX,
-                        scaleY: scaleY,
-                        originX: 'left',
-                        originY: 'top'
-                    });
+                // CRITICAL FIX: Ensure screenshot fills canvas exactly with no scaling distortion
+                // The screenshot should map 1:1 to screen coordinates for perfect alignment
+                
+                // Method 1: If screenshot size matches canvas size exactly
+                if (imgWidth === canvasWidth && imgHeight === canvasHeight) {
+                    console.log('🎯 Perfect size match - using 1:1 scaling');
+                    this.fabricCanvas.setBackgroundImage(backgroundImage, 
+                        () => {
+                            this.fabricCanvas.setBackgroundColor('#000000', this.fabricCanvas.renderAll.bind(this.fabricCanvas));
+                            console.log('✅ 2D background image set with perfect 1:1 alignment');
+                            // Ensure proper viewport alignment after image is loaded
+                            setTimeout(() => {
+                                this.alignViewportToScreenshot();
+                                this.debugViewportAlignment();
+                            }, 50);
+                        }, {
+                            scaleX: 1,
+                            scaleY: 1,
+                            originX: 'left',
+                            originY: 'top'
+                        });
+                } else {
+                    // Method 2: Force screenshot to fit canvas exactly (may cause slight distortion but ensures alignment)
+                    const scaleX = canvasWidth / imgWidth;
+                    const scaleY = canvasHeight / imgHeight;
+                    
+                    console.log(`📏 Forcing perfect fit - Scale factors: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}`);
+                    console.log('⚠️ This may cause slight distortion but ensures coordinate alignment');
+                    
+                    this.fabricCanvas.setBackgroundImage(backgroundImage, 
+                        () => {
+                            this.fabricCanvas.setBackgroundColor('#000000', this.fabricCanvas.renderAll.bind(this.fabricCanvas));
+                            console.log('✅ 2D background image set with forced perfect alignment');
+                            // Ensure proper viewport alignment after image is loaded
+                            setTimeout(() => {
+                                this.alignViewportToScreenshot();
+                                this.debugViewportAlignment();
+                            }, 50);
+                        }, {
+                            scaleX: scaleX,
+                            scaleY: scaleY,
+                            originX: 'left',
+                            originY: 'top'
+                        });
+                }
             };
             img.src = backgroundImage;
         } else {
             console.warn('⚠️ No valid background image available - using placeholder color');
             console.warn('   Background image data:', backgroundImage ? `${backgroundImage.length} chars` : 'null/undefined');
-            // Set Ecodash blue background color using recommended method
-            this.fabricCanvas.setBackgroundColor('#072b2e', this.fabricCanvas.renderAll.bind(this.fabricCanvas));
+            // Set black background color using recommended method
+            this.fabricCanvas.setBackgroundColor('#000000', this.fabricCanvas.renderAll.bind(this.fabricCanvas));
         }
+    }
+
+    /**
+     * Gets the current visible bounds of the canvas in canvas coordinates
+     * @returns {Object} {left, top, right, bottom} in canvas coordinate space
+     */
+    getCurrentViewportBounds() {
+        if (!this.fabricCanvas) return null;
+        
+        const vpt = this.fabricCanvas.viewportTransform;
+        const zoom = this.fabricCanvas.getZoom();
+        
+        // Screen corners in canvas coordinates
+        const left = -vpt[4] / zoom;
+        const top = -vpt[5] / zoom;
+        const right = left + (this.fabricCanvas.width / zoom);
+        const bottom = top + (this.fabricCanvas.height / zoom);
+        
+        return { left, top, right, bottom };
+    }
+
+    /**
+     * Gets the canvas coordinates where the screenshot corners are positioned
+     * Based on the screenshot's geographic bounds and current coordinate mapping
+     * @returns {Object} {left, top, right, bottom} in canvas coordinate space
+     */
+    getScreenshotCanvasBounds() {
+        const bounds = window.view2DManager?.screenshotBounds;
+        if (!bounds || !this.fabricCanvas) {
+            console.warn('Cannot get screenshot bounds - no bounds available');
+            return null;
+        }
+        
+        // Convert screenshot geographic bounds to canvas coordinates using existing mapping
+        const topLeft = this.latLonToScreenPixel(bounds.west, bounds.north);
+        const bottomRight = this.latLonToScreenPixel(bounds.east, bounds.south);
+        
+        if (!topLeft || !bottomRight) {
+            console.warn('Cannot convert screenshot bounds to canvas coordinates');
+            return null;
+        }
+        
+        const canvasBounds = {
+            left: topLeft.x,
+            top: topLeft.y, 
+            right: bottomRight.x,
+            bottom: bottomRight.y
+        };
+        
+        console.log(`📐 Screenshot canvas bounds: ${canvasBounds.left.toFixed(1)},${canvasBounds.top.toFixed(1)} to ${canvasBounds.right.toFixed(1)},${canvasBounds.bottom.toFixed(1)}`);
+        return canvasBounds;
+    }
+
+    /**
+     * Aligns viewport so that screenshot bounds match screen bounds perfectly
+     */
+    alignViewportToScreenshot() {
+        if (!this.fabricCanvas) return;
+        
+        const screenshotCanvasBounds = this.getScreenshotCanvasBounds();
+        
+        if (!screenshotCanvasBounds) {
+            console.warn('Cannot align viewport - missing screenshot bounds');
+            return;
+        }
+        
+        console.log('🎯 Screenshot bounds in canvas coordinates:', screenshotCanvasBounds);
+        
+        // We want the screenshot to fill the screen exactly
+        // So screenshot canvas bounds should map to screen bounds (0,0) to (width,height)
+        const screenWidth = this.fabricCanvas.width;
+        const screenHeight = this.fabricCanvas.height;
+        
+        const screenshotWidth = screenshotCanvasBounds.right - screenshotCanvasBounds.left;
+        const screenshotHeight = screenshotCanvasBounds.bottom - screenshotCanvasBounds.top;
+        
+        // Calculate zoom needed to make screenshot fit screen exactly
+        const zoomX = screenWidth / screenshotWidth;
+        const zoomY = screenHeight / screenshotHeight;
+        const zoom = Math.min(zoomX, zoomY); // Use smaller zoom to fit entirely
+        
+        // Calculate pan needed to position screenshot at screen origin
+        // We want screenshot's left,top to be at screen's 0,0
+        const panX = -screenshotCanvasBounds.left * zoom;
+        const panY = -screenshotCanvasBounds.top * zoom;
+        
+        console.log(`🎯 Screen size: ${screenWidth}x${screenHeight}`);
+        console.log(`🎯 Screenshot size in canvas: ${screenshotWidth.toFixed(1)}x${screenshotHeight.toFixed(1)}`);
+        console.log(`🎯 Calculated zoom: ${zoom.toFixed(3)}`);
+        console.log(`🎯 Calculated pan: (${panX.toFixed(1)}, ${panY.toFixed(1)})`);
+        
+        // Apply the transformation
+        this.fabricCanvas.setViewportTransform([zoom, 0, 0, zoom, panX, panY]);
+        
+        // Update all object coordinates
+        this.fabricCanvas.forEachObject((obj) => {
+            obj.setCoords();
+        });
+        
+        // Verify the result
+        const newViewportBounds = this.getCurrentViewportBounds();
+        console.log('✅ New viewport bounds after alignment:', newViewportBounds);
+        console.log(`✅ Alignment complete - screenshot should now fill screen from (0,0) to (${screenWidth},${screenHeight})`);
+        
+        // Calculate proper zoom based on content density  
+        // The screenshot bounds span suggests we need to zoom out more to see the full context
+        const screenshotBounds = window.view2DManager?.screenshotBounds;
+        if (!screenshotBounds) {
+            console.warn('No screenshot bounds available for zoom calculation');
+            return;
+        }
+        
+        const boundsSpanDegrees = (screenshotBounds.east - screenshotBounds.west) * (screenshotBounds.north - screenshotBounds.south);
+        console.log(`📏 Screenshot bounds area: ${boundsSpanDegrees.toFixed(8)} square degrees`);
+        
+        // The screenshot shows we need to ZOOM IN to fill the screen
+        // At 50% zoom, there's black space - so we need MORE than 100% zoom
+        
+        // Get the actual screenshot image dimensions vs canvas dimensions to calculate needed zoom
+        const backgroundImage = window.view2DManager?.background2DImage;
+        if (backgroundImage) {
+            const img = new Image();
+            img.onload = () => {
+                const imageWidth = img.width;
+                const imageHeight = img.height;
+                const canvasWidth = this.fabricCanvas.width;
+                const canvasHeight = this.fabricCanvas.height;
+                
+                // Calculate zoom needed to make screenshot fill entire screen
+                const zoomX = canvasWidth / imageWidth;
+                const zoomY = canvasHeight / imageHeight;
+                const fillScreenZoom = Math.max(zoomX, zoomY); // Use larger zoom to fill completely
+                
+                console.log(`📏 Screenshot image: ${imageWidth}x${imageHeight}`);
+                console.log(`📏 Canvas: ${canvasWidth}x${canvasHeight}`);
+                console.log(`🔧 Zoom needed to fill screen: ${fillScreenZoom.toFixed(3)}`);
+                
+                this.fabricCanvas.setZoom(fillScreenZoom);
+                this.fabricCanvas.renderAll();
+            };
+            img.src = backgroundImage;
+        } else {
+            console.log(`🔧 No background image available, keeping calculated zoom: ${zoom.toFixed(3)}`);
+        }
+        
+        this.fabricCanvas.renderAll();
+    }
+
+
+    /**
+     * Debug method to verify viewport alignment
+     */
+    debugViewportAlignment() {
+        if (!this.fabricCanvas) return;
+        
+        const currentViewport = this.getCurrentViewportBounds();
+        const screenshotBounds = this.getScreenshotCanvasBounds();
+        const screenSize = { width: this.fabricCanvas.width, height: this.fabricCanvas.height };
+        
+        console.log('🔍 VIEWPORT ALIGNMENT DEBUG:');
+        console.log('  Current viewport bounds:', currentViewport);
+        console.log('  Screenshot canvas bounds:', screenshotBounds);
+        console.log('  Screen size:', screenSize);
+        
+        if (currentViewport && screenshotBounds) {
+            console.log('  Viewport size:', {
+                width: currentViewport.right - currentViewport.left,
+                height: currentViewport.bottom - currentViewport.top
+            });
+            console.log('  Screenshot size in canvas:', {
+                width: screenshotBounds.right - screenshotBounds.left,
+                height: screenshotBounds.bottom - screenshotBounds.top
+            });
+        }
+        
+        const vpt = this.fabricCanvas.viewportTransform;
+        console.log('  ViewportTransform:', vpt);
+        console.log('  Zoom:', this.fabricCanvas.getZoom());
     }
 
 
@@ -1254,6 +1468,7 @@ class Fabric2DManager {
 
     /**
      * Converts geographic coordinates (lat/lon) to screen pixel coordinates
+     * Uses the exact same bounds as the screenshot for perfect alignment
      * @param {number} longitude - Longitude in degrees
      * @param {number} latitude - Latitude in degrees
      * @returns {Object|null} - {x, y} screen coordinates or null if outside bounds
@@ -1265,18 +1480,31 @@ class Fabric2DManager {
             return null;
         }
 
+        // DEBUG: Log bounds on first few conversions to diagnose polygon positioning
+        if (!this._boundsLogged) {
+            console.log('🗺️ Using screenshot bounds for polygon conversion:', bounds);
+            console.log(`   Bounds span: ${(bounds.east - bounds.west).toFixed(6)}° x ${(bounds.north - bounds.south).toFixed(6)}°`);
+            this._boundsLogged = true;
+        }
+
         // Check if point is within screenshot bounds
         if (longitude < bounds.west || longitude > bounds.east ||
             latitude < bounds.south || latitude > bounds.north) {
-            console.warn(`Point (${longitude}, ${latitude}) is outside screenshot bounds:`, bounds);
+            // DEBUG: Log points that are outside bounds
+            if (!this._outsideBoundsLogged) {
+                console.log(`⚠️ Point outside bounds: ${longitude.toFixed(6)}, ${latitude.toFixed(6)}`);
+                console.log(`   Bounds: ${bounds.west.toFixed(6)} to ${bounds.east.toFixed(6)}, ${bounds.south.toFixed(6)} to ${bounds.north.toFixed(6)}`);
+                this._outsideBoundsLogged = true;
+            }
             return null;
         }
 
-        // Convert to normalized coordinates (0-1)
+        // CRITICAL: Convert to normalized coordinates (0-1) using EXACT same bounds as screenshot
         const normalizedX = (longitude - bounds.west) / (bounds.east - bounds.west);
         const normalizedY = (bounds.north - latitude) / (bounds.north - bounds.south); // Flip Y for screen coordinates
 
-        // Convert to screen pixels
+        // CRITICAL: Convert to screen pixels using EXACT canvas dimensions
+        // This ensures 1:1 correspondence with screenshot pixels
         const screenX = normalizedX * this.fabricCanvas.width;
         const screenY = normalizedY * this.fabricCanvas.height;
 

@@ -76,25 +76,44 @@ class View2DManager {
                 this.is2DMode = true;
                 this.updateButtonState();
                 
-                // Wait for Gaussian splat quality to restore, THEN capture screenshot
+                // Wait for Gaussian splat quality to restore, THEN start sophisticated transition
                 console.log('⏳ Camera positioned, waiting for splat quality restoration...');
                 setTimeout(() => {
-                    console.log('🎯 Starting screenshot capture sequence...');
-                    this.capture2DBackgroundScreenshot().then((screenshotData) => {
-                        console.log('🎯 Screenshot capture completed, activating Fabric canvas...');
-                        // After screenshot is captured, activate Fabric.js 2D canvas
-                        if (window.fabric2DManager) {
-                            window.fabric2DManager.activate();
-                        }
-                    }).catch((error) => {
-                        console.error('❌ Screenshot capture failed:', error);
-                        console.log('🔄 Activating Fabric canvas without background image...');
-                        // Still activate Fabric canvas even if screenshot fails
-                        if (window.fabric2DManager) {
-                            window.fabric2DManager.activate();
-                        }
-                    });
+                    console.log('🎬 Starting sophisticated transition animation...');
+                    
+                    // Initialize transition animation manager if not already done
+                    if (window.transitionAnimationManager) {
+                        window.transitionAnimationManager.initialize();
+                        
+                        // Start the sophisticated transition animation sequence
+                        window.transitionAnimationManager.startTransition();
+                    } else {
+                        // Fallback to simple transition if animation manager not available
+                        console.warn('⚠️ TransitionAnimationManager not available, falling back to simple transition');
+                        this.fallbackSimpleTransition();
+                    }
                 }, 500); // Wait for motion mode to complete
+            }
+        });
+    }
+
+    /**
+     * Fallback to simple transition if animation manager not available
+     */
+    fallbackSimpleTransition() {
+        console.log('🎯 Starting fallback simple transition...');
+        this.capture2DBackgroundScreenshot().then((screenshotData) => {
+            console.log('🎯 Screenshot capture completed, activating Fabric canvas...');
+            // After screenshot is captured, activate Fabric.js 2D canvas
+            if (window.fabric2DManager) {
+                window.fabric2DManager.activate();
+            }
+        }).catch((error) => {
+            console.error('❌ Screenshot capture failed:', error);
+            console.log('🔄 Activating Fabric canvas without background image...');
+            // Still activate Fabric canvas even if screenshot fails
+            if (window.fabric2DManager) {
+                window.fabric2DManager.activate();
             }
         });
     }
@@ -222,10 +241,17 @@ class View2DManager {
 
         const viewer = window.map3D.viewer;
 
-        // Deactivate Fabric.js 2D canvas before switching
+        // Clean up transition animation and deactivate Fabric.js 2D canvas before switching
+        if (window.transitionAnimationManager) {
+            window.transitionAnimationManager.cleanupFor3D();
+        }
+        
         if (window.fabric2DManager) {
             window.fabric2DManager.deactivate();
         }
+
+        // Change logo back to white version for 3D mode
+        this.restoreLogoFor3DMode();
 
         // Animate back to saved 3D position
         viewer.camera.flyTo({
@@ -829,6 +855,32 @@ class View2DManager {
         } else {
             console.warn('⚠️ Could not compute view rectangle for screenshot bounds');
             this.screenshotBounds = null;
+        }
+    }
+
+    /**
+     * Changes logo back to white version when returning to 3D mode
+     */
+    restoreLogoFor3DMode() {
+        const logo = document.querySelector('#logo, #ecodashLogo, .ecodash-logo, [src*="logo"], [src*="ecodash"]');
+        if (logo) {
+            const currentSrc = logo.src;
+            // Change to white logo version if it's currently blue
+            if (currentSrc.includes('ecodash.webp') || !currentSrc.includes('white')) {
+                const whiteLogoSrc = '/images/ecodash_white_cropped.webp';
+                
+                console.log('🎨 Changing logo back to white version for 3D mode...');
+                logo.style.transition = 'opacity 0.3s ease-in-out';
+                logo.style.opacity = '0';
+                
+                setTimeout(() => {
+                    logo.src = whiteLogoSrc;
+                    logo.style.opacity = '1';
+                    console.log('✅ Logo changed to white version');
+                }, 150); // Half of transition time
+            }
+        } else {
+            console.warn('⚠️ Logo element not found for 3D mode restoration');
         }
     }
 
