@@ -841,6 +841,11 @@ function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
     
     // Call the original visualization function
     window.visualizeGeoJsonPolygons(geoJsonData);
+    
+    // Update 2D canvas if in 2D mode
+    if (window.fabric2DManager && window.fabric2DManager.isActive) {
+        window.fabric2DManager.updatePolygonVisibility();
+    }
 }
 
 /**

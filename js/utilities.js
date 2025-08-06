@@ -630,6 +630,7 @@ function createColorLegend(paramType, minVal, maxVal) {
         align-items: center;
         gap: 15px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        z-index: 1000;
     `;
     
     // Create gradient bar

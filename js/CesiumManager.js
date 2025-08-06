@@ -945,6 +945,12 @@ class CesiumManager {
         const improveQuality = () => {
             if (!isIdle || currentQualityLevel >= maxQualityLevel) return;
             
+            // Don't run performance optimizations when in 2D mode
+            if (window.fabric2DManager && window.fabric2DManager.isActive) {
+                console.log('🚫 Skipping Cesium quality improvements - in 2D mode');
+                return;
+            }
+            
             currentQualityLevel++;
             const level = qualityLevels[currentQualityLevel];
             
