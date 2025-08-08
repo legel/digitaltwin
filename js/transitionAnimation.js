@@ -296,12 +296,12 @@ class TransitionAnimationManager {
         console.log('🎬 Phase 5: Waiting for screenshot completion...');
         try {
             await this.screenshotPromise;
-            console.log('🎬 Screenshot ready, starting Fabric activation...');
+            console.log('🎬 Screenshot ready, starting Two.js activation...');
             
-            // Activate Fabric canvas first (this includes viewport adjustments)
-            this.activateFabricCanvas();
+            // Activate Two.js canvas first (this includes viewport adjustments)
+            this.activateTwoJsCanvas();
             
-            // Phase 6: After Fabric is ready, fade out white overlay and vertex circles
+            // Phase 6: After Two.js is ready, fade out white overlay and vertex circles
             console.log('🎬 Phase 6: Fading out white overlay and vertex circles...');
             
             // Check if elements still exist before trying to fade them
@@ -320,8 +320,8 @@ class TransitionAnimationManager {
             // Now clean up the animation elements
             this.cleanup();
         } catch (error) {
-            console.error('❌ Screenshot failed, activating Fabric without background:', error);
-            this.activateFabricCanvas();
+            console.error('❌ Screenshot failed, activating Two.js without background:', error);
+            this.activateTwoJsCanvas();
             // Still clean up even if screenshot failed
             this.cleanup();
         }
@@ -353,17 +353,17 @@ class TransitionAnimationManager {
     }
 
     /**
-     * Activates Fabric canvas (without cleanup - that happens separately)
+     * Activates Two.js canvas (without cleanup - that happens separately)
      */
-    activateFabricCanvas() {
-        console.log('🎬 Activating Fabric canvas...');
+    activateTwoJsCanvas() {
+        console.log('🎬 Activating Two.js canvas...');
         
-        // Ensure logo visibility in Fabric mode
+        // Ensure logo visibility in Two.js mode
         this.ensureLogoVisibility();
         
-        // Activate Fabric.js 2D canvas
-        if (window.fabric2DManager) {
-            window.fabric2DManager.activate();
+        // Activate Two.js 2D canvas
+        if (window.two2DManager) {
+            window.two2DManager.activate();
         }
         
         // Note: Cleanup happens separately after fade out completes

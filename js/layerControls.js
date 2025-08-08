@@ -843,8 +843,8 @@ function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
     window.visualizeGeoJsonPolygons(geoJsonData);
     
     // Update 2D canvas if in 2D mode
-    if (window.fabric2DManager && window.fabric2DManager.isActive) {
-        window.fabric2DManager.updatePolygonVisibility();
+    if (window.two2DManager && window.two2DManager.isActive) {
+        window.two2DManager.updatePolygonVisibility();
     }
 }
 

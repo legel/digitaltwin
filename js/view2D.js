@@ -103,17 +103,17 @@ class View2DManager {
     fallbackSimpleTransition() {
         console.log('🎯 Starting fallback simple transition...');
         this.capture2DBackgroundScreenshot().then((screenshotData) => {
-            console.log('🎯 Screenshot capture completed, activating Fabric canvas...');
-            // After screenshot is captured, activate Fabric.js 2D canvas
-            if (window.fabric2DManager) {
-                window.fabric2DManager.activate();
+            console.log('🎯 Screenshot capture completed, activating Two.js canvas...');
+            // After screenshot is captured, activate Two.js 2D canvas
+            if (window.two2DManager) {
+                window.two2DManager.activate();
             }
         }).catch((error) => {
             console.error('❌ Screenshot capture failed:', error);
-            console.log('🔄 Activating Fabric canvas without background image...');
-            // Still activate Fabric canvas even if screenshot fails
-            if (window.fabric2DManager) {
-                window.fabric2DManager.activate();
+            console.log('🔄 Activating Two.js canvas without background image...');
+            // Still activate Two.js canvas even if screenshot fails
+            if (window.two2DManager) {
+                window.two2DManager.activate();
             }
         });
     }
@@ -241,13 +241,13 @@ class View2DManager {
 
         const viewer = window.map3D.viewer;
 
-        // Clean up transition animation and deactivate Fabric.js 2D canvas before switching
+        // Clean up transition animation and deactivate Two.js 2D canvas before switching
         if (window.transitionAnimationManager) {
             window.transitionAnimationManager.cleanupFor3D();
         }
         
-        if (window.fabric2DManager) {
-            window.fabric2DManager.deactivate();
+        if (window.two2DManager) {
+            window.two2DManager.deactivate();
         }
 
         // Change logo back to white version for 3D mode
