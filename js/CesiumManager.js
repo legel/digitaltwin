@@ -946,7 +946,7 @@ class CesiumManager {
             if (!isIdle || currentQualityLevel >= maxQualityLevel) return;
             
             // Don't run performance optimizations when in 2D mode
-            if (window.fabric2DManager && window.fabric2DManager.isActive) {
+            if (window.two2DManager && window.two2DManager.isActive) {
                 console.log('🚫 Skipping Cesium quality improvements - in 2D mode');
                 return;
             }
