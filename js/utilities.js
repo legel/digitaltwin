@@ -886,6 +886,11 @@ async function initializeSiteSelector() {
             });
             
             navigateToSite(bounds);
+            
+            // Dispatch site changed event for other managers
+            document.dispatchEvent(new CustomEvent('siteChanged', { 
+                detail: { siteId: this.value } 
+            }));
         } else {
             // Hide parameter filter when no site selected
             toggleParameterFilter('legacy');
@@ -897,6 +902,11 @@ async function initializeSiteSelector() {
             if (window.gaussianSplatManager) {
                 window.gaussianSplatManager.unloadAllSplats();
             }
+            
+            // Dispatch site changed event for other managers
+            document.dispatchEvent(new CustomEvent('siteChanged', { 
+                detail: { siteId: null } 
+            }));
         }
     });
 }
@@ -1972,6 +1982,160 @@ function navigateToSite(bounds, visualize = true) {
 }
 
 /**
+ * Initializes SuperSplat/Lab mode first instead of Cesium mode
+ */
+async function initializeLabModeFirst() {
+    console.log('🎨 Initializing Lab mode first...');
+    
+    // Load minimal site data (needed for SuperSplat)
+    await initializeSiteDataForLabMode();
+    
+    // Wait for SuperSplat manager to be available
+    let attempts = 0;
+    const maxAttempts = 20; // 2 seconds max wait
+    while (!window.superSplatManager && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+    
+    // Initialize SuperSplat manager and activate Lab mode
+    if (window.superSplatManager) {
+        console.log('✅ SuperSplat manager found, activating Lab mode...');
+        
+        // Show SuperSplat container
+        const superSplatContainer = document.getElementById('superSplatContainer');
+        if (superSplatContainer) {
+            superSplatContainer.style.display = 'block';
+            
+            // Load SuperSplat editor with default site (scott-boyd-residence has splat file)
+            window.superSplatManager.loadSuperSplatEditor('scott-boyd-residence');
+            window.superSplatManager.isSuperSplatMode = true;
+            window.superSplatManager.updateButtonStates();
+            
+            // Complete loading screen since we're starting in Lab mode (not waiting for Gaussian splat)
+            if (window.independentLoadingState) {
+                // Small delay to show some loading progress
+                setTimeout(() => {
+                    console.log('🎬 Lab mode loaded - completing loading screen');
+                    window.independentLoadingState.complete();
+                }, 2000);
+            }
+        }
+    } else {
+        console.error('⚠️ SuperSplat manager not available after waiting');
+        // Complete loading anyway to prevent stuck screen
+        if (window.independentLoadingState) {
+            window.independentLoadingState.complete();
+        }
+    }
+    
+    console.log('✅ Lab mode initialization complete');
+}
+
+/**
+ * Initializes site selector for Lab mode (UI setup without Cesium dependencies)
+ */
+async function initializeSiteDataForLabMode() {
+    try {
+        const siteDropdown = document.getElementById('siteDropdown');
+        if (!siteDropdown) {
+            console.error('Site dropdown not found');
+            return null;
+        }
+        
+        const sites = await loadSiteData();
+        
+        // Populate dropdown UI (same as initializeSiteSelector)
+        sites.forEach(site => {
+            const option = document.createElement('option');
+            option.value = site.filename;
+            option.textContent = site.name;
+            option.dataset.bounds = JSON.stringify(site.bounds);
+            siteDropdown.appendChild(option);
+        });
+        
+        // Set default selection to Winter Garden Residence
+        const winterGardenOption = Array.from(siteDropdown.options).find(option => 
+            option.textContent === 'Winter Garden Residence'
+        );
+        if (winterGardenOption) {
+            siteDropdown.value = winterGardenOption.value;
+            
+            const winterGardenSite = sites.find(site => site.filename === winterGardenOption.value);
+            if (winterGardenSite) {
+                // Store the site data globally
+                window.currentSiteData = winterGardenSite.geoJson;
+                
+                // Initialize layer state (needed for when switching to Cesium mode)
+                window.layerState = {
+                    showPlantableAreas: true,
+                    showEcologicalMetrics: false,
+                    selectedMetric: null,
+                    showNonPlantableAreas: false,
+                    selectedPA: null,
+                    selectedNPA: null,
+                    npaCategories: new Map(),
+                    paCategories: new Map(),
+                    categorizedPAs: new Map()
+                };
+                
+                console.log('✅ Site data and UI loaded for Lab mode');
+            }
+        }
+        
+        // Add event listener for site selection (needed for proper site switching)
+        siteDropdown.addEventListener('change', function() {
+            if (this.value) {
+                const selectedOption = this.options[this.selectedIndex];
+                const bounds = JSON.parse(selectedOption.dataset.bounds);
+                
+                // Reset height offset for new site
+                window.currentHeightOffset = undefined;
+                window.lastHeightOffset = undefined;
+                console.log('Height offset reset for new site selection');
+                
+                // Find the selected site and load it
+                loadSiteData().then(sites => {
+                    const selectedSite = sites.find(site => site.filename === this.value);
+                    if (selectedSite) {
+                        window.currentSiteData = selectedSite.geoJson;
+                        console.log(`Site switched to: ${selectedSite.name}`);
+                        
+                        // If in Cesium mode, trigger full site loading
+                        if (window.map3D && (!window.superSplatManager || !window.superSplatManager.isSuperSplatMode)) {
+                            // Navigate to site and trigger visualization
+                            navigateToSite(bounds, false);
+                            
+                            // Initialize layer controls
+                            if (window.initializeLayerControls) {
+                                window.initializeLayerControls();
+                            }
+                            
+                            // Trigger visualization
+                            if (window.visualizeGeoJsonPolygonsWithLayers) {
+                                window.visualizeGeoJsonPolygonsWithLayers(selectedSite.geoJson);
+                            }
+                            
+                            // Auto-load Gaussian Splat if available
+                            if (window.gaussianSplatManager && this.value === 'Boyd_Residence_Aerial_and_Ground.geojson') {
+                                setTimeout(() => {
+                                    window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+                                }, 100);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        
+        return sites;
+    } catch (error) {
+        console.error('Error loading site data for Lab mode:', error);
+        return null;
+    }
+}
+
+/**
  * Initializes all the required systems and sets them on the window object.
  * This includes the CesiumManager and UserManager.
  */
@@ -1981,8 +2145,17 @@ async function allSystemsGo() {
         // window.independentLoadingState.updateMessage('Initializing ecosystem simulation...', 3000);
     }
     
-    // Instantiate the CesiumManager - this starts Cesium rendering immediately
+    // NEW: Start with SuperSplat/Lab mode instead of Cesium
+    await initializeLabModeFirst();
+    
+    // Instantiate the CesiumManager in background (but don't show it)
     window.map3D = new CesiumManager('cesiumContainer');
+    
+    // Hide Cesium container initially since we're starting in Lab mode
+    const cesiumContainer = document.getElementById('cesiumContainer');
+    if (cesiumContainer) {
+        cesiumContainer.style.display = 'none';
+    }
 
     // Message cycling will be set up independently in main.js
     
@@ -2117,11 +2290,20 @@ async function allSystemsGo() {
         // window.independentLoadingState.updateMessage('Simulating hummingbird flight paths...', 4000);
     }
     
-    // Then initialize the site selector which will trigger the default site load
-    await initializeSiteSelector();
+    // Initialize the site selector only if we're not already in Lab mode
+    // (Lab mode handles its own minimal site data loading)
+    if (!window.superSplatManager || !window.superSplatManager.isSuperSplatMode) {
+        await initializeSiteSelector();
+    } else {
+        console.log('🎨 Skipping initializeSiteSelector - already in Lab mode');
+    }
     
-    // Loading will complete when Gaussian splat is ready (handled by GaussianSplatManager)
-    console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - Waiting for Gaussian splat to load`);
+    // Loading completion is handled by the respective mode (Lab mode or GaussianSplatManager for Cesium mode)
+    if (window.superSplatManager && window.superSplatManager.isSuperSplatMode) {
+        console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - Lab mode active`);
+    } else {
+        console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - Waiting for Gaussian splat to load`);
+    }
 }
 
 // Expose the functions globally

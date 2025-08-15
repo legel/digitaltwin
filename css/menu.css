@@ -168,6 +168,44 @@
     background-image: url('/images/home.png');
 }
 
+/* New mode toggle buttons with Unicode icons */
+.globe-icon-button,
+.lab-icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: normal;
+    text-align: center;
+    line-height: 1;
+    background-image: none; /* Override any background image */
+}
+
+.globe-icon-button::before {
+    content: '🌍';
+    display: inline-block;
+}
+
+.lab-icon-button::before {
+    content: '🧪';
+    display: inline-block;
+}
+
+/* Responsive icon sizes */
+@media screen and (max-width: 767px) {
+    .globe-icon-button,
+    .lab-icon-button {
+        font-size: 20px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .globe-icon-button,
+    .lab-icon-button {
+        font-size: 18px;
+    }
+}
+
 /* Active state for toggle buttons */
 .control-button.active {
     background-color: rgba(76, 175, 80, 0.9);

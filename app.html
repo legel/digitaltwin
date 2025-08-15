@@ -98,6 +98,17 @@
     <!-- Cesium 3D Container -->
     <div id="cesiumContainer"></div>
 
+    <!-- SuperSplat Editor Container -->
+    <div id="superSplatContainer" style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        display: none;
+    "></div>
+
     <!-- GoogleMaps2D container removed to improve performance -->
 
     <!-- Terrain 3D Logo -->
@@ -121,7 +132,8 @@
             <!-- Navigation Controls -->
             <!-- <button id="homeButton" class="control-button icon-button home-button" title="Go to my location"></button>
             <button id="terrainToggleButton" class="control-button text-button terrain-toggle" title="Switch between high quality and performance modes">HQ</button> -->
-            <button id="viewSwitchButton" class="control-button text-button view-switch" title="Switch to 2D top-down view">2D</button>
+            <button id="superSplatButton" class="control-button icon-button globe-icon-button" title="Switch to Cesium 3D view" style="display: inline-block;"></button>
+            <button id="viewSwitchButton" class="control-button text-button view-switch" title="Switch to 2D top-down view" style="display: none;">2D</button>
 
             <!-- Site Selector (inline with buttons) -->
             <div id="siteSelector" class="control-item site-selector">
@@ -189,6 +201,7 @@
     <script src="/js/UnifiedLODManager.js"></script>
     <script src="/js/UserManager.js"></script>
     <script src="/js/GaussianSplatManager.js"></script>
+    <script src="/js/SuperSplatManager.js"></script>
 
     <!-- Navigation and Tours -->
     <script src="/js/navigation.js"></script>

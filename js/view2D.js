@@ -894,6 +894,11 @@ class View2DManager {
                 'Switch to 3D perspective view' : 
                 'Switch to 2D top-down view';
         }
+        
+        // Update SuperSplat button visibility through its manager
+        if (window.superSplatManager) {
+            window.superSplatManager.updateSuperSplatAvailability();
+        }
     }
 }
 

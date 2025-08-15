@@ -52,3 +52,6 @@ local/
 
 # Claude Code Files
 .claude/
+
+# SuperSplat build files
+supersplat/
