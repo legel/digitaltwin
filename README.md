@@ -73,7 +73,25 @@ cp -r Build/CesiumUnminified/* ../terrain-3d/cesium/
 cd ../terrain-3d
 ```
 
-### 3. Start Development Server
+### 3. Build SuperSplat Dependencies
+```bash
+# Clone SuperSplat repository (separate directory)
+git clone https://github.com/playcanvas/supersplat.git supersplat-build
+cd supersplat-build
+
+# Initialize submodules and install dependencies
+git submodule update --init
+npm install
+
+# Build SuperSplat
+npm run build
+
+# Copy built files to terrain-3d project
+cp -r dist ../terrain-3d/supersplat
+cd ../terrain-3d
+```
+
+### 4. Start Development Server
 ```bash
 python server.py
 # Open http://localhost:5001
@@ -88,6 +106,13 @@ python server.py
 - If `git checkout 7103190` fails, ensure you're in the cesium directory
 - If Cesium files return 404 errors, verify the `cesium/` directory exists and contains `Cesium.js` and `Widgets/widgets.css`
 - Build size warnings (⚠️) are normal and can be ignored
+
+**SuperSplat Build Issues:**
+- Requires Node.js and npm for building from source
+- If `git submodule update --init` fails, ensure you have git installed and configured
+- If `npm install` shows vulnerabilities, they can be ignored for development
+- If build fails, try `npm run develop` first to test the development environment
+- SuperSplat build creates the `dist/` folder which becomes terrain-3d's `supersplat/` directory
 
 ## 🏗 Architecture
 
