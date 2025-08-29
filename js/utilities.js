@@ -2012,14 +2012,20 @@ async function initializeLabModeFirst() {
             window.superSplatManager.isSuperSplatMode = true;
             window.superSplatManager.updateButtonStates();
             
-            // Complete loading screen since we're starting in Lab mode (not waiting for Gaussian splat)
-            if (window.independentLoadingState) {
-                // Small delay to show some loading progress
-                setTimeout(() => {
-                    console.log('🎬 Lab mode loaded - completing loading screen');
+            // Hide UI elements for Lab mode
+            window.superSplatManager.hideUIForLabMode();
+            
+            // Loading completion will be triggered by SuperSplat iframe onload event
+            console.log('🎨 Lab mode initialized - waiting for SuperSplat iframe to load');
+            
+            // Fallback timeout in case SuperSplat iframe fails to load
+            const labTimeout = (window.TERRAIN_LOADING_CONFIG.expectedLoadTime.lab + 2) * 1000; // +2s buffer for Lab mode
+            setTimeout(() => {
+                if (window.independentLoadingState?.isActive) {
+                    console.log('⏰ Lab mode timeout - completing loading without SuperSplat iframe');
                     window.independentLoadingState.complete();
-                }, 2000);
-            }
+                }
+            }, labTimeout);
         }
     } else {
         console.error('⚠️ SuperSplat manager not available after waiting');
@@ -2030,6 +2036,65 @@ async function initializeLabModeFirst() {
     }
     
     console.log('✅ Lab mode initialization complete');
+}
+
+/**
+ * Initializes Cesium 3D mode first (original behavior)
+ */
+async function initializeCesiumModeFirst() {
+    console.log('🌍 Initializing Cesium 3D mode first...');
+    
+    // Instantiate the CesiumManager 
+    window.map3D = new CesiumManager('cesiumContainer');
+    
+    // Ensure Cesium container is visible
+    const cesiumContainer = document.getElementById('cesiumContainer');
+    if (cesiumContainer) {
+        cesiumContainer.style.display = 'block';
+    }
+    
+    // Initialize site selector (full Cesium mode initialization)
+    await initializeSiteSelector();
+    
+    // Wait for SuperSplat manager to be available, then initialize site visualization
+    const waitForSuperSplat = () => {
+        return new Promise((resolve) => {
+            const checkForSuperSplat = () => {
+                if (window.superSplatManager) {
+                    resolve();
+                } else {
+                    setTimeout(checkForSuperSplat, 100);
+                }
+            };
+            checkForSuperSplat();
+        });
+    };
+    
+    await waitForSuperSplat();
+    
+    // Initialize SuperSplat manager state for Cesium mode
+    console.log('🎯 Setting up SuperSplat manager for Cesium mode...');
+    
+    // Set up default 3D view (from switchToCesium logic)
+    if (!window.superSplatManager.saved3DView) {
+        window.superSplatManager.saved3DView = {
+            position: Cesium.Cartesian3.fromDegrees(-81.462, 28.592, 150),
+            orientation: {
+                heading: 0.0,
+                pitch: -0.3,
+                roll: 0.0
+            }
+        };
+    }
+    
+    // Set Cesium mode state and update UI
+    window.superSplatManager.isSuperSplatMode = false;
+    window.superSplatManager.updateButtonStates();
+    
+    // Show UI elements for Cesium mode
+    window.superSplatManager.showUIForCesiumMode();
+    
+    console.log('✅ Cesium 3D mode initialization complete');
 }
 
 /**
@@ -2080,6 +2145,8 @@ async function initializeSiteDataForLabMode() {
                 };
                 
                 console.log('✅ Site data and UI loaded for Lab mode');
+                
+                // Do NOT initialize layer controls in Lab mode - they should remain hidden
             }
         }
         
@@ -2145,16 +2212,33 @@ async function allSystemsGo() {
         // window.independentLoadingState.updateMessage('Initializing ecosystem simulation...', 3000);
     }
     
-    // NEW: Start with SuperSplat/Lab mode instead of Cesium
-    await initializeLabModeFirst();
+    // Check loading mode configuration
+    const initialMode = window.TERRAIN_LOADING_CONFIG?.initialMode || 'lab';
     
-    // Instantiate the CesiumManager in background (but don't show it)
-    window.map3D = new CesiumManager('cesiumContainer');
-    
-    // Hide Cesium container initially since we're starting in Lab mode
-    const cesiumContainer = document.getElementById('cesiumContainer');
-    if (cesiumContainer) {
-        cesiumContainer.style.display = 'none';
+    if (initialMode === 'lab') {
+        // Start with SuperSplat/Lab mode
+        await initializeLabModeFirst();
+        
+        // Instantiate the CesiumManager in background (but don't show it)
+        window.map3D = new CesiumManager('cesiumContainer');
+        
+        // Hide Cesium container initially since we're starting in Lab mode
+        const cesiumContainer = document.getElementById('cesiumContainer');
+        if (cesiumContainer) {
+            cesiumContainer.style.display = 'none';
+        }
+    } else {
+        // Start with Cesium 3D mode (original behavior)
+        await initializeCesiumModeFirst();
+        
+        // Set up fallback completion timer for Cesium mode
+        const cesiumTimeout = (window.TERRAIN_LOADING_CONFIG.expectedLoadTime.cesium + 5) * 1000; // +5s buffer
+        setTimeout(() => {
+            if (window.independentLoadingState?.isActive) {
+                console.log('⏰ Cesium mode timeout - completing loading without Gaussian splat');
+                window.independentLoadingState.complete();
+            }
+        }, cesiumTimeout);
     }
 
     // Message cycling will be set up independently in main.js
@@ -2263,6 +2347,16 @@ async function allSystemsGo() {
     window.gaussianSplatManager = new GaussianSplatManager(window.map3D.viewer);
     await import('./integrate_splat_clipping.js');
     
+    // If we started in Cesium mode, now trigger the site visualization (after GaussianSplatManager is ready)
+    if (initialMode === 'cesium' && window.superSplatManager?.initializeCesiumSiteVisualization) {
+        try {
+            console.log('🎯 GaussianSplatManager ready - now triggering Cesium site visualization...');
+            window.superSplatManager.initializeCesiumSiteVisualization();
+        } catch (error) {
+            console.error('❌ Error during Cesium site visualization initialization:', error);
+        }
+    }
+    
     // Initialize layer state early
     window.layerState = {
         showPlantableAreas: true,
@@ -2290,19 +2384,19 @@ async function allSystemsGo() {
         // window.independentLoadingState.updateMessage('Simulating hummingbird flight paths...', 4000);
     }
     
-    // Initialize the site selector only if we're not already in Lab mode
-    // (Lab mode handles its own minimal site data loading)
-    if (!window.superSplatManager || !window.superSplatManager.isSuperSplatMode) {
-        await initializeSiteSelector();
-    } else {
-        console.log('🎨 Skipping initializeSiteSelector - already in Lab mode');
-    }
-    
-    // Loading completion is handled by the respective mode (Lab mode or GaussianSplatManager for Cesium mode)
-    if (window.superSplatManager && window.superSplatManager.isSuperSplatMode) {
+    // Handle remaining initialization based on mode (use already declared initialMode)
+    if (initialMode === 'lab') {
+        // Lab mode: Skip site selector initialization (already handled in initializeLabModeFirst)
+        if (!window.superSplatManager || !window.superSplatManager.isSuperSplatMode) {
+            console.log('🎨 Lab mode not properly initialized, falling back to Cesium');
+            await initializeSiteSelector();
+        } else {
+            console.log('🎨 Lab mode active - skipping initializeSiteSelector');
+        }
         console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - Lab mode active`);
     } else {
-        console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - Waiting for Gaussian splat to load`);
+        // Cesium mode: Site selector already initialized in initializeCesiumModeFirst
+        console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - Cesium mode active, waiting for Gaussian splat to load`);
     }
 }
 
