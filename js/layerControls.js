@@ -1083,11 +1083,25 @@ function zoomToNPACategory(categoryName) {
 // Override the original toggleParameterFilter
 window.toggleParameterFilter = toggleParameterFilter;
 
-// Initialize when DOM is ready
+// Initialize when DOM is ready - but delay for Lab mode
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeLayerControls);
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check if we're in Lab mode first - if so, delay initialization
+        if (window.TERRAIN_LOADING_CONFIG?.initialMode === 'lab') {
+            console.log('🎨 Lab mode detected - delaying layerControls initialization');
+            // Don't initialize now - will be called from Lab mode setup
+        } else {
+            initializeLayerControls();
+        }
+    });
 } else {
-    initializeLayerControls();
+    // Check if we're in Lab mode first - if so, delay initialization
+    if (window.TERRAIN_LOADING_CONFIG?.initialMode === 'lab') {
+        console.log('🎨 Lab mode detected - delaying layerControls initialization');
+        // Don't initialize now - will be called from Lab mode setup
+    } else {
+        initializeLayerControls();
+    }
 }
 
 /**
