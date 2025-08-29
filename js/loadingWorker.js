@@ -15,6 +15,10 @@ let startTime = null;
 let isActive = false;
 let exponentialSlowdownStartTime = null;
 let currentDelayMultiplier = 1;
+let loadingConfig = {
+    expectedTime: 8, // Default 8 seconds for Lab mode
+    progressUntil: 80
+};
 
 // Message handler
 self.onmessage = function(e) {
@@ -22,11 +26,18 @@ self.onmessage = function(e) {
     
     switch (type) {
         case 'start':
+            if (data && data.config) {
+                loadingConfig = { ...loadingConfig, ...data.config };
+            }
             self.postMessage({ type: 'started', message: 'Animation started' });
             startLoading();
             break;
         case 'complete':
             completeLoading();
+            break;
+        case 'accelerate':
+            // Accelerate to completion if we're ready early
+            accelerateToCompletion();
             break;
         case 'stop':
             stopLoading();
@@ -78,9 +89,10 @@ function animateProgress() {
     
     let newProgress;
     
-    if (currentProgress < 80) {
-        // Phase 1: 0-80% over 35 seconds (2.3% per second) - extended for remote loading
-        newProgress = Math.min(80, (totalElapsedTime / 35) * 80);
+    if (currentProgress < loadingConfig.progressUntil) {
+        // Phase 1: 0-progressUntil% over expectedTime seconds for steady progression
+        const progressPercentage = Math.min(loadingConfig.progressUntil, (totalElapsedTime / loadingConfig.expectedTime) * loadingConfig.progressUntil);
+        newProgress = progressPercentage;
     } else {
         // Phase 2: 80-99% with exponential slowdown
         if (!exponentialSlowdownStartTime) {
@@ -128,6 +140,38 @@ function animateProgress() {
     } catch (globalError) {
         console.error('WEB WORKER: FATAL ERROR in animateProgress:', globalError);
         isActive = false;
+    }
+}
+
+function accelerateToCompletion() {
+    if (!isActive) return;
+    
+    // Accelerate to 95% quickly if we're below 60%
+    if (currentProgress < 60) {
+        const startProgress = currentProgress;
+        const accelerationStartTime = Date.now();
+        const duration = 2000; // 2 seconds to reach 95%
+        
+        const animateAcceleration = () => {
+            const elapsed = Date.now() - accelerationStartTime;
+            const progress = Math.min(1, elapsed / duration);
+            
+            // Smooth acceleration to 95%
+            const easedProgress = 1 - Math.pow(1 - progress, 2);
+            currentProgress = startProgress + ((95 - startProgress) * easedProgress);
+            
+            // Send progress update
+            self.postMessage({
+                type: 'progress',
+                progress: Math.round(currentProgress * 10) / 10
+            });
+            
+            if (elapsed < duration && isActive) {
+                setTimeout(animateAcceleration, 1000 / 60);
+            }
+        };
+        
+        animateAcceleration();
     }
 }
 

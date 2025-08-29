@@ -1,3 +1,19 @@
+// Global loading mode configuration
+window.TERRAIN_LOADING_CONFIG = {
+    // Set to 'lab' for SuperSplat Lab mode first, 'cesium' for Cesium 3D mode first
+    initialMode: 'cesium',
+    
+    // Loading timing configuration
+    expectedLoadTime: {
+        lab: 8,      // 8 seconds expected for Lab mode
+        cesium: 20   // 20 seconds expected for Cesium mode
+    },
+    
+    // Progress thresholds
+    steadyProgressUntil: 80,  // Progress steadily to 80%
+    minTimeBeforeCompletion: 3 // Minimum 3 seconds before allowing completion
+};
+
 document.addEventListener("DOMContentLoaded", async function() {
     // DOM loading logging removed for cleaner console output
     //debug();
@@ -5,7 +21,20 @@ document.addEventListener("DOMContentLoaded", async function() {
     // Start independent loading screen animation
     startIndependentLoadingAnimation();
 
-    // Run all systems initialization in background
+    // Run all systems initialization in background (wait for utilities.js to load)
+    if (typeof allSystemsGo === 'undefined') {
+        // Wait for utilities.js module to load
+        await new Promise(resolve => {
+            const checkForAllSystemsGo = () => {
+                if (typeof allSystemsGo !== 'undefined') {
+                    resolve();
+                } else {
+                    setTimeout(checkForAllSystemsGo, 50);
+                }
+            };
+            checkForAllSystemsGo();
+        });
+    }
     await allSystemsGo();
 
     // Comment out old narratives
@@ -34,10 +63,31 @@ function startIndependentLoadingAnimation() {
         currentMessage: '',
         messageQueue: [],
         messageTimer: null,
+        startTime: Date.now(),
         worker: loadingWorker,
         complete: () => {
-            // Loading completion logging removed for cleaner console output
-            loadingWorker.postMessage({ type: 'complete' });
+            // Smart completion logic - accelerate or complete based on timing and progress
+            const elapsedTime = (Date.now() - (window.independentLoadingState?.startTime || Date.now())) / 1000;
+            const minTime = window.TERRAIN_LOADING_CONFIG.minTimeBeforeCompletion;
+            const currentProgress = window.independentLoadingState?.currentProgress || 0;
+            
+            if (elapsedTime >= minTime) {
+                // Enough time has passed, complete immediately
+                loadingWorker.postMessage({ type: 'complete' });
+            } else if (currentProgress < 60) {
+                // We're ready but progress is low - accelerate first
+                loadingWorker.postMessage({ type: 'accelerate' });
+                // Then complete after acceleration
+                setTimeout(() => {
+                    loadingWorker.postMessage({ type: 'complete' });
+                }, 2500); // Wait for acceleration to finish
+            } else {
+                // Good progress but need to wait for minimum time
+                const remainingTime = (minTime - elapsedTime) * 1000;
+                setTimeout(() => {
+                    loadingWorker.postMessage({ type: 'complete' });
+                }, remainingTime);
+            }
         },
         updateMessage: (message, minDisplayTime = 3750) => {
             // Queue message with minimum display time
@@ -69,11 +119,13 @@ function startIndependentLoadingAnimation() {
             // Use transform for hardware-accelerated animation
             const cleanPercentage = Math.max(0, Math.min(100, percentage));
             // Ensure progress never goes backwards
-            const currentProgress = window.independentLoadingState.currentProgress || 0;
+            const currentProgress = window.independentLoadingState?.currentProgress || 0;
             const newPercentage = Math.max(currentProgress, cleanPercentage);
             
             progressBar.style.transform = `scaleX(${newPercentage / 100})`;
-            window.independentLoadingState.currentProgress = newPercentage;
+            if (window.independentLoadingState) {
+                window.independentLoadingState.currentProgress = newPercentage;
+            }
             updateLoadingText();
             
             // Progress logging removed for cleaner console output
@@ -85,8 +137,8 @@ function startIndependentLoadingAnimation() {
         const loadingPercentage = document.getElementById('loadingPercentage');
         
         if (loadingMessage && loadingPercentage) {
-            const displayPercentage = Math.floor(window.independentLoadingState.currentProgress);
-            const message = window.independentLoadingState.currentMessage;
+            const displayPercentage = Math.floor(window.independentLoadingState?.currentProgress || 0);
+            const message = window.independentLoadingState?.currentMessage || '';
             loadingMessage.textContent = message;
             loadingPercentage.textContent = `${displayPercentage}%`;
         }
@@ -165,8 +217,20 @@ function startIndependentLoadingAnimation() {
     // Web Worker initialization logging removed for cleaner console output
     // startFallbackAnimation(); // DISABLED
     
-    // Web Worker is the single source of progress updates
-    loadingWorker.postMessage({ type: 'start' });
+    // Web Worker is the single source of progress updates - pass configuration
+    const currentMode = window.TERRAIN_LOADING_CONFIG.initialMode;
+    const expectedTime = window.TERRAIN_LOADING_CONFIG.expectedLoadTime[currentMode];
+    const progressUntil = window.TERRAIN_LOADING_CONFIG.steadyProgressUntil;
+    
+    loadingWorker.postMessage({ 
+        type: 'start',
+        data: {
+            config: {
+                expectedTime: expectedTime,
+                progressUntil: progressUntil
+            }
+        }
+    });
     
     // Start the message queue processing
     processMessageQueue();
@@ -221,7 +285,7 @@ function startIndependentLoadingAnimation() {
             }
             
             // Only update if significantly different to avoid spam
-            const currentProgress = window.independentLoadingState.currentProgress || 0;
+            const currentProgress = window.independentLoadingState?.currentProgress || 0;
             if (Math.abs(backupProgress - currentProgress) > 0.5) {
                 // Backup progress logging removed for cleaner console output
                 updateLoadingProgress(backupProgress);
