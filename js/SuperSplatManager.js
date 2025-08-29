@@ -95,6 +95,9 @@ class SuperSplatManager {
         // Update mode state and UI
         this.isSuperSplatMode = true;
         this.updateButtonStates();
+        
+        // Hide UI elements that should not be visible in Lab mode
+        this.hideUIForLabMode();
 
         console.log('✅ SuperSplat mode activated');
     }
@@ -175,6 +178,9 @@ class SuperSplatManager {
         // Update mode state and UI
         this.isSuperSplatMode = false;
         this.updateButtonStates();
+        
+        // Show UI elements that should be visible in Cesium mode
+        this.showUIForCesiumMode();
 
         // Trigger site loading in Cesium mode (GeoJSON and Gaussian splat)
         this.initializeCesiumSiteVisualization();
@@ -187,6 +193,12 @@ class SuperSplatManager {
      */
     initializeCesiumSiteVisualization() {
         console.log('🌍 Initializing Cesium site visualization...');
+        
+        // Don't initialize layer controls if we're currently in SuperSplat mode
+        if (this.isSuperSplatMode) {
+            console.log('⚠️ Skipping layer controls initialization - currently in SuperSplat mode');
+            return;
+        }
         
         // Ensure we have current site data
         if (!window.currentSiteData) {
@@ -215,7 +227,7 @@ class SuperSplatManager {
                 window.navigateToSite(bounds, false);
             }
             
-            // Initialize layer controls
+            // Initialize layer controls only when switching to Cesium mode
             if (window.initializeLayerControls) {
                 window.initializeLayerControls();
             }
@@ -244,7 +256,7 @@ class SuperSplatManager {
                 setTimeout(() => {
                     console.log('🎯 Loading Gaussian splat for Scott Boyd site...');
                     window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
-                }, 500); // Longer delay to ensure camera is positioned
+                }, 500); // Delay to ensure camera is positioned
             }
             
             console.log('✅ Cesium site visualization initialized');
@@ -281,6 +293,15 @@ class SuperSplatManager {
         // Add loading handler
         this.superSplatIframe.onload = () => {
             console.log('✅ SuperSplat editor loaded successfully');
+            
+            // Notify loading system that SuperSplat is ready (for Lab mode)
+            if (window.independentLoadingState?.isActive) {
+                // Add small delay to ensure PLY file starts loading inside iframe
+                setTimeout(() => {
+                    console.log('🎬 SuperSplat iframe ready - completing loading screen');
+                    window.independentLoadingState.complete();
+                }, 1500); // 1.5 second delay for PLY to start loading
+            }
         };
 
         this.superSplatIframe.onerror = (error) => {
@@ -371,6 +392,96 @@ class SuperSplatManager {
         
         this.superSplatButton.style.display = shouldShow ? 'inline-block' : 'none';
         console.log(`SuperSplat button visibility - Site: ${currentSite}, 2D Mode: ${is2DMode}, Show: ${shouldShow}`);
+    }
+
+    /**
+     * Hides UI elements that should not be visible in Lab mode
+     */
+    hideUIForLabMode() {
+        // Hide site selector dropdown
+        const siteSelector = document.getElementById('siteSelector');
+        if (siteSelector) {
+            siteSelector.style.display = 'none';
+        }
+
+        // Hide layer controls (plantable area panel)
+        const layerControls = document.getElementById('layerControls');
+        if (layerControls) {
+            layerControls.style.display = 'none';
+        }
+
+        // Hide focus panel if open
+        const focusPanel = document.getElementById('focusPanel');
+        if (focusPanel) {
+            focusPanel.style.display = 'none';
+        }
+
+        // Make Ecodash logo visible (white color for Lab mode)
+        const logo = document.getElementById('logo');
+        if (logo) {
+            logo.style.opacity = '1';
+            logo.style.visibility = 'visible';
+            logo.style.display = 'block';
+            logo.style.zIndex = '1000'; // Ensure it's on top
+        }
+
+        // Position SuperSplat button to the left to avoid overlap with Cesium controls
+        const superSplatButton = document.getElementById('superSplatButton');
+        if (superSplatButton) {
+            superSplatButton.style.marginRight = '120px'; // Move further left in Lab mode
+        }
+
+        // Hide environmental metrics bar (color legend) if visible
+        const colorLegend = document.getElementById('colorLegend');
+        if (colorLegend) {
+            colorLegend.style.display = 'none';
+        }
+
+        console.log('🎨 UI hidden for Lab mode');
+    }
+
+    /**
+     * Shows UI elements that should be visible in Cesium mode
+     */
+    showUIForCesiumMode() {
+        // Show site selector dropdown
+        const siteSelector = document.getElementById('siteSelector');
+        if (siteSelector) {
+            siteSelector.style.display = 'block';
+        }
+
+        // Show layer controls if they were visible before
+        // (visibility is managed by layerControls.js based on site format)
+        const layerControls = document.getElementById('layerControls');
+        if (layerControls && window.currentSiteData) {
+            // Let layerControls.js determine visibility based on site format
+            const format = window.detectGeoJsonFormat ? 
+                window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
+            if (format === 'boyd') {
+                layerControls.style.display = 'block';
+            }
+        }
+
+        // Logo visibility in Cesium mode (handled by CSS - may be less visible)
+        const logo = document.getElementById('logo');
+        if (logo) {
+            logo.style.opacity = ''; // Reset to CSS default
+            logo.style.visibility = ''; // Reset to CSS default
+        }
+
+        // Reset SuperSplat button positioning to normal for Cesium mode
+        const superSplatButton = document.getElementById('superSplatButton');
+        if (superSplatButton) {
+            superSplatButton.style.marginRight = ''; // Reset to CSS default
+        }
+
+        // Show environmental metrics bar (color legend) if it exists
+        const colorLegend = document.getElementById('colorLegend');
+        if (colorLegend) {
+            colorLegend.style.display = ''; // Reset to CSS default (should be 'flex')
+        }
+
+        console.log('🌍 UI shown for Cesium mode');
     }
 }
 
