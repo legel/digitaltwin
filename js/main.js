@@ -125,6 +125,7 @@ function startIndependentLoadingAnimation() {
             progressBar.style.transform = `scaleX(${newPercentage / 100})`;
             if (window.independentLoadingState) {
                 window.independentLoadingState.currentProgress = newPercentage;
+                window.independentLoadingState.lastProgressTime = Date.now(); // Track last progress update
             }
             updateLoadingText();
             
@@ -160,6 +161,13 @@ function startIndependentLoadingAnimation() {
             case 'progress':
                 updateLoadingProgress(progress);
                 workerResponded = true;
+                break;
+                
+            case 'message':
+                if (window.independentLoadingState) {
+                    window.independentLoadingState.currentMessage = message;
+                    updateLoadingText();
+                }
                 break;
                 
             case 'finished':
@@ -215,136 +223,53 @@ function startIndependentLoadingAnimation() {
     
     // Use ONLY Web Worker for progress - disable fallback to avoid conflicts
     // Web Worker initialization logging removed for cleaner console output
-    // startFallbackAnimation(); // DISABLED
+    // startFallbackAnimation(); // DISABLED - Web Worker handles all progress
     
     // Web Worker is the single source of progress updates - pass configuration
     const currentMode = window.TERRAIN_LOADING_CONFIG.initialMode;
     const expectedTime = window.TERRAIN_LOADING_CONFIG.expectedLoadTime[currentMode];
     const progressUntil = window.TERRAIN_LOADING_CONFIG.steadyProgressUntil;
     
-    loadingWorker.postMessage({ 
-        type: 'start',
-        data: {
-            config: {
-                expectedTime: expectedTime,
-                progressUntil: progressUntil
-            }
+    // Wait for eco loading messages to be available before starting
+    const startWorkerWithMessages = () => {
+        if (window.ecoLoadingMessages) {
+            loadingWorker.postMessage({ 
+                type: 'start',
+                data: {
+                    config: {
+                        expectedTime: expectedTime,
+                        progressUntil: progressUntil
+                    },
+                    messages: window.ecoLoadingMessages
+                }
+            });
+        } else {
+            // Retry after 100ms if messages aren't loaded yet
+            setTimeout(startWorkerWithMessages, 100);
         }
-    });
+    };
+    
+    startWorkerWithMessages();
     
     // Start the message queue processing
     processMessageQueue();
     
-    // Set up simple message cycling with direct DOM updates
-    setupSimpleMessageCycling();
+    // DISABLED: setupSimpleMessageCycling() - Web Worker now handles all message cycling
+    // setupSimpleMessageCycling();
     
-    // Aggressive fallback animation using requestAnimationFrame
+    // DISABLED: Main thread fallback animation - Web Worker handles all progress
+    // This function is disabled to prevent main thread blocking from interfering
+    // with the completely asynchronous Web Worker progress system
     function startFallbackAnimation() {
-        let progress = 0;
-        const startTime = Date.now();
-        
-        const animateProgress = () => {
-            if (!window.independentLoadingState?.isActive) {
-                return;
-            }
-            
-            const elapsed = (Date.now() - startTime) / 1000;
-            
-            if (progress < 80) {
-                // 0-80% over 35 seconds - extended for remote loading
-                progress = Math.min(80, (elapsed / 35) * 80);
-            } else {
-                // Slow exponential approach to 99%
-                const slowdownTime = elapsed - 35; // Time since 80% (at 35 seconds)
-                progress = Math.min(99, 80 + (19 * (1 - Math.exp(-slowdownTime / 10))));
-            }
-            
-            updateLoadingProgress(progress);
-            
-            if (window.independentLoadingState?.isActive) {
-                // Use requestAnimationFrame for higher priority
-                requestAnimationFrame(animateProgress);
-            }
-        };
-        
-        // Also add a backup setInterval in case requestAnimationFrame gets blocked
-        const backupInterval = setInterval(() => {
-            if (!window.independentLoadingState?.isActive) {
-                clearInterval(backupInterval);
-                return;
-            }
-            
-            const elapsed = (Date.now() - startTime) / 1000;
-            let backupProgress = 0;
-            
-            if (elapsed < 35) {
-                backupProgress = Math.min(80, (elapsed / 35) * 80);
-            } else {
-                const slowdownTime = elapsed - 35;
-                backupProgress = Math.min(99, 80 + (19 * (1 - Math.exp(-slowdownTime / 10))));
-            }
-            
-            // Only update if significantly different to avoid spam
-            const currentProgress = window.independentLoadingState?.currentProgress || 0;
-            if (Math.abs(backupProgress - currentProgress) > 0.5) {
-                // Backup progress logging removed for cleaner console output
-                updateLoadingProgress(backupProgress);
-            }
-        }, 500); // Every 500ms as backup
-        
-        animateProgress();
+        console.log('⚠️ startFallbackAnimation() called but disabled - Web Worker handles all progress');
+        // Function body removed to eliminate main thread interference
     }
     
-    // Simple message cycling with basic setInterval
+    // DISABLED: Simple message cycling - Web Worker handles all message cycling
+    // This function is disabled to prevent main thread setInterval from getting blocked
     function setupSimpleMessageCycling() {
-        // Wait for messages to be available
-        const checkForMessages = () => {
-            if (window.ecoLoadingMessages) {
-                startSimpleMessageCycling();
-            } else {
-                setTimeout(checkForMessages, 100);
-            }
-        };
-        
-        const startSimpleMessageCycling = () => {
-            let messageIndex = 0;
-            const shuffledMessages = [...window.ecoLoadingMessages].sort(() => Math.random() - 0.5);
-            
-            // Set first message immediately
-            const firstMessage = shuffledMessages[0];
-            // Message cycling start logging removed for cleaner console output
-            
-            window.independentLoadingState.currentMessage = firstMessage;
-            const loadingMessage = document.getElementById('loadingMessage');
-            const loadingPercentage = document.getElementById('loadingPercentage');
-            if (loadingMessage) loadingMessage.textContent = firstMessage;
-            if (loadingPercentage) loadingPercentage.textContent = '0%';
-            
-            messageIndex = 1;
-            
-            // Simple interval - may still get blocked but much simpler
-            const messageInterval = setInterval(() => {
-                if (!window.independentLoadingState?.isActive) {
-                    clearInterval(messageInterval);
-                    return;
-                }
-                
-                const message = shuffledMessages[messageIndex];
-                // Message cycling logging removed for cleaner console output
-                
-                window.independentLoadingState.currentMessage = message;
-                const loadingMessage = document.getElementById('loadingMessage');
-                if (loadingMessage) loadingMessage.textContent = message;
-                
-                messageIndex++;
-                if (messageIndex >= shuffledMessages.length) {
-                    messageIndex = 0;
-                    shuffledMessages.sort(() => Math.random() - 0.5);
-                }
-            }, 3000); // Every 3 seconds (1.5x slower for better readability)
-        };
-        
-        checkForMessages();
+        console.log('⚠️ setupSimpleMessageCycling() called but disabled - Web Worker handles all messages');
+        // Function body removed to eliminate main thread interference
     }
 }
 

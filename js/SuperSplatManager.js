@@ -94,6 +94,7 @@ class SuperSplatManager {
 
         // Update mode state and UI
         this.isSuperSplatMode = true;
+        this.wasInSuperSplatMode = true; // Set flag for cleanup when returning to Cesium
         this.updateButtonStates();
         
         // Hide UI elements that should not be visible in Lab mode
@@ -155,25 +156,63 @@ class SuperSplatManager {
             console.log('✅ Cesium container shown');
         }
 
-        // Restore Cesium rendering settings
-        if (viewer && viewer.scene) {
-            if (this.cesiumWasRequestRenderMode !== undefined) {
-                viewer.scene.requestRenderMode = this.cesiumWasRequestRenderMode;
+        // Restore Cesium rendering settings with error handling
+        if (viewer && viewer.scene && !viewer.isDestroyed()) {
+            try {
+                if (this.cesiumWasRequestRenderMode !== undefined) {
+                    viewer.scene.requestRenderMode = this.cesiumWasRequestRenderMode;
+                }
+                viewer.clock.shouldAnimate = true; // Resume animation loop
+                
+                // Add a small delay before requesting render to let cleanup complete
+                setTimeout(() => {
+                    if (viewer && !viewer.isDestroyed() && viewer.scene) {
+                        viewer.scene.requestRender(); // Trigger a render to refresh scene
+                        console.log('▶️ Cesium rendering resumed');
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.warn('Error restoring Cesium rendering:', error);
+                // Try to reinitialize if there's an error
+                setTimeout(() => {
+                    if (viewer && !viewer.isDestroyed() && viewer.scene) {
+                        viewer.scene.requestRender();
+                    }
+                }, 500);
             }
-            viewer.clock.shouldAnimate = true; // Resume animation loop
-            viewer.scene.requestRender(); // Trigger a render to refresh scene
-            console.log('▶️ Cesium rendering resumed');
         }
 
-        // Restore camera position
-        viewer.camera.flyTo({
-            destination: this.saved3DView.position,
-            orientation: this.saved3DView.orientation,
-            duration: 2.0,
-            complete: () => {
-                console.log('✅ Camera position restored');
+        // Restore camera position with error handling
+        if (viewer && !viewer.isDestroyed() && this.saved3DView) {
+            try {
+                viewer.camera.flyTo({
+                    destination: this.saved3DView.position,
+                    orientation: this.saved3DView.orientation,
+                    duration: 2.0,
+                    complete: () => {
+                        console.log('✅ Camera position restored');
+                    },
+                    cancel: () => {
+                        console.log('⚠️ Camera flyTo cancelled');
+                    }
+                });
+            } catch (error) {
+                console.warn('Error restoring camera position:', error);
+                // Fallback: set camera position directly
+                try {
+                    if (viewer.camera && this.saved3DView.position) {
+                        viewer.camera.setView({
+                            destination: this.saved3DView.position,
+                            orientation: this.saved3DView.orientation
+                        });
+                        console.log('✅ Camera position set directly as fallback');
+                    }
+                } catch (fallbackError) {
+                    console.warn('Fallback camera positioning also failed:', fallbackError);
+                }
             }
-        });
+        }
 
         // Update mode state and UI
         this.isSuperSplatMode = false;
@@ -182,8 +221,14 @@ class SuperSplatManager {
         // Show UI elements that should be visible in Cesium mode
         this.showUIForCesiumMode();
 
-        // Trigger site loading in Cesium mode (GeoJSON and Gaussian splat)
-        this.initializeCesiumSiteVisualization();
+        // Trigger site loading in Cesium mode (GeoJSON and Gaussian splat) 
+        // but skip if switching from SuperSplat mode as site data is already loaded
+        if (!this.wasInSuperSplatMode) {
+            this.initializeCesiumSiteVisualization();
+        } else {
+            console.log('⚡ Skipping site re-initialization - returning from SuperSplat mode');
+            this.wasInSuperSplatMode = false; // Reset flag
+        }
 
         console.log('✅ Cesium 3D mode restored');
     }
@@ -293,6 +338,12 @@ class SuperSplatManager {
         // Add loading handler
         this.superSplatIframe.onload = () => {
             console.log('✅ SuperSplat editor loaded successfully');
+            
+            // Position button relative to view-cube once iframe is loaded
+            setTimeout(() => {
+                this.positionButtonRelativeToViewCube();
+                this.setInitialSuperSplatView();
+            }, 2000); // Allow time for SuperSplat to fully initialize
             
             // Notify loading system that SuperSplat is ready (for Lab mode)
             if (window.independentLoadingState?.isActive) {
@@ -425,11 +476,14 @@ class SuperSplatManager {
             logo.style.zIndex = '1000'; // Ensure it's on top
         }
 
-        // Position SuperSplat button to the left to avoid overlap with Cesium controls
+        // Hide SuperSplat button initially to avoid flash during positioning
         const superSplatButton = document.getElementById('superSplatButton');
         if (superSplatButton) {
-            superSplatButton.style.marginRight = '120px'; // Move further left in Lab mode
+            superSplatButton.style.visibility = 'hidden';
         }
+
+        // Position SuperSplat button relative to the view-cube-container
+        this.positionButtonRelativeToViewCube();
 
         // Hide environmental metrics bar (color legend) if visible
         const colorLegend = document.getElementById('colorLegend');
@@ -472,7 +526,14 @@ class SuperSplatManager {
         // Reset SuperSplat button positioning to normal for Cesium mode
         const superSplatButton = document.getElementById('superSplatButton');
         if (superSplatButton) {
-            superSplatButton.style.marginRight = ''; // Reset to CSS default
+            // Clear all custom positioning styles
+            superSplatButton.style.position = '';
+            superSplatButton.style.left = '';
+            superSplatButton.style.top = '';
+            superSplatButton.style.right = '';
+            superSplatButton.style.marginRight = '';
+            superSplatButton.style.zIndex = '';
+            superSplatButton.style.visibility = ''; // Reset visibility to CSS default
         }
 
         // Show environmental metrics bar (color legend) if it exists
@@ -482,6 +543,297 @@ class SuperSplatManager {
         }
 
         console.log('🌍 UI shown for Cesium mode');
+    }
+
+    /**
+     * Position the SuperSplat button relative to the view-cube-container in SuperSplat mode
+     * Aligns button horizontally with view-cube center and positions it 25px below
+     */
+    positionButtonRelativeToViewCube() {
+        const superSplatButton = document.getElementById('superSplatButton');
+        if (!superSplatButton) return;
+
+        // Set up positioning with a delay to allow SuperSplat iframe to load
+        const positionButton = () => {
+            // Try to find the view-cube-container in the SuperSplat iframe
+            const iframe = this.superSplatIframe;
+            if (!iframe || !iframe.contentWindow) {
+                console.log('⚠️ SuperSplat iframe not ready for view-cube positioning');
+                return false;
+            }
+
+            try {
+                const iframeDoc = iframe.contentWindow.document;
+                const viewCubeContainer = iframeDoc.getElementById('view-cube-container');
+                
+                if (!viewCubeContainer) {
+                    console.log('⚠️ view-cube-container not found in SuperSplat iframe');
+                    return false;
+                }
+
+                // Get the view-cube-container position relative to the viewport
+                const viewCubeRect = viewCubeContainer.getBoundingClientRect();
+                const iframeRect = iframe.getBoundingClientRect();
+                
+                // Calculate the view-cube position in the main window coordinates
+                const viewCubeAbsoluteRect = {
+                    left: iframeRect.left + viewCubeRect.left,
+                    top: iframeRect.top + viewCubeRect.top,
+                    right: iframeRect.left + viewCubeRect.right,
+                    bottom: iframeRect.top + viewCubeRect.bottom,
+                    width: viewCubeRect.width,
+                    height: viewCubeRect.height
+                };
+
+                // Calculate horizontal center of view-cube
+                const viewCubeHorizontalCenter = viewCubeAbsoluteRect.left + (viewCubeAbsoluteRect.width / 2);
+                
+                // Calculate position for button: 25px below view-cube bottom, centered horizontally
+                const buttonLeft = viewCubeHorizontalCenter - 25; // 25px = half of 50px button width
+                const buttonTop = viewCubeAbsoluteRect.bottom + 25; // 25px gap below view-cube
+
+                // Apply positioning
+                superSplatButton.style.position = 'fixed';
+                superSplatButton.style.left = buttonLeft + 'px';
+                superSplatButton.style.top = buttonTop + 'px';
+                superSplatButton.style.marginRight = ''; // Clear any existing margin
+                superSplatButton.style.right = 'auto'; // Override any right positioning
+                superSplatButton.style.zIndex = '1001'; // Ensure it's above SuperSplat content
+                superSplatButton.style.visibility = 'visible'; // Show button now that positioning is complete
+
+                console.log(`✅ SuperSplat button positioned relative to view-cube: left=${buttonLeft}px, top=${buttonTop}px`);
+                return true;
+                
+            } catch (error) {
+                console.warn('Error positioning button relative to view-cube:', error);
+                return false;
+            }
+        };
+
+        // Try positioning with progressive delays, only show button when done
+        let attemptCount = 0;
+        const maxAttempts = 3;
+        
+        const attemptPositioning = () => {
+            attemptCount++;
+            console.log(`📍 Positioning attempt ${attemptCount}/${maxAttempts}`);
+            
+            if (positionButton()) {
+                // Success - button is now visible
+                return;
+            }
+            
+            if (attemptCount < maxAttempts) {
+                // Try again with longer delay
+                setTimeout(() => attemptPositioning(), attemptCount * 1000);
+            } else {
+                // Final fallback - show button with margin positioning
+                console.log('⚠️ Failed to position button relative to view-cube after multiple attempts');
+                superSplatButton.style.marginRight = '20px';
+                superSplatButton.style.visibility = 'visible';
+                console.log('✅ Globe button visible with fallback positioning');
+            }
+        };
+        
+        // Start the positioning attempts
+        attemptPositioning();
+    }
+
+    /**
+     * Set the initial camera view in SuperSplat to top-down +Y orthographic, zoomed out
+     * Uses the SuperSplat event system and proper camera API calls from source code analysis
+     */
+    setInitialSuperSplatView() {
+        const iframe = this.superSplatIframe;
+        if (!iframe || !iframe.contentWindow) {
+            console.log('⚠️ SuperSplat iframe not ready for setting initial view');
+            return;
+        }
+
+        const iframeWindow = iframe.contentWindow;
+        
+        // Direct polling approach - check immediately and continuously until scene is ready
+        const pollForSceneReady = () => {
+            let pollAttempts = 0;
+            const maxPollAttempts = 50; // 25 seconds max
+            let cameraViewApplied = false;
+            
+            console.log('🎬 Starting immediate polling for SuperSplat scene readiness...');
+            
+            const checkScene = () => {
+                pollAttempts++;
+                
+                try {
+                    // Check if scene and camera are available
+                    const scene = iframeWindow.scene;
+                    if (scene && scene.camera && scene.camera.setAzimElev) {
+                        
+                        // Additional check: make sure there's actual content (distance > 0)
+                        const distance = scene.camera.distance;
+                        if (distance && distance > 0) {
+                            
+                            if (!cameraViewApplied) {
+                                cameraViewApplied = true;
+                                console.log(`✅ SuperSplat scene ready after ${pollAttempts} polls (${pollAttempts * 0.5}s)!`);
+                                console.log('🚀 Applying camera view IMMEDIATELY...');
+                                
+                                // Apply camera view with no delay
+                                this.applyCameraView();
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // Continue polling if not ready yet
+                    if (pollAttempts < maxPollAttempts && !cameraViewApplied) {
+                        setTimeout(checkScene, 500); // Poll every 500ms
+                    } else if (!cameraViewApplied) {
+                        console.log('⚠️ Polling timed out, trying fallback approach...');
+                        this.applyCameraView();
+                    }
+                    
+                } catch (error) {
+                    // Continue polling even if there's an error
+                    if (pollAttempts < maxPollAttempts && !cameraViewApplied) {
+                        setTimeout(checkScene, 500);
+                    }
+                }
+            };
+            
+            // Start polling immediately
+            checkScene();
+            
+            return true;
+        };
+        
+        // Use the immediate polling approach
+        if (!pollForSceneReady()) {
+            // Retry after brief delay if initial setup fails
+            setTimeout(() => {
+                pollForSceneReady();
+            }, 1000);
+        }
+    }
+
+    /**
+     * Apply the camera view change using SuperSplat's proper API
+     */
+    applyCameraView() {
+        const iframe = this.superSplatIframe;
+        if (!iframe || !iframe.contentWindow) return;
+        
+        console.log('🎯 Starting camera view application...');
+        
+        try {
+            const iframeWindow = iframe.contentWindow;
+            
+            // Debug: log available global objects
+            console.log('Available iframe globals:', Object.keys(iframeWindow).filter(key => 
+                typeof iframeWindow[key] === 'object' && iframeWindow[key] !== null
+            ));
+            
+            // Method 1: Direct scene.camera access - IMMEDIATE execution
+            const scene = iframeWindow.scene;
+            if (scene && scene.camera && scene.camera.setAzimElev) {
+                console.log('🎯 IMMEDIATE camera view change - setAzimElev(0, -90) + 3x zoom out');
+                
+                // Current camera state for debugging
+                const beforeAzim = scene.camera.azim;
+                const beforeElev = scene.camera.elevation; 
+                const beforeDist = scene.camera.distance;
+                
+                // Step 1: Apply the orthographic top-down view IMMEDIATELY
+                scene.camera.setAzimElev(0, -90);
+                
+                // Step 2: Zoom out 3x (move 3x higher in Y-axis) 
+                if (beforeDist && scene.camera.setDistance) {
+                    const newDistance = beforeDist * 3.0; // 3x zoom out for aerial view
+                    scene.camera.setDistance(newDistance);
+                    console.log(`📏 Distance: ${beforeDist} → ${newDistance} (3x zoom out)`);
+                }
+                
+                // Step 3: Enable orthographic mode if available
+                if (scene.camera.hasOwnProperty('ortho')) {
+                    scene.camera.ortho = true;
+                    console.log('📐 Orthographic projection enabled');
+                }
+                
+                // Verify the changes took effect
+                const afterAzim = scene.camera.azim;
+                const afterElev = scene.camera.elevation;
+                const afterDist = scene.camera.distance;
+                
+                console.log(`✅ IMMEDIATE camera transformation complete:`);
+                console.log(`   Azimuth:   ${beforeAzim}° → ${afterAzim}°`);
+                console.log(`   Elevation: ${beforeElev}° → ${afterElev}°`); 
+                console.log(`   Distance:  ${beforeDist} → ${afterDist} (3x zoom)`);
+                
+                // Force a render update if available
+                if (scene.update) {
+                    scene.update();
+                }
+                
+                return;
+            }
+            
+            // Method 2: Try events system to fire camera.align
+            const events = iframeWindow.events || iframeWindow.app?.events || iframeWindow.scene?.events;
+            if (events && events.fire) {
+                console.log('🎯 Using SuperSplat events system to fire camera.align + zoom out...');
+                
+                // Fire the +Y axis alignment event
+                events.fire('camera.align', 'py'); // +Y axis alignment
+                console.log('✅ Fired camera.align event for +Y view');
+                
+                // Try to zoom out 3x after a short delay to let the view change settle
+                setTimeout(() => {
+                    const scene = iframeWindow.scene;
+                    if (scene && scene.camera && scene.camera.setDistance) {
+                        const currentDist = scene.camera.distance;
+                        if (currentDist) {
+                            const newDistance = currentDist * 3.0;
+                            scene.camera.setDistance(newDistance);
+                            console.log(`📏 Event-based zoom: ${currentDist} → ${newDistance} (3x zoom out)`);
+                        }
+                    }
+                }, 100); // Brief delay to let view change settle
+                
+                // Also try to trigger orthographic mode via events if possible
+                if (events.fire && iframeWindow.document) {
+                    // Try to find and click the orthographic button or similar
+                    const orthoElements = iframeWindow.document.querySelectorAll('[title*="ortho"], [title*="Ortho"], .ortho, #ortho');
+                    if (orthoElements.length > 0) {
+                        orthoElements[0].click();
+                        console.log('✅ Clicked potential orthographic mode button');
+                    }
+                }
+                
+                return;
+            }
+            
+            // Method 3: Try to find and click the +Y face in the view cube
+            const iframeDoc = iframeWindow.document;
+            if (iframeDoc) {
+                const viewCubeContainer = iframeDoc.getElementById('view-cube-container');
+                if (viewCubeContainer) {
+                    // Look for the Y circle/text element
+                    const yElement = viewCubeContainer.querySelector('text[content="Y"], text[textContent="Y"]') ||
+                                     Array.from(viewCubeContainer.querySelectorAll('text')).find(el => el.textContent === 'Y');
+                    
+                    if (yElement && yElement.parentElement) {
+                        console.log('🎯 Found Y element in view-cube, simulating click...');
+                        yElement.parentElement.click();
+                        console.log('✅ Clicked +Y face in view-cube');
+                        return;
+                    }
+                }
+            }
+            
+            console.log('❌ Could not find any SuperSplat camera control method');
+            
+        } catch (error) {
+            console.warn('Error applying SuperSplat camera view:', error);
+        }
     }
 }
 
@@ -521,5 +873,16 @@ document.addEventListener('siteChanged', (event) => {
         setTimeout(() => {
             window.superSplatManager.updateSuperSplatAvailability();
         }, 500);
+    }
+});
+
+// Listen for window resize to reposition SuperSplat button in Lab mode
+window.addEventListener('resize', () => {
+    if (window.superSplatManager && window.superSplatManager.isSuperSplatMode) {
+        // Debounce resize events to avoid excessive repositioning
+        clearTimeout(window.superSplatManager.resizeTimeout);
+        window.superSplatManager.resizeTimeout = setTimeout(() => {
+            window.superSplatManager.positionButtonRelativeToViewCube();
+        }, 250);
     }
 });

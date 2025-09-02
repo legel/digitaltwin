@@ -19,6 +19,9 @@ let loadingConfig = {
     expectedTime: 8, // Default 8 seconds for Lab mode
     progressUntil: 80
 };
+let messageIndex = 0;
+let shuffledMessages = [];
+let messageIntervalId = null;
 
 // Message handler
 self.onmessage = function(e) {
@@ -28,6 +31,10 @@ self.onmessage = function(e) {
         case 'start':
             if (data && data.config) {
                 loadingConfig = { ...loadingConfig, ...data.config };
+            }
+            if (data && data.messages) {
+                shuffledMessages = [...data.messages].sort(() => Math.random() - 0.5);
+                startMessageCycling();
             }
             self.postMessage({ type: 'started', message: 'Animation started' });
             startLoading();
@@ -216,5 +223,42 @@ function completeLoading() {
 
 function stopLoading() {
     isActive = false;
+    if (messageIntervalId) {
+        clearInterval(messageIntervalId);
+        messageIntervalId = null;
+    }
     console.log('Web Worker: Loading animation stopped');
+}
+
+function startMessageCycling() {
+    if (shuffledMessages.length === 0) return;
+    
+    // Send first message immediately
+    self.postMessage({
+        type: 'message',
+        message: shuffledMessages[0]
+    });
+    messageIndex = 1;
+    
+    // Set up cycling every 2 seconds
+    messageIntervalId = setInterval(() => {
+        if (!isActive) {
+            clearInterval(messageIntervalId);
+            messageIntervalId = null;
+            return;
+        }
+        
+        const message = shuffledMessages[messageIndex];
+        self.postMessage({
+            type: 'message', 
+            message: message
+        });
+        
+        messageIndex++;
+        if (messageIndex >= shuffledMessages.length) {
+            messageIndex = 0;
+            // Re-shuffle for variety
+            shuffledMessages.sort(() => Math.random() - 0.5);
+        }
+    }, 2000);
 }
