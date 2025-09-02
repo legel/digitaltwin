@@ -300,9 +300,14 @@ class SuperSplatManager {
             console.log(`🔍 Checking Gaussian splat conditions - Manager: ${!!window.gaussianSplatManager}, Dropdown: "${siteDropdown.value}"`);
             
             if (window.gaussianSplatManager && siteDropdown.value === 'Boyd_Residence_Aerial_and_Ground.geojson') {
+                console.log('✅ Conditions met - scheduling Gaussian splat loading in 500ms...');
                 setTimeout(() => {
                     console.log('🎯 Loading Gaussian splat for Scott Boyd site...');
-                    window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+                    try {
+                        window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+                    } catch (error) {
+                        console.error('❌ Error loading Gaussian splat:', error);
+                    }
                 }, 500); // Delay to ensure camera is positioned
             } else {
                 // Enhanced debugging for failed conditions
