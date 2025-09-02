@@ -75,13 +75,13 @@ cd ../terrain-3d
 
 ### 3. Build SuperSplat Dependencies
 ```bash
-# Clone SuperSplat repository (separate directory)
-git clone https://github.com/playcanvas/supersplat.git supersplat-build
+# Clone custom SuperSplat repository (separate directory)
+git clone https://github.com/TASallin/supersplat-terrain-3d.git supersplat-build
 cd supersplat-build
 
 # Initialize submodules and install dependencies
 git submodule update --init
-npm install
+npm install --force  # Use --force to bypass platform compatibility issues
 
 # Build SuperSplat
 npm run build
@@ -109,10 +109,13 @@ python server.py
 
 **SuperSplat Build Issues:**
 - Requires Node.js and npm for building from source
+- **Platform Compatibility**: On Linux/macOS, use `npm install --force` to bypass Windows-specific rollup package issues (`@rollup/rollup-win32-x64-msvc`)
 - If `git submodule update --init` fails, ensure you have git installed and configured
 - If `npm install` shows vulnerabilities, they can be ignored for development
+- **TypeScript Warnings**: Build may show TS2345/TS2769 warnings about ArrayBuffer types - these can be ignored, build will complete successfully
 - If build fails, try `npm run develop` first to test the development environment
 - SuperSplat build creates the `dist/` folder which becomes terrain-3d's `supersplat/` directory
+- **Repository**: Use the custom fork `https://github.com/TASallin/supersplat-terrain-3d.git`, not the original PlayCanvas repository
 
 ## 🏗 Architecture
 
