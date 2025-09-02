@@ -319,8 +319,8 @@ class SuperSplatManager {
             return;
         }
 
-        // Construct URL for SuperSplat with auto-load parameter using relative URL
-        const splatUrl = `/data/${siteId}/splat.ply`;
+        // Construct URL for SuperSplat with auto-load parameter using Google Cloud Storage
+        const splatUrl = `https://storage.googleapis.com/terrain-3d-assets/${siteId}/splat.ply`;
         const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
 
         console.log('Loading SuperSplat editor:', editorUrl);
