@@ -297,11 +297,36 @@ class SuperSplatManager {
             }
             
             // Auto-load Gaussian Splat for Scott Boyd site
+            console.log(`🔍 Checking Gaussian splat conditions - Manager: ${!!window.gaussianSplatManager}, Dropdown: "${siteDropdown.value}"`);
+            
             if (window.gaussianSplatManager && siteDropdown.value === 'Boyd_Residence_Aerial_and_Ground.geojson') {
                 setTimeout(() => {
                     console.log('🎯 Loading Gaussian splat for Scott Boyd site...');
                     window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
                 }, 500); // Delay to ensure camera is positioned
+            } else {
+                // Enhanced debugging for failed conditions
+                if (!window.gaussianSplatManager) {
+                    console.warn('❌ GaussianSplatManager not available for splat loading');
+                } else if (siteDropdown.value !== 'Boyd_Residence_Aerial_and_Ground.geojson') {
+                    console.warn(`❌ Dropdown value mismatch: "${siteDropdown.value}" !== "Boyd_Residence_Aerial_and_Ground.geojson"`);
+                }
+                
+                // Fallback: wait for gaussianSplatManager and retry
+                if (!window.gaussianSplatManager) {
+                    console.log('🔄 Waiting for GaussianSplatManager to become available...');
+                    const waitForManager = () => {
+                        if (window.gaussianSplatManager && siteDropdown.value === 'Boyd_Residence_Aerial_and_Ground.geojson') {
+                            console.log('🎯 Retrying Gaussian splat loading after manager became available...');
+                            window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
+                        } else if (window.gaussianSplatManager) {
+                            console.warn(`❌ Manager available but dropdown still wrong: "${siteDropdown.value}"`);
+                        } else {
+                            setTimeout(waitForManager, 200);
+                        }
+                    };
+                    setTimeout(waitForManager, 200);
+                }
             }
             
             console.log('✅ Cesium site visualization initialized');
