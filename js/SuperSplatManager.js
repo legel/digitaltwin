@@ -319,9 +319,9 @@ class SuperSplatManager {
             return;
         }
 
-        // Construct URL for SuperSplat with auto-load parameter
+        // Construct URL for SuperSplat with auto-load parameter using relative URL
         const splatUrl = `/data/${siteId}/splat.ply`;
-        const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(window.location.origin + splatUrl)}`;
+        const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
 
         console.log('Loading SuperSplat editor:', editorUrl);
 
