@@ -1835,13 +1835,16 @@ class GaussianSplatManager {
                     
                     // Check for completion conditions: either tiles are ready OR we've waited long enough with failures
                     const hasContentReady = stats.numberOfTilesWithContentReady > 0;
-                    const hasPendingStuck = checkCount > 20 && stats.numberOfPendingRequests > 0; // 10+ seconds stuck
-                    const shouldComplete = hasContentReady || (tileset.ready && hasPendingStuck);
+                    const hasPendingStuck = checkCount > 10 && stats.numberOfPendingRequests > 0; // 5+ seconds stuck
+                    const hasTimeoutCondition = checkCount > 40; // 20+ seconds total, force completion
+                    const shouldComplete = hasContentReady || hasPendingStuck || hasTimeoutCondition;
                     
                     if (shouldComplete) {
                         if (this.loadingStartTime) {
                             const loadTime = Date.now() - this.loadingStartTime;
-                            const completionReason = hasContentReady ? 'tiles loaded successfully' : 'tileset ready despite pending requests';
+                            const completionReason = hasContentReady ? 'tiles loaded successfully' : 
+                                                hasPendingStuck ? 'pending requests stuck, proceeding anyway' : 
+                                                'timeout reached, forcing completion';
                             console.log(`Tile loading for ${siteId}: ${completionReason}, Load Time=${loadTime}ms`);
                             this.loadingStartTime = null; // Only log once
                             
