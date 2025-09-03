@@ -1828,10 +1828,7 @@ class GaussianSplatManager {
                 if (tileset.statistics) {
                     const stats = tileset.statistics;
                     
-                    // DEBUG: Log tileset statistics to understand what's happening
-                    if (checkCount === 1 || checkCount === 5 || checkCount === 10 || checkCount % 20 === 0) {
-                        console.log(`🔍 Tileset stats for ${siteId} (check ${checkCount}): ready=${tileset.ready}, contentReady=${stats.numberOfTilesWithContentReady}, pending=${stats.numberOfPendingRequests}, processing=${stats.numberOfTilesProcessing}, total=${stats.numberOfTilesTotal}, failed=${stats.numberOfTilesFailed}`);
-                    }
+                    // Monitor tileset completion progress
                     
                     // Check for completion conditions: either tiles are ready OR we've waited long enough with failures
                     const hasContentReady = stats.numberOfTilesWithContentReady > 0;
@@ -1842,14 +1839,11 @@ class GaussianSplatManager {
                     if (shouldComplete) {
                         if (this.loadingStartTime) {
                             const loadTime = Date.now() - this.loadingStartTime;
-                            const completionReason = hasContentReady ? 'tiles loaded successfully' : 
-                                                hasPendingStuck ? 'pending requests stuck, proceeding anyway' : 
-                                                'timeout reached, forcing completion';
-                            console.log(`Tile loading for ${siteId}: ${completionReason}, Load Time=${loadTime}ms`);
+                            console.log(`Digital twin ${siteId}: Load Time=${loadTime}ms`);
                             this.loadingStartTime = null; // Only log once
                             
                             // Trigger loading completion when Gaussian splat is ready
-                            console.log('🎯 GAUSSIAN SPLAT READY - Finalizing scene and triggering completion');
+                            console.log('🎯 Digital twin ready - completing loading sequence');
                             if (window.independentLoadingState && window.independentLoadingState.complete) {
                                 // Perturb scene to ensure proper rendering
                                 this.perturbSceneForInitialRender();

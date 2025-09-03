@@ -138,10 +138,17 @@ A comprehensive system for loading and managing 3D Gaussian Splat digital twins:
 - **Debug Controls**: Development button for removing splats when testing
 
 #### Technical Details
-- **File Structure**: Expects `tileset.json` and `content.glb` files in `/data/[site-id]/` directory
+- **File Structure**: Expects `tileset.json` locally, `content.glb` served via Google Cloud Storage
+- **Performance Optimization**: Large GLB files (44MB+) automatically redirected to GCS CDN for fast delivery
+- **CORS Configuration**: GCS bucket configured with proper Access-Control-Allow-Origin headers
 - **Cesium Version**: Requires Cesium 1.131+ for proper Gaussian splat support
 - **Extension Support**: Handles `KHR_spz_gaussian_splats_compression` extension
 - **Camera Positioning**: Automatic optimal viewpoint when splat loads
+
+#### Google Cloud Storage Integration
+- **server.py**: Redirects `/data/<site-id>/content.glb` requests to `gs://terrain-3d-assets/<site-id>/content.glb`
+- **CORS Policy**: Bucket configured to allow GET requests from `https://testing.ecodash.ai`
+- **Fallback Completion**: Smart loading completion handles stuck tile requests gracefully
 
 #### Polygon Visibility Enhancement
 - **Elevation Strategy**: All polygon outlines and fills elevated 3m above original position
