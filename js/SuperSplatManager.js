@@ -297,12 +297,12 @@ class SuperSplatManager {
             }
             
             // Auto-load Gaussian Splat for Scott Boyd site
-            console.log(`🔍 Checking Gaussian splat conditions - Manager: ${!!window.gaussianSplatManager}, Dropdown: "${siteDropdown.value}"`);
+            // Check Gaussian splat loading conditions
             
             if (window.gaussianSplatManager && siteDropdown.value === 'Boyd_Residence_Aerial_and_Ground.geojson') {
-                console.log('✅ Conditions met - scheduling Gaussian splat loading in 500ms...');
+                console.log('🎯 Loading digital twin...');
                 setTimeout(() => {
-                    console.log('🎯 Loading Gaussian splat for Scott Boyd site...');
+                    // Load Gaussian splat digital twin
                     try {
                         window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
                     } catch (error) {
@@ -319,10 +319,10 @@ class SuperSplatManager {
                 
                 // Fallback: wait for gaussianSplatManager and retry
                 if (!window.gaussianSplatManager) {
-                    console.log('🔄 Waiting for GaussianSplatManager to become available...');
+                    // Wait for GaussianSplatManager initialization
                     const waitForManager = () => {
                         if (window.gaussianSplatManager && siteDropdown.value === 'Boyd_Residence_Aerial_and_Ground.geojson') {
-                            console.log('🎯 Retrying Gaussian splat loading after manager became available...');
+                            // Retry digital twin loading
                             window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
                         } else if (window.gaussianSplatManager) {
                             console.warn(`❌ Manager available but dropdown still wrong: "${siteDropdown.value}"`);
@@ -875,20 +875,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.superSplatManager.initialize();
     
     // Check SuperSplat availability multiple times to catch when site selector is ready
-    setTimeout(() => {
-        console.log('🔄 Initial SuperSplat availability check...');
-        window.superSplatManager.updateSuperSplatAvailability();
-    }, 500);
-    
-    setTimeout(() => {
-        console.log('🔄 Secondary SuperSplat availability check...');
-        window.superSplatManager.updateSuperSplatAvailability();
-    }, 2000);
-    
-    setTimeout(() => {
-        console.log('🔄 Final SuperSplat availability check...');
-        window.superSplatManager.updateSuperSplatAvailability();
-    }, 5000);
+    setTimeout(() => window.superSplatManager.updateSuperSplatAvailability(), 500);
+    setTimeout(() => window.superSplatManager.updateSuperSplatAvailability(), 2000);
+    setTimeout(() => window.superSplatManager.updateSuperSplatAvailability(), 5000);
 });
 
 // Listen for site changes to update SuperSplat availability

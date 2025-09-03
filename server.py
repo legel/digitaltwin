@@ -10,11 +10,13 @@ CORS(app)  # Enable CORS for all routes
 def index():
     return send_from_directory('.', 'app.html')
 
-# Redirect content.glb files to Google Cloud Storage for better performance
+# Redirect large Gaussian splat content.glb files to Google Cloud Storage CDN
+# This solves CORS issues and provides faster download speeds for 44MB+ files
+# Maintains Cesium compatibility by keeping tileset.json local with relative URIs
 @app.route('/data/<site_id>/content.glb')
 def redirect_content_glb(site_id):
     gcs_url = f'https://storage.googleapis.com/terrain-3d-assets/{site_id}/content.glb'
-    return redirect(gcs_url, code=301)
+    return redirect(gcs_url, code=301)  # Permanent redirect for browser caching
 
 # Serve static files (CSS, JS, images)
 @app.route('/<path:path>')
