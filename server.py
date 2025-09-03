@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory, jsonify, redirect
 from flask_cors import CORS
 import os
 
@@ -9,6 +9,12 @@ CORS(app)  # Enable CORS for all routes
 @app.route('/')
 def index():
     return send_from_directory('.', 'app.html')
+
+# Redirect content.glb files to Google Cloud Storage for better performance
+@app.route('/data/<site_id>/content.glb')
+def redirect_content_glb(site_id):
+    gcs_url = f'https://storage.googleapis.com/terrain-3d-assets/{site_id}/content.glb'
+    return redirect(gcs_url, code=301)
 
 # Serve static files (CSS, JS, images)
 @app.route('/<path:path>')
