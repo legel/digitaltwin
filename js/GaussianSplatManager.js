@@ -1830,14 +1830,7 @@ class GaussianSplatManager {
                     
                     // DEBUG: Log tileset statistics to understand what's happening
                     if (checkCount === 1 || checkCount === 5 || checkCount === 10 || checkCount % 20 === 0) {
-                        console.log(`🔍 Tileset stats for ${siteId} (check ${checkCount}):`, {
-                            ready: tileset.ready,
-                            numberOfTilesWithContentReady: stats.numberOfTilesWithContentReady,
-                            numberOfPendingRequests: stats.numberOfPendingRequests,
-                            numberOfTilesProcessing: stats.numberOfTilesProcessing,
-                            numberOfTilesTotal: stats.numberOfTilesTotal,
-                            numberOfTilesFailed: stats.numberOfTilesFailed
-                        });
+                        console.log(`🔍 Tileset stats for ${siteId} (check ${checkCount}): ready=${tileset.ready}, contentReady=${stats.numberOfTilesWithContentReady}, pending=${stats.numberOfPendingRequests}, processing=${stats.numberOfTilesProcessing}, total=${stats.numberOfTilesTotal}, failed=${stats.numberOfTilesFailed}`);
                     }
                     
                     if (stats.numberOfTilesWithContentReady > 0) {
