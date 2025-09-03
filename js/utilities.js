@@ -2231,11 +2231,23 @@ async function allSystemsGo() {
         // Start with Cesium 3D mode (original behavior)
         await initializeCesiumModeFirst();
         
-        // Set up fallback completion timer for Cesium mode
-        const cesiumTimeout = (window.TERRAIN_LOADING_CONFIG.expectedLoadTime.cesium + 5) * 1000; // +5s buffer
+        // Set up smart fallback completion timer for Cesium mode
+        // Only use fallback timeout if no Gaussian splat is expected
+        const cesiumTimeout = (window.TERRAIN_LOADING_CONFIG.expectedLoadTime.cesium + 10) * 1000; // +10s buffer for splats
         setTimeout(() => {
             if (window.independentLoadingState?.isActive) {
-                console.log('⏰ Cesium mode timeout - completing loading without Gaussian splat');
+                // Check if Gaussian Splat data exists and might be loading
+                const hasSplatData = window.gaussianSplatManager?.hasSplatData;
+                const splatManager = window.gaussianSplatManager;
+                
+                // If we have a Gaussian splat manager and it might have data, let it handle completion
+                if (splatManager && (splatManager.isLoading || splatManager.loadedTilesets?.size > 0)) {
+                    console.log('⏳ Cesium timeout reached but Gaussian splat system is active - letting splat handle completion');
+                    return; // Let the Gaussian splat completion mechanism handle it
+                }
+                
+                // Only complete here if no Gaussian splat is expected or failed to initialize
+                console.log('⏰ Cesium fallback timeout - completing loading (no active Gaussian splat loading)');
                 window.independentLoadingState.complete();
             }
         }, cesiumTimeout);
