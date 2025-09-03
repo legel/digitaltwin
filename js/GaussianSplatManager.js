@@ -1827,6 +1827,19 @@ class GaussianSplatManager {
                 // Log completion when tiles are actually loaded
                 if (tileset.statistics) {
                     const stats = tileset.statistics;
+                    
+                    // DEBUG: Log tileset statistics to understand what's happening
+                    if (checkCount === 1 || checkCount === 5 || checkCount === 10 || checkCount % 20 === 0) {
+                        console.log(`🔍 Tileset stats for ${siteId} (check ${checkCount}):`, {
+                            ready: tileset.ready,
+                            numberOfTilesWithContentReady: stats.numberOfTilesWithContentReady,
+                            numberOfPendingRequests: stats.numberOfPendingRequests,
+                            numberOfTilesProcessing: stats.numberOfTilesProcessing,
+                            numberOfTilesTotal: stats.numberOfTilesTotal,
+                            numberOfTilesFailed: stats.numberOfTilesFailed
+                        });
+                    }
+                    
                     if (stats.numberOfTilesWithContentReady > 0) {
                         if (this.loadingStartTime) {
                             const loadTime = Date.now() - this.loadingStartTime;
