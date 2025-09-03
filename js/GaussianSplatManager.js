@@ -1833,10 +1833,16 @@ class GaussianSplatManager {
                         console.log(`🔍 Tileset stats for ${siteId} (check ${checkCount}): ready=${tileset.ready}, contentReady=${stats.numberOfTilesWithContentReady}, pending=${stats.numberOfPendingRequests}, processing=${stats.numberOfTilesProcessing}, total=${stats.numberOfTilesTotal}, failed=${stats.numberOfTilesFailed}`);
                     }
                     
-                    if (stats.numberOfTilesWithContentReady > 0) {
+                    // Check for completion conditions: either tiles are ready OR we've waited long enough with failures
+                    const hasContentReady = stats.numberOfTilesWithContentReady > 0;
+                    const hasPendingStuck = checkCount > 20 && stats.numberOfPendingRequests > 0; // 10+ seconds stuck
+                    const shouldComplete = hasContentReady || (tileset.ready && hasPendingStuck);
+                    
+                    if (shouldComplete) {
                         if (this.loadingStartTime) {
                             const loadTime = Date.now() - this.loadingStartTime;
-                            console.log(`Tile loaded for ${siteId}: Total=1, Avg Load Time=${loadTime}ms`);
+                            const completionReason = hasContentReady ? 'tiles loaded successfully' : 'tileset ready despite pending requests';
+                            console.log(`Tile loading for ${siteId}: ${completionReason}, Load Time=${loadTime}ms`);
                             this.loadingStartTime = null; // Only log once
                             
                             // Trigger loading completion when Gaussian splat is ready
