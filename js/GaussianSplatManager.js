@@ -293,7 +293,8 @@ class GaussianSplatManager {
             try {
                 // Reload the tileset with optimized settings
                 console.log(`Reloading tileset from: ${splatData.tilesetUrl}`);
-                const tileset = await Cesium.Cesium3DTileset.fromUrl(splatData.tilesetUrl, {
+                
+                let tilesetOptions = {
                     // UPDATED: Match enhanced Gaussian Splat prioritization settings
                     maximumScreenSpaceError: 6,              // Higher quality (8 -> 6)
                     maximumMemoryUsage: 512,                 // Double memory (256 -> 512MB)
@@ -311,7 +312,14 @@ class GaussianSplatManager {
                     enableDebugWireframe: false,
                     cacheBytes: 536870912,
                     maximumCacheOverflowBytes: 134217728
-                });
+                };
+                
+                // When running locally, override the base path to use GCS for content.glb
+                if (window.TerrainConfig && window.TerrainConfig.isLocal) {
+                    tilesetOptions.basePath = window.TerrainConfig.getGcsUrl(siteId, '');
+                }
+                
+                const tileset = await Cesium.Cesium3DTileset.fromUrl(splatData.tilesetUrl, tilesetOptions);
                 
                 // Restore model matrix if it was modified
                 if (splatData.modelMatrix) {
@@ -1604,7 +1612,8 @@ class GaussianSplatManager {
                     // Tileset creation in background thread logging removed for cleaner console output
                     
                     // CRITICAL: Load tileset with performance-optimized settings for 60+fps
-                    const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl, {
+                    // When running locally, we need to handle content.glb specially
+                    let tilesetOptions = {
                         // PERFORMANCE CRITICAL: Gaussian Splat rendering optimizations
                         // MAXIMIZED: Since Google tiles are deprioritized, we can be more generous with Gaussian Splats
                         maximumScreenSpaceError: 6,              // Even higher quality than before (8 -> 6)
@@ -1635,7 +1644,16 @@ class GaussianSplatManager {
                         // MEMORY AND CACHE OPTIMIZATIONS
                         cacheBytes: 536870912,                  // 512MB cache for better streaming
                         maximumCacheOverflowBytes: 134217728    // 128MB overflow buffer
-                    });
+                    };
+                    
+                    // When running locally, override the base path to use GCS for content.glb
+                    if (window.TerrainConfig && window.TerrainConfig.isLocal) {
+                        // The tileset.json from testing.ecodash.ai will have relative URIs
+                        // We need to override the base path to point to GCS for content.glb
+                        tilesetOptions.basePath = window.TerrainConfig.getGcsUrl(siteId, '');
+                    }
+                    
+                    const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl, tilesetOptions);
                     
                     // Tileset creation logging removed for cleaner console output
                     
