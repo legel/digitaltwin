@@ -365,6 +365,20 @@ class SuperSplatManager {
         }
 
         console.log('Loading SuperSplat editor:', editorUrl);
+        console.log('PLY URL to load:', splatUrl);
+        
+        // Test if PLY is accessible
+        fetch(splatUrl, { method: 'HEAD' })
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ PLY file is accessible from:', splatUrl);
+                } else {
+                    console.error('❌ PLY file not accessible:', response.status, response.statusText);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Failed to check PLY accessibility:', error);
+            });
 
         // Create iframe for SuperSplat
         this.superSplatIframe = document.createElement('iframe');
