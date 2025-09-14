@@ -350,8 +350,12 @@ class SuperSplatManager {
         }
 
         // Construct URL for SuperSplat with auto-load parameter using Google Cloud Storage
-        const splatUrl = `https://storage.googleapis.com/terrain-3d-assets/${siteId}/splat.ply`;
-        const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
+        const splatUrl = window.TerrainConfig ? 
+            window.TerrainConfig.getGcsUrl(siteId, 'splat.ply') :
+            `https://storage.googleapis.com/terrain-3d-assets/${siteId}/splat.ply`;
+        const editorUrl = window.TerrainConfig ? 
+            `${window.TerrainConfig.getSuperSplatUrl('index.html')}?load=${encodeURIComponent(splatUrl)}` :
+            `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
 
         console.log('Loading SuperSplat editor:', editorUrl);
 
@@ -449,7 +453,10 @@ class SuperSplatManager {
      */
     async hasSplatFile(siteId) {
         try {
-            const response = await fetch(`/data/${siteId}/splat.ply`, { method: 'HEAD' });
+            const dataUrl = window.TerrainConfig ? 
+                window.TerrainConfig.getDataUrl(`${siteId}/splat.ply`) :
+                `/data/${siteId}/splat.ply`;
+            const response = await fetch(dataUrl, { method: 'HEAD' });
             return response.ok;
         } catch (error) {
             console.warn(`No splat file found for site: ${siteId}`);

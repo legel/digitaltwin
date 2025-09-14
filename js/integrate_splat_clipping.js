@@ -20,7 +20,9 @@
 window.GaussianSplatManager.prototype.loadPrecomputedClipping = async function(siteId, tileset) {
     try {
         // Try to load pre-computed clipping polygon
-        const clippingUrl = `/data/${siteId}/clipping-polygon.json`;
+        const clippingUrl = window.TerrainConfig ? 
+            window.TerrainConfig.getDataUrl(`${siteId}/clipping-polygon.json`) :
+            `/data/${siteId}/clipping-polygon.json`;
         const response = await fetch(clippingUrl);
         
         if (!response.ok) {
