@@ -306,7 +306,10 @@ async function loadSiteData() {
     
     for (const file of files) {
         try {
-            const response = await fetch(`/data/scott-boyd-residence/${file.filename}`);
+            const dataUrl = window.TerrainConfig ? 
+                window.TerrainConfig.getDataUrl(`scott-boyd-residence/${file.filename}`) :
+                `/data/scott-boyd-residence/${file.filename}`;
+            const response = await fetch(dataUrl);
             const geoJsonData = await response.json();
             
             // Calculate bounds from the GeoJSON features

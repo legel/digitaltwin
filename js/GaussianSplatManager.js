@@ -211,7 +211,9 @@ class GaussianSplatManager {
             
             // Store the tileset URL for reloading
             this.hiddenSplatData.set(siteId, {
-                tilesetUrl: `/data/${siteId}/tileset.json`,
+                tilesetUrl: window.TerrainConfig ? 
+                    window.TerrainConfig.getDataUrl(`${siteId}/tileset.json`) :
+                    `/data/${siteId}/tileset.json`,
                 bounds: tileset.boundingSphere,
                 modelMatrix: tileset.modelMatrix,
                 clippingEnabled: this.clippingPolygons.has(siteId)
@@ -923,7 +925,9 @@ class GaussianSplatManager {
      */
     async hasSplatData(siteId) {
         try {
-            const tilesetUrl = `/data/${siteId}/tileset.json`;
+            const tilesetUrl = window.TerrainConfig ? 
+                window.TerrainConfig.getDataUrl(`${siteId}/tileset.json`) :
+                `/data/${siteId}/tileset.json`;
             const response = await fetch(tilesetUrl, { method: 'HEAD' });
             return response.ok;
         } catch (error) {
@@ -1082,7 +1086,9 @@ class GaussianSplatManager {
         // this.createLoadingIndicator(siteId, bounds);
         
         try {
-            const tilesetUrl = `/data/${siteId}/tileset.json`;
+            const tilesetUrl = window.TerrainConfig ? 
+                window.TerrainConfig.getDataUrl(`${siteId}/tileset.json`) :
+                `/data/${siteId}/tileset.json`;
             // Gaussian Splat loading logging removed for cleaner console output
             
             // Update loading message for Gaussian Splat phase
