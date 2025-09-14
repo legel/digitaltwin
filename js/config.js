@@ -4,10 +4,11 @@
 (function() {
     'use strict';
 
-    // Detect if running locally (localhost or 127.0.0.1 or port 5001)
+    // Detect if running locally (localhost or 127.0.0.1 or port 5001/5002)
     const isLocal = window.location.hostname === 'localhost' || 
                    window.location.hostname === '127.0.0.1' ||
-                   window.location.port === '5001';
+                   window.location.port === '5001' ||
+                   window.location.port === '5002';
 
     // Configuration object
     window.TerrainConfig = {

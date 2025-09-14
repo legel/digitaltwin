@@ -403,6 +403,8 @@ class SuperSplatManager {
         // Add loading handler
         this.superSplatIframe.onload = () => {
             console.log('✅ SuperSplat editor loaded successfully');
+            console.log('SuperSplat should now load PLY from:', splatUrl);
+            console.log('If PLY is not loading, check browser console for CORS or network errors');
             
             // Check if we're in a cross-origin situation
             const isCrossOrigin = editorUrl.includes('testing.ecodash.ai');
