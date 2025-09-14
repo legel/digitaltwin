@@ -314,12 +314,31 @@ class GaussianSplatManager {
                     maximumCacheOverflowBytes: 134217728
                 };
                 
-                // When running locally, override the base path to use GCS for content.glb
+                // When running locally, we need to handle the tileset differently
+                let tileset;
                 if (window.TerrainConfig && window.TerrainConfig.isLocal) {
-                    tilesetOptions.basePath = window.TerrainConfig.getGcsUrl(siteId, '');
+                    // Fetch the tileset.json first and modify it
+                    const response = await fetch(splatData.tilesetUrl);
+                    const tilesetJson = await response.json();
+                    
+                    // Modify the content URI to use absolute GCS URL
+                    if (tilesetJson.root && tilesetJson.root.children) {
+                        for (const child of tilesetJson.root.children) {
+                            if (child.content && child.content.uri === 'content.glb') {
+                                child.content.uri = window.TerrainConfig.getGcsUrl(siteId, 'content.glb');
+                                console.log('Local mode (restore): Modified content.glb URL to:', child.content.uri);
+                            }
+                        }
+                    }
+                    
+                    // Create tileset from modified JSON
+                    const blob = new Blob([JSON.stringify(tilesetJson)], { type: 'application/json' });
+                    const modifiedUrl = URL.createObjectURL(blob);
+                    tileset = await Cesium.Cesium3DTileset.fromUrl(modifiedUrl, tilesetOptions);
+                } else {
+                    // Normal loading for production
+                    tileset = await Cesium.Cesium3DTileset.fromUrl(splatData.tilesetUrl, tilesetOptions);
                 }
-                
-                const tileset = await Cesium.Cesium3DTileset.fromUrl(splatData.tilesetUrl, tilesetOptions);
                 
                 // Restore model matrix if it was modified
                 if (splatData.modelMatrix) {
@@ -1646,14 +1665,31 @@ class GaussianSplatManager {
                         maximumCacheOverflowBytes: 134217728    // 128MB overflow buffer
                     };
                     
-                    // When running locally, override the base path to use GCS for content.glb
+                    // When running locally, we need to handle the tileset differently
+                    let tileset;
                     if (window.TerrainConfig && window.TerrainConfig.isLocal) {
-                        // The tileset.json from testing.ecodash.ai will have relative URIs
-                        // We need to override the base path to point to GCS for content.glb
-                        tilesetOptions.basePath = window.TerrainConfig.getGcsUrl(siteId, '');
+                        // Fetch the tileset.json first and modify it
+                        const response = await fetch(tilesetUrl);
+                        const tilesetJson = await response.json();
+                        
+                        // Modify the content URI to use absolute GCS URL
+                        if (tilesetJson.root && tilesetJson.root.children) {
+                            for (const child of tilesetJson.root.children) {
+                                if (child.content && child.content.uri === 'content.glb') {
+                                    child.content.uri = window.TerrainConfig.getGcsUrl(siteId, 'content.glb');
+                                    console.log('Local mode: Modified content.glb URL to:', child.content.uri);
+                                }
+                            }
+                        }
+                        
+                        // Create tileset from modified JSON
+                        const blob = new Blob([JSON.stringify(tilesetJson)], { type: 'application/json' });
+                        const modifiedUrl = URL.createObjectURL(blob);
+                        tileset = await Cesium.Cesium3DTileset.fromUrl(modifiedUrl, tilesetOptions);
+                    } else {
+                        // Normal loading for production
+                        tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl, tilesetOptions);
                     }
-                    
-                    const tileset = await Cesium.Cesium3DTileset.fromUrl(tilesetUrl, tilesetOptions);
                     
                     // Tileset creation logging removed for cleaner console output
                     
