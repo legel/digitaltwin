@@ -33,7 +33,11 @@
         
         // Get URL for SuperSplat
         getSuperSplatUrl: function(path = '') {
+            // When running locally, check if we have a local supersplat-build
+            // If not, use the remote version to avoid cross-origin issues
             if (isLocal) {
+                // For now, always use remote SuperSplat when running locally
+                // This avoids cross-origin issues but requires the remote server
                 return `${this.remoteBaseUrl}/supersplat/${path}`;
             }
             return `/supersplat/${path}`;
