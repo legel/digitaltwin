@@ -19,9 +19,17 @@ def redirect_content_glb(site_id):
     return redirect(gcs_url, code=301)  # Permanent redirect for browser caching
 
 # Serve static files (CSS, JS, images)
+# Flask automatically separates query parameters from the path
 @app.route('/<path:path>')
 def serve_static(path):
-    return send_from_directory('.', path)
+    # The path parameter already has query strings stripped by Flask
+    # Query parameters are available via request.args if needed
+    try:
+        return send_from_directory('.', path)
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error serving {path}: {e}")
+        return f"File not found: {path}", 404
 
 # Health check endpoint
 @app.route('/api/health')
