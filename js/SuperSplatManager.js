@@ -353,9 +353,16 @@ class SuperSplatManager {
         const splatUrl = window.TerrainConfig ? 
             window.TerrainConfig.getGcsUrl(siteId, 'splat.ply') :
             `https://storage.googleapis.com/terrain-3d-assets/${siteId}/splat.ply`;
-        const editorUrl = window.TerrainConfig ? 
-            `${window.TerrainConfig.getSuperSplatUrl('index.html')}?load=${encodeURIComponent(splatUrl)}` :
-            `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
+        
+        // For local development, try to use local SuperSplat if available
+        let editorUrl;
+        if (window.TerrainConfig && window.TerrainConfig.isLocal) {
+            // Check if we have a local supersplat-build (only on development machine)
+            // For other machines, this will 404 and we'll handle it
+            editorUrl = `/supersplat-build/dist/index.html?load=${encodeURIComponent(splatUrl)}`;
+        } else {
+            editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
+        }
 
         console.log('Loading SuperSplat editor:', editorUrl);
 
@@ -369,15 +376,35 @@ class SuperSplatManager {
         this.superSplatIframe.style.top = '0';
         this.superSplatIframe.style.left = '0';
 
+        // Add error handler for when local supersplat-build doesn't exist
+        this.superSplatIframe.onerror = () => {
+            if (window.TerrainConfig && window.TerrainConfig.isLocal && editorUrl.includes('supersplat-build')) {
+                console.warn('Local supersplat-build not found, falling back to remote');
+                // Fallback to remote SuperSplat
+                editorUrl = `${window.TerrainConfig.remoteBaseUrl}/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
+                this.superSplatIframe.src = editorUrl;
+            }
+        };
+        
         // Add loading handler
         this.superSplatIframe.onload = () => {
             console.log('✅ SuperSplat editor loaded successfully');
             
-            // Position button relative to view-cube once iframe is loaded
-            setTimeout(() => {
-                this.positionButtonRelativeToViewCube();
-                this.setInitialSuperSplatView();
-            }, 2000); // Allow time for SuperSplat to fully initialize
+            // Check if we're in a cross-origin situation
+            const isCrossOrigin = editorUrl.includes('testing.ecodash.ai');
+            
+            // Only try to position button if not cross-origin
+            if (!isCrossOrigin) {
+                // Position button relative to view-cube once iframe is loaded
+                setTimeout(() => {
+                    this.positionButtonRelativeToViewCube();
+                    this.setInitialSuperSplatView();
+                }, 2000); // Allow time for SuperSplat to fully initialize
+            } else {
+                console.log('Cross-origin iframe detected, skipping DOM manipulation');
+                // Use fallback positioning
+                this.applyFallbackPositioning();
+            }
             
             // Notify loading system that SuperSplat is ready (for Lab mode)
             if (window.independentLoadingState?.isActive) {
@@ -582,6 +609,18 @@ class SuperSplatManager {
         console.log('🌍 UI shown for Cesium mode');
     }
 
+    /**
+     * Apply fallback positioning for cross-origin situations
+     */
+    applyFallbackPositioning() {
+        const superSplatButton = document.getElementById('superSplatButton');
+        if (superSplatButton) {
+            superSplatButton.style.marginRight = '20px';
+            superSplatButton.style.visibility = 'visible';
+            console.log('✅ Globe button visible with fallback positioning (cross-origin)');
+        }
+    }
+    
     /**
      * Position the SuperSplat button relative to the view-cube-container in SuperSplat mode
      * Aligns button horizontally with view-cube center and positions it 25px below
