@@ -74,7 +74,7 @@ cd ../terrain-3d
 ```
 
 ### 3. Build SuperSplat Dependencies
-SuperSplat is now integrated as a git subtree in the terrain-3d repository:
+SuperSplat is integrated via https://github.com/legel/supersplat-terrain-3d repository:
 
 ```bash
 # One-command setup for SuperSplat (installs dependencies, builds, and deploys)
