@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Ecological Digital Twin Platform for Landscape Design",
   "scripts": {
-    "install:supersplat": "cd supersplat-terrain-3d && npm install",
-    "build:supersplat": "cd supersplat-terrain-3d && npm run build",
-    "deploy:supersplat": "cp -r supersplat-terrain-3d/dist/* supersplat/",
+    "install:supersplat": "cd supersplat-build && npm install",
+    "build:supersplat": "cd supersplat-build && npm run build",
+    "deploy:supersplat": "cp -r supersplat-build/dist/* supersplat/",
     "setup:supersplat": "npm run install:supersplat && npm run build:supersplat && npm run deploy:supersplat",
     "dev": "python server.py"
   },
