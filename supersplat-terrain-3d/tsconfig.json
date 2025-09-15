@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "module": "es2020",
+        "moduleResolution": "bundler",
+
+        "lib": ["es2022", "dom", "WebWorker"],
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "inlineSources": true,
+        "resolveJsonModule": true,
+    },
+    "include": [
+        "./src/**/*.ts",
+        "global.d.ts"
+    ],
+    "exclude": [
+        "src/debug.ts", // Testing file
+        "dist",
+        "node_modules",
+        "submodules"
+    ]
+}
