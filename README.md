@@ -2,7 +2,7 @@
 
 **Ecological Digital Twin Platform for Landscape Design**
 
-Terrain 3D is a sophisticated 3D visualization platform that enables landscape designers to create photorealistic digital twins of landscapes and design native plant-based solutions that maximize ecosystem services. Part of [Ecodash](docs/ecodash-company-manifesto.md)'s computational ecology mission.
+Terrain 3D is a sophisticated 3D visualization platform that enables landscape designers to create photorealistic digital twins of landscapes and design native plant-based solutions that maximize ecosystem services. Part of Ecodash's computational ecology mission.
 
 ## 🦋 Platform Overview
 
@@ -48,6 +48,8 @@ Terrain 3D is a sophisticated 3D visualization platform that enables landscape d
 ## 🛠 Quick Start
 
 ### 1. Clone and Setup Terrain 3D
+**Requirements**: Node.js 18+ and npm
+
 ```bash
 git clone https://github.com/legel/terrain-3d.git
 cd terrain-3d
@@ -93,7 +95,7 @@ npm run build:supersplat
 npm run deploy:supersplat
 ```
 
-**Fully Decoupled**: All SuperSplat source code is maintained locally in this repository. No external dependencies or git submodules. The SuperSplat application files are built in `supersplat-terrain-3d/dist/` and copied to `supersplat/` where they are served by the terrain-3d server.
+**Fully Decoupled**: All SuperSplat source code is maintained locally in the `supersplat-terrain-3d/` directory. The SuperSplat application files are built in `supersplat-terrain-3d/dist/` and copied to `supersplat/` where they are served by the terrain-3d server. No external repositories or complex dependency management required.
 
 ### 4. Server File Serving (Already Configured)
 The terrain-3d `server.py` serves SuperSplat files through its generic static file route:
@@ -124,14 +126,12 @@ python server.py
 - Build size warnings (⚠️) are normal and can be ignored
 
 **SuperSplat Build Issues:**
-- Requires Node.js and npm for building from source
+- Requires Node.js 18+ and npm for building from source
 - **Cross-Platform Compatible**: Windows-specific dependencies have been removed - `npm install` works on Linux/macOS/Windows
 - **Integrated Build**: Use `npm run setup:supersplat` for complete one-command setup
-- If submodule initialization fails, ensure git is installed and configured
 - If `npm install` shows vulnerabilities, they can be ignored for development
 - **TypeScript Warnings**: Build may show TS2345/TS2769 warnings about ArrayBuffer types - these can be ignored, build will complete successfully
 - **Missing CSS/HTML Files**: The rollup config has been fixed to automatically copy `index.css` and `index.html` to the `dist/` directory during build. If you encounter build errors about missing files in `dist/`, the build system now handles this automatically.
-- **Git Subtree**: SuperSplat is integrated as a subtree in terrain-3d, no external repository cloning needed
 - **File Serving**: Files are served from `supersplat/` directory via the generic static file route in `server.py`
 - **Update Workflow**: Use `npm run build:supersplat && npm run deploy:supersplat` to rebuild and deploy changes
 
