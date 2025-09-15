@@ -74,7 +74,7 @@ cd ../terrain-3d
 ```
 
 ### 3. Build SuperSplat Dependencies
-SuperSplat is integrated via https://github.com/legel/supersplat-terrain-3d repository:
+SuperSplat is fully integrated as local files in the `supersplat-terrain-3d/` directory:
 
 ```bash
 # One-command setup for SuperSplat (installs dependencies, builds, and deploys)
@@ -93,7 +93,7 @@ npm run build:supersplat
 npm run deploy:supersplat
 ```
 
-The SuperSplat application files are built in `supersplat-terrain-3d/dist/` and copied to `supersplat/` where they are served by the terrain-3d server.
+**Fully Decoupled**: All SuperSplat source code is maintained locally in this repository. No external dependencies or git submodules. The SuperSplat application files are built in `supersplat-terrain-3d/dist/` and copied to `supersplat/` where they are served by the terrain-3d server.
 
 ### 4. Server File Serving (Already Configured)
 The terrain-3d `server.py` serves SuperSplat files through its generic static file route:
