@@ -355,14 +355,8 @@ class SuperSplatManager {
             `https://storage.googleapis.com/terrain-3d-assets/${siteId}/splat.ply`;
         
         // For local development, try to use local SuperSplat if available
-        let editorUrl;
-        if (window.TerrainConfig && window.TerrainConfig.isLocal) {
-            // Check if we have a local supersplat-build (only on development machine)
-            // For other machines, this will 404 and we'll handle it
-            editorUrl = `/supersplat-build/dist/index.html?load=${encodeURIComponent(splatUrl)}`;
-        } else {
-            editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
-        }
+        // Use the built SuperSplat editor
+        const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
 
         console.log('Loading SuperSplat editor:', editorUrl);
         console.log('PLY URL to load:', splatUrl);
@@ -390,14 +384,9 @@ class SuperSplatManager {
         this.superSplatIframe.style.top = '0';
         this.superSplatIframe.style.left = '0';
 
-        // Add error handler for when local supersplat-build doesn't exist
+        // Add error handler for iframe loading issues
         this.superSplatIframe.onerror = () => {
-            if (window.TerrainConfig && window.TerrainConfig.isLocal && editorUrl.includes('supersplat-build')) {
-                console.warn('Local supersplat-build not found, falling back to remote');
-                // Fallback to remote SuperSplat
-                editorUrl = `${window.TerrainConfig.remoteBaseUrl}/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
-                this.superSplatIframe.src = editorUrl;
-            }
+            console.error('Failed to load SuperSplat editor');
         };
         
         // Add loading handler
