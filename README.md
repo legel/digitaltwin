@@ -130,6 +130,7 @@ python server.py
 - If submodule initialization fails, ensure git is installed and configured
 - If `npm install` shows vulnerabilities, they can be ignored for development
 - **TypeScript Warnings**: Build may show TS2345/TS2769 warnings about ArrayBuffer types - these can be ignored, build will complete successfully
+- **Missing CSS/HTML Files**: The rollup config has been fixed to automatically copy `index.css` and `index.html` to the `dist/` directory during build. If you encounter build errors about missing files in `dist/`, the build system now handles this automatically.
 - **Git Subtree**: SuperSplat is integrated as a subtree in terrain-3d, no external repository cloning needed
 - **File Serving**: Files are served from `supersplat/` directory via the generic static file route in `server.py`
 - **Update Workflow**: Use `npm run build:supersplat && npm run deploy:supersplat` to rebuild and deploy changes
