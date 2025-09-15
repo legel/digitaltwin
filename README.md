@@ -75,23 +75,37 @@ cd ../terrain-3d
 
 ### 3. Build SuperSplat Dependencies
 ```bash
-# Clone custom SuperSplat repository (separate directory)
-git clone https://github.com/TASallin/supersplat-terrain-3d.git supersplat-build
-cd supersplat-build
+# Clone custom SuperSplat repository (in terrain-3d directory)
+git clone https://github.com/TASallin/supersplat-terrain-3d.git
+cd supersplat-terrain-3d
 
 # Initialize submodules and install dependencies
 git submodule update --init
-npm install --force  # Use --force to bypass platform compatibility issues
+npm install  # Cross-platform compatible (Windows-specific deps removed)
 
 # Build SuperSplat
 npm run build
 
-# Copy built files to terrain-3d project
-cp -r dist ../terrain-3d/supersplat
-cd ../terrain-3d
+# Copy built files to terrain-3d root for serving
+cp -r dist/* ../supersplat/
+cd ..
 ```
 
-### 4. Start Development Server
+The SuperSplat application files are built in `supersplat-terrain-3d/dist/` and copied to `supersplat/` where they are served by the terrain-3d server.
+
+### 4. Server File Serving (Already Configured)
+The terrain-3d `server.py` serves SuperSplat files through its generic static file route:
+
+```python
+# Serve static files (CSS, JS, images) - includes SuperSplat files in supersplat/ directory
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory('.', path)
+```
+
+This automatically serves SuperSplat files from the `supersplat/` directory, allowing the terrain-3d interface to load SuperSplat in iframe mode at `/supersplat/index.html`.
+
+### 5. Start Development Server
 ```bash
 python server.py
 # Open http://localhost:5001
@@ -109,13 +123,15 @@ python server.py
 
 **SuperSplat Build Issues:**
 - Requires Node.js and npm for building from source
-- **Platform Compatibility**: On Linux/macOS, use `npm install --force` to bypass Windows-specific rollup package issues (`@rollup/rollup-win32-x64-msvc`)
+- **Cross-Platform Compatible**: Windows-specific dependencies have been removed from package.json - `npm install` works on Linux/macOS/Windows
 - If `git submodule update --init` fails, ensure you have git installed and configured
 - If `npm install` shows vulnerabilities, they can be ignored for development
 - **TypeScript Warnings**: Build may show TS2345/TS2769 warnings about ArrayBuffer types - these can be ignored, build will complete successfully
 - If build fails, try `npm run develop` first to test the development environment
-- SuperSplat build creates the `dist/` folder which becomes terrain-3d's `supersplat/` directory
-- **Repository**: Use the custom fork `https://github.com/TASallin/supersplat-terrain-3d.git`, not the original PlayCanvas repository
+- **Build and Copy**: SuperSplat builds to `supersplat-terrain-3d/dist/` and must be copied to `supersplat/` for serving
+- **Repository**: Use the custom fork `https://github.com/TASallin/supersplat-terrain-3d.git`, not the original PlayCanvas repository  
+- **File Serving**: Files are served from `supersplat/` directory via the generic static file route in `server.py`
+- **Copy Command**: After building, run `cp -r supersplat-terrain-3d/dist/* supersplat/` to deploy changes
 
 ## 🏗 Architecture
 
