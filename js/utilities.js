@@ -2035,8 +2035,11 @@ async function initializeLabModeFirst() {
             window.superSplatManager.loadSuperSplatEditor('scott-boyd-residence');
             window.superSplatManager.isSuperSplatMode = true;
             window.superSplatManager.updateButtonStates();
-            
-            // Hide UI elements for Lab mode
+
+            // Add CSS class to body for SuperSplat mode styling
+            document.body.classList.add('supersplat-mode');
+
+            // Configure UI elements for Lab mode
             window.superSplatManager.hideUIForLabMode();
             
             // Loading completion will be triggered by SuperSplat iframe onload event
@@ -2380,15 +2383,20 @@ async function allSystemsGo() {
 
     // GoogleMaps2D removed to improve performance
 
-    // Initialize unified LOD manager for consolidated Level of Detail management
-    window.unifiedLODManager = new UnifiedLODManager(window.map3D.viewer);
+    // Initialize managers only if Cesium is available
+    if (window.map3D && window.map3D.viewer) {
+        // Initialize unified LOD manager for consolidated Level of Detail management
+        window.unifiedLODManager = new UnifiedLODManager(window.map3D.viewer);
 
-    // Instantiate the UserManager and store it globally
-    window.user = new UserManager(window.map3D);
-    
-    // Instantiate the GaussianSplatManager with independent loading support
-    window.gaussianSplatManager = new GaussianSplatManager(window.map3D.viewer);
-    await import('./integrate_splat_clipping.js');
+        // Instantiate the UserManager and store it globally
+        window.user = new UserManager(window.map3D);
+
+        // Instantiate the GaussianSplatManager with independent loading support
+        window.gaussianSplatManager = new GaussianSplatManager(window.map3D.viewer);
+        await import('./integrate_splat_clipping.js');
+    } else {
+        console.log('⚠️ Skipping Cesium-dependent managers - running in Lab mode');
+    }
     
     // If we started in Cesium mode, now trigger the site visualization (after GaussianSplatManager is ready)
     if (initialMode === 'cesium' && window.superSplatManager?.initializeCesiumSiteVisualization) {

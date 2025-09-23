@@ -96,8 +96,11 @@ class SuperSplatManager {
         this.isSuperSplatMode = true;
         this.wasInSuperSplatMode = true; // Set flag for cleanup when returning to Cesium
         this.updateButtonStates();
-        
-        // Hide UI elements that should not be visible in Lab mode
+
+        // Add CSS class to body for SuperSplat mode styling
+        document.body.classList.add('supersplat-mode');
+
+        // Configure UI elements for Lab mode
         this.hideUIForLabMode();
 
         console.log('✅ SuperSplat mode activated');
@@ -217,7 +220,10 @@ class SuperSplatManager {
         // Update mode state and UI
         this.isSuperSplatMode = false;
         this.updateButtonStates();
-        
+
+        // Remove CSS class for SuperSplat mode styling
+        document.body.classList.remove('supersplat-mode');
+
         // Show UI elements that should be visible in Cesium mode
         this.showUIForCesiumMode();
 
@@ -456,22 +462,22 @@ class SuperSplatManager {
         // Update SuperSplat button classes and titles
         if (this.superSplatButton) {
             if (this.isSuperSplatMode) {
-                // In SuperSplat mode - show globe icon to return to Cesium
-                this.superSplatButton.textContent = '';
-                this.superSplatButton.className = 'control-button icon-button globe-icon-button';
-                this.superSplatButton.title = 'Switch to Cesium 3D view';
+                // In Lab mode - hide SuperSplat button (user should use 2D button for navigation)
+                this.superSplatButton.style.display = 'none';
             } else {
                 // In Cesium mode - show lab icon to enter Lab mode
+                this.superSplatButton.style.display = 'inline-block';
                 this.superSplatButton.textContent = '';
                 this.superSplatButton.className = 'control-button icon-button lab-icon-button';
                 this.superSplatButton.title = 'Switch to Lab mode (SuperSplat editing)';
             }
         }
 
-        // Hide/show 2D button based on SuperSplat mode state
+        // Show/hide buttons based on SuperSplat mode state
         const view2DButton = document.getElementById('viewSwitchButton');
         if (view2DButton) {
-            view2DButton.style.display = this.isSuperSplatMode ? 'none' : 'inline-block';
+            // Show 2D button in Lab mode, hide in Cesium mode (opposite of previous logic)
+            view2DButton.style.display = this.isSuperSplatMode ? 'inline-block' : 'none';
         }
 
         // Update SuperSplat button visibility
@@ -515,7 +521,7 @@ class SuperSplatManager {
     }
 
     /**
-     * Hides UI elements that should not be visible in Lab mode
+     * Configures UI elements for Lab mode (shows layer controls, hides site selector)
      */
     hideUIForLabMode() {
         // Hide site selector dropdown
@@ -524,10 +530,15 @@ class SuperSplatManager {
             siteSelector.style.display = 'none';
         }
 
-        // Hide layer controls (plantable area panel)
+        // Show layer controls in Lab mode for Boyd format sites (previously hidden)
         const layerControls = document.getElementById('layerControls');
-        if (layerControls) {
-            layerControls.style.display = 'none';
+        if (layerControls && window.currentSiteData) {
+            // Check if current site is Boyd format (which supports layer controls)
+            const format = window.detectGeoJsonFormat ?
+                window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
+            if (format === 'boyd') {
+                layerControls.style.display = 'block';
+            }
         }
 
         // Hide focus panel if open
@@ -618,6 +629,11 @@ class SuperSplatManager {
      * Apply fallback positioning for cross-origin situations
      */
     applyFallbackPositioning() {
+        // Don't show button if in Lab mode
+        if (this.isSuperSplatMode) {
+            return;
+        }
+
         const superSplatButton = document.getElementById('superSplatButton');
         if (superSplatButton) {
             superSplatButton.style.marginRight = '20px';
@@ -633,6 +649,12 @@ class SuperSplatManager {
     positionButtonRelativeToViewCube() {
         const superSplatButton = document.getElementById('superSplatButton');
         if (!superSplatButton) return;
+
+        // Don't position or show button if in Lab mode (should be hidden)
+        if (this.isSuperSplatMode) {
+            superSplatButton.style.display = 'none';
+            return;
+        }
 
         // Set up positioning with a delay to allow SuperSplat iframe to load
         const positionButton = () => {
@@ -708,11 +730,13 @@ class SuperSplatManager {
                 // Try again with longer delay
                 setTimeout(() => attemptPositioning(), attemptCount * 1000);
             } else {
-                // Final fallback - show button with margin positioning
-                console.log('⚠️ Failed to position button relative to view-cube after multiple attempts');
-                superSplatButton.style.marginRight = '20px';
-                superSplatButton.style.visibility = 'visible';
-                console.log('✅ Globe button visible with fallback positioning');
+                // Final fallback - show button with margin positioning (only if not in Lab mode)
+                if (!this.isSuperSplatMode) {
+                    console.log('⚠️ Failed to position button relative to view-cube after multiple attempts');
+                    superSplatButton.style.marginRight = '20px';
+                    superSplatButton.style.visibility = 'visible';
+                    console.log('✅ Globe button visible with fallback positioning');
+                }
             }
         };
         
