@@ -14,6 +14,11 @@
     pointer-events: none; /* Allow click-through except on actual controls */
 }
 
+/* Adjust control panel positioning in SuperSplat Lab mode to avoid rotation cube */
+.supersplat-mode .control-panel {
+    top: 120px; /* Provide clearance for SuperSplat view-cube-container and rotation controls */
+}
+
 /* Control groups */
 .control-group {
     display: flex;
