@@ -1,7 +1,7 @@
 // Global loading mode configuration
 window.TERRAIN_LOADING_CONFIG = {
     // Set to 'lab' for SuperSplat Lab mode first, 'cesium' for Cesium 3D mode first
-    initialMode: 'cesium',
+    initialMode: 'lab',
     
     // Loading timing configuration
     expectedLoadTime: {
