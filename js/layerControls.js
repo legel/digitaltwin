@@ -21,7 +21,7 @@ const layerSettings = {
         polygonAlpha: 0,
         outlineWidth: 2,
         selectedOutlineWidth: 10,
-        outlineColor: Cesium.Color.WHITE
+        outlineColor: (typeof Cesium !== 'undefined') ? Cesium.Color.WHITE : '#FFFFFF'
     },
     ecologicalMetrics: {
         polygonAlpha: 0.7,
@@ -32,7 +32,7 @@ const layerSettings = {
         polygonAlpha: 0,
         outlineWidth: 2,
         selectedOutlineWidth: 10,
-        outlineColor: Cesium.Color.RED
+        outlineColor: (typeof Cesium !== 'undefined') ? Cesium.Color.RED : '#FF0000'
     }
 };
 
@@ -969,17 +969,19 @@ function zoomToFeature(featureName, featureType) {
         finalHeight: finalHeight
     });
     
-    // Animate to position with camera facing straight down
-    viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
-        orientation: {
-            heading: 0.0,  // North
-            pitch: -Math.PI / 2,  // Looking straight down
-            roll: 0.0
-        },
-        duration: 1.5,
-        easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
-    });
+    // Animate to position with camera facing straight down (Cesium mode only)
+    if (typeof Cesium !== 'undefined' && viewer && viewer.camera) {
+        viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
+            orientation: {
+                heading: 0.0,  // North
+                pitch: -Math.PI / 2,  // Looking straight down
+                roll: 0.0
+            },
+            duration: 1.5,
+            easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
+        });
+    }
 }
 
 /**
@@ -1067,17 +1069,19 @@ function zoomToNPACategory(categoryName) {
     
     // NPA camera positioning logging removed for cleaner console output
     
-    // Animate to position with camera facing straight down
-    viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
-        orientation: {
-            heading: 0.0,  // North
-            pitch: -Math.PI / 2,  // Looking straight down
-            roll: 0.0
-        },
-        duration: 1.5,
-        easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
-    });
+    // Animate to position with camera facing straight down (Cesium mode only)
+    if (typeof Cesium !== 'undefined' && viewer && viewer.camera) {
+        viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
+            orientation: {
+                heading: 0.0,  // North
+                pitch: -Math.PI / 2,  // Looking straight down
+                roll: 0.0
+            },
+            duration: 1.5,
+            easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
+        });
+    }
 }
 
 // Override the original toggleParameterFilter

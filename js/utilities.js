@@ -553,9 +553,14 @@ function viridisColormap(t) {
  * @returns {Cesium.Color} - Color representing the value
  */
 function getParameterColor(value, minVal, maxVal, paramType) {
+    // Skip if Cesium not available (Lab mode)
+    if (typeof Cesium === 'undefined') {
+        return null;
+    }
+
     // Normalize value to 0-1 range
     const normalized = maxVal > minVal ? (value - minVal) / (maxVal - minVal) : 0.5;
-    
+
     // For categorical parameters, use discrete colors
     if (paramType === 'moisture') {
         const moistureColors = [
@@ -569,7 +574,7 @@ function getParameterColor(value, minVal, maxVal, paramType) {
         const rgb = moistureColors[Math.min(colorIndex, 4)];
         return new Cesium.Color(rgb[0], rgb[1], rgb[2], 0.7);
     }
-    
+
     // For continuous parameters, use Viridis colormap
     const rgb = viridisColormap(normalized);
     return new Cesium.Color(rgb[0], rgb[1], rgb[2], 0.7);
@@ -935,10 +940,15 @@ function extractLightLevel(name) {
  * @returns {Cesium.Color} - Color object with alpha
  */
 function getGreenShadeByLight(lightLevel) {
+    // Skip if Cesium not available (Lab mode)
+    if (typeof Cesium === 'undefined') {
+        return null;
+    }
+
     // Map light levels to different shades of green
     // Higher light = brighter/lighter green, Lower light = darker green
     if (lightLevel >= 8) return Cesium.Color.LIGHTGREEN.withAlpha(0.7);      // 8-10: Light green
-    if (lightLevel >= 6) return Cesium.Color.LIME.withAlpha(0.7);            // 6-8: Lime green  
+    if (lightLevel >= 6) return Cesium.Color.LIME.withAlpha(0.7);            // 6-8: Lime green
     if (lightLevel >= 4) return Cesium.Color.GREEN.withAlpha(0.7);           // 4-6: Medium green
     if (lightLevel >= 2) return Cesium.Color.FORESTGREEN.withAlpha(0.7);     // 2-4: Forest green
     return Cesium.Color.DARKGREEN.withAlpha(0.7);                            // 0-2: Dark green
@@ -950,6 +960,11 @@ function getGreenShadeByLight(lightLevel) {
  * @returns {Cesium.Color} - Outline color
  */
 function getOutlineColorByLight(lightLevel) {
+    // Skip if Cesium not available (Lab mode)
+    if (typeof Cesium === 'undefined') {
+        return null;
+    }
+
     if (lightLevel >= 6) return Cesium.Color.DARKGREEN;
     return Cesium.Color.BLACK;
 }
@@ -1088,10 +1103,15 @@ function isPlantableFeature(feature, format) {
  * @returns {Cesium.Color} - Cesium color object
  */
 function normalizedArrayToCesiumColor(colorArray) {
+    // Skip if Cesium not available (Lab mode)
+    if (typeof Cesium === 'undefined') {
+        return null;
+    }
+
     if (!colorArray || colorArray.length < 3) {
         return Cesium.Color.WHITE; // Default fallback
     }
-    
+
     const [r, g, b, a = 1] = colorArray;
     return new Cesium.Color(r, g, b, a);
 }
@@ -1206,8 +1226,9 @@ function getBoydLightLevel(boydData) {
  * @param {Object} geoJsonData - The GeoJSON data to visualize
  */
 function visualizeGeoJsonPolygons(geoJsonData) {
-    if (!window.map3D || !window.map3D.viewer) {
-        console.error('Cesium viewer not available');
+    // Skip visualization if Cesium not available (Lab mode)
+    if (typeof Cesium === 'undefined' || !window.map3D || !window.map3D.viewer) {
+        console.log('⚠️ Skipping polygon visualization - Cesium not available or viewer not initialized (Lab mode)');
         return;
     }
     
@@ -2047,8 +2068,13 @@ async function initializeLabModeFirst() {
 async function initializeCesiumModeFirst() {
     console.log('🌍 Initializing Cesium 3D mode first...');
     
-    // Instantiate the CesiumManager 
-    window.map3D = new CesiumManager('cesiumContainer');
+    // Instantiate the CesiumManager - only if Cesium is available
+    if (typeof Cesium !== 'undefined') {
+        window.map3D = new CesiumManager('cesiumContainer');
+    } else {
+        console.warn('Cesium not available - skipping CesiumManager initialization');
+        return;
+    }
     
     // Ensure Cesium container is visible
     const cesiumContainer = document.getElementById('cesiumContainer');
@@ -2222,8 +2248,10 @@ async function allSystemsGo() {
         // Start with SuperSplat/Lab mode
         await initializeLabModeFirst();
         
-        // Instantiate the CesiumManager in background (but don't show it)
-        window.map3D = new CesiumManager('cesiumContainer');
+        // Instantiate the CesiumManager in background (but don't show it) - only if Cesium is available
+        if (typeof Cesium !== 'undefined') {
+            window.map3D = new CesiumManager('cesiumContainer');
+        }
         
         // Hide Cesium container initially since we're starting in Lab mode
         const cesiumContainer = document.getElementById('cesiumContainer');
