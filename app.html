@@ -8,9 +8,24 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap" rel="stylesheet"> 
 
-    <!-- Cesium libraries (local build) -->
-    <link href="/cesium/Widgets/widgets.css" rel="stylesheet">
-    <script src="/cesium/Cesium.js"></script>
+    <!-- Cesium libraries (local build) - conditional loading for SuperSplat-only refactor -->
+    <link href="/cesium/Widgets/widgets.css" rel="stylesheet" onerror="this.remove()">
+    <script>
+        // Conditional Cesium loading - fail silently if not available
+        (function() {
+            const cesiumScript = document.createElement('script');
+            cesiumScript.src = '/cesium/Cesium.js';
+            cesiumScript.onerror = function() {
+                console.log('⚠️ Cesium.js not available - running in SuperSplat-only mode');
+                window.CESIUM_UNAVAILABLE = true;
+            };
+            cesiumScript.onload = function() {
+                console.log('✅ Cesium.js loaded successfully');
+                window.CESIUM_AVAILABLE = true;
+            };
+            document.head.appendChild(cesiumScript);
+        })();
+    </script>
     
     <!-- Proj4js for proper coordinate conversion -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"></script>

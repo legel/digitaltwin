@@ -2286,8 +2286,8 @@ async function allSystemsGo() {
 
     // Message cycling will be set up independently in main.js
     
-    // Make sure Cesium starts rendering in background even while loading screen is visible
-    if (window.map3D.viewer) {
+    // Make sure Cesium starts rendering in background even while loading screen is visible (Cesium mode only)
+    if (window.map3D && window.map3D.viewer) {
         // Force initial render to prevent glitchy transition
         window.map3D.viewer.scene.requestRender();
         
