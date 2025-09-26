@@ -20,14 +20,14 @@ class SuperSplatManager {
     initialize() {
         this.superSplatButton = document.getElementById('superSplatButton');
         this.superSplatContainer = document.getElementById('superSplatContainer');
-        
+
         if (this.superSplatButton) {
             // Remove any existing event listeners to avoid conflicts
             this.superSplatButton.replaceWith(this.superSplatButton.cloneNode(true));
             this.superSplatButton = document.getElementById('superSplatButton');
             this.superSplatButton.addEventListener('click', () => this.toggleView());
         }
-        
+
         console.log('✅ SuperSplatManager initialized');
     }
 
@@ -479,6 +479,7 @@ class SuperSplatManager {
             // Show 2D button in Lab mode, hide in Cesium mode (opposite of previous logic)
             view2DButton.style.display = this.isSuperSplatMode ? 'inline-block' : 'none';
         }
+
 
         // Update SuperSplat button visibility
         this.updateSuperSplatAvailability();
@@ -935,11 +936,12 @@ class SuperSplatManager {
             }
             
             console.log('❌ Could not find any SuperSplat camera control method');
-            
+
         } catch (error) {
             console.warn('Error applying SuperSplat camera view:', error);
         }
     }
+
 }
 
 // Initialize the SuperSplat manager when the page loads
