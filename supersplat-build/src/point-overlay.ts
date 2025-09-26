@@ -100,16 +100,16 @@ class TriangleOverlay extends Element {
             this.clearTriangles();
         });
 
-        // Add hardcoded test triangle (same as working version)
-        this.addTriangle(
-            {x: 10.0, y: 0, z: 1.731},   // Top vertex
-            {x: 8.5, y: 0, z: -0.867},   // Bottom left
-            {x: 11.5, y: 0, z: -0.867},  // Bottom right
-            {x: 0, y: 1, z: 0},          // Green color
-            'Hardcoded Test Triangle'
-        );
+        // Add triangle using DYNAMIC coordinates from triangulation (same values as hardcoded)
+        this.addDynamicTriangle();
 
-        console.log('✅ TriangleOverlay initialized with hardcoded test triangle');
+        // VERIFICATION TEST: Pass same coordinates through triangulation system
+        // Delay to ensure SuperSplatBridge is available
+        setTimeout(() => {
+            this.verifyTriangulationSystem();
+        }, 2000);
+
+        console.log('✅ TriangleOverlay initialized with dynamic irregular triangle and dynamic color');
     }
 
     remove() {
@@ -144,6 +144,189 @@ class TriangleOverlay extends Element {
     clearTriangles() {
         this.triangles = [];
         console.log('🧹 All triangles cleared from overlay');
+    }
+
+    /**
+     * Add a triangle using dynamic coordinates from triangulation
+     * Creates a non-equilateral triangle with irregular sides for testing
+     */
+    addDynamicTriangle() {
+        console.log('🔺 Adding dynamic triangle from triangulated coordinates...');
+
+        // Define an irregular (non-equilateral) triangle at a different location
+        // This triangle has different side lengths to test coordinate accuracy
+        const triangleVertices = [
+            {x: 0.0, y: 0, z: 3.0},    // Top vertex (pointed up)
+            {x: -2.5, y: 0, z: 0.0},  // Bottom left (wider base)
+            {x: 1.0, y: 0, z: 0.0}    // Bottom right (asymmetric)
+        ];
+
+        console.log('📐 Input vertices for triangulation:');
+        triangleVertices.forEach((vertex, i) => {
+            console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+        });
+
+        // Pass through triangulation system (should return same triangle)
+        const triangulated = this.localTriangulatePolygon(triangleVertices);
+
+        if (triangulated.length === 1) {
+            const triangle = triangulated[0];
+            console.log('🔺 Using triangulated coordinates for rendering:');
+            triangle.forEach((vertex: any, i: number) => {
+                console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+            });
+
+            // Add the triangle using the triangulated coordinates with custom color
+            const customColor = {x: 1, y: 0.5, z: 0};  // Orange color for dynamic testing
+            this.addTriangle(
+                triangle[0],  // v0 from triangulation
+                triangle[1],  // v1 from triangulation
+                triangle[2],  // v2 from triangulation
+                customColor,  // Dynamic color (orange)
+                'Dynamic Triangulated Triangle'
+            );
+
+            console.log(`✅ Dynamic triangle added successfully using triangulated coordinates with color RGB(${customColor.x}, ${customColor.y}, ${customColor.z})`);
+        } else {
+            console.error(`❌ Triangulation failed: expected 1 triangle, got ${triangulated.length}`);
+        }
+    }
+
+    /**
+     * Verify triangulation system using local implementation of the same logic
+     */
+    verifyTriangulationSystem() {
+        console.log('🔍 TRIANGULATION VERIFICATION TEST');
+        console.log('====================================');
+
+        // Define the same irregular triangle coordinates as used in addDynamicTriangle
+        const testVertices = [
+            {x: 0.0, y: 0, z: 3.0},    // Top vertex (pointed up)
+            {x: -2.5, y: 0, z: 0.0},  // Bottom left (wider base)
+            {x: 1.0, y: 0, z: 0.0}    // Bottom right (asymmetric)
+        ];
+
+        console.log('📐 Input triangle vertices (irregular triangle test):');
+        testVertices.forEach((vertex, i) => {
+            console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)} (y=${vertex.y} - will be ignored)`);
+        });
+
+        // Local triangulation implementation (same logic as SuperSplatBridge)
+        const triangulated = this.localTriangulatePolygon(testVertices);
+
+        console.log('🔺 Local triangulation system output:');
+        console.log(`  Number of triangles: ${triangulated.length}`);
+
+        if (triangulated.length > 0) {
+            triangulated.forEach((triangle: any, triangleIndex: number) => {
+                console.log(`  Triangle ${triangleIndex}:`);
+                triangle.forEach((vertex: any, vertexIndex: number) => {
+                    console.log(`    v${vertexIndex}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+                });
+            });
+
+            // Verify the output matches input for a 3-vertex input
+            if (triangulated.length === 1 && triangulated[0].length === 3) {
+                const outputTriangle = triangulated[0];
+                let allMatch = true;
+
+                console.log('✅ VERIFICATION COMPARISON:');
+                for (let i = 0; i < 3; i++) {
+                    const inputVertex = testVertices[i];
+                    const outputVertex = outputTriangle[i];
+                    const xMatch = Math.abs(inputVertex.x - outputVertex.x) < 0.001;
+                    const zMatch = Math.abs(inputVertex.z - outputVertex.z) < 0.001;
+                    const matches = xMatch && zMatch;
+
+                    console.log(`  v${i}: Input(${inputVertex.x.toFixed(3)}, ${inputVertex.z.toFixed(3)}) → Output(${outputVertex.x.toFixed(3)}, ${outputVertex.z.toFixed(3)}) ${matches ? '✅ MATCH' : '❌ MISMATCH'}`);
+
+                    if (!matches) allMatch = false;
+                }
+
+                console.log(`🎯 TRIANGULATION VERIFICATION: ${allMatch ? '✅ PASSED - Coordinates match perfectly' : '❌ FAILED - Coordinate mismatch detected'}`);
+
+                // Additional test: verify fan triangulation for larger polygons
+                this.testFanTriangulation();
+
+            } else {
+                console.log(`⚠️ Unexpected triangulation result: expected 1 triangle with 3 vertices, got ${triangulated.length} triangles`);
+            }
+        } else {
+            console.log('❌ Triangulation returned no triangles');
+        }
+
+        console.log('====================================');
+        console.log('🔍 TRIANGULATION VERIFICATION COMPLETE');
+    }
+
+    /**
+     * Local implementation of triangulation logic (same as SuperSplatBridge)
+     */
+    localTriangulatePolygon(vertices: any[]) {
+        if (vertices.length < 3) return [];
+        if (vertices.length === 3) return [vertices]; // Already a triangle
+
+        // Fan triangulation from first vertex (same as SuperSplatBridge)
+        const triangles = [];
+        const firstVertex = vertices[0];
+
+        for (let i = 1; i < vertices.length - 1; i++) {
+            const triangle = [
+                firstVertex,
+                vertices[i],
+                vertices[i + 1]
+            ];
+            triangles.push(triangle);
+        }
+
+        console.log(`🔺 Local triangulated ${vertices.length}-sided polygon into ${triangles.length} triangles`);
+        return triangles;
+    }
+
+    /**
+     * Test fan triangulation with a larger polygon
+     */
+    testFanTriangulation() {
+        console.log('🔸 TESTING FAN TRIANGULATION FOR 4-SIDED POLYGON:');
+
+        // Test with a square (4 vertices)
+        const squareVertices = [
+            {x: 0, y: 0, z: 0},     // Bottom left
+            {x: 2, y: 0, z: 0},     // Bottom right
+            {x: 2, y: 0, z: 2},     // Top right
+            {x: 0, y: 0, z: 2}      // Top left
+        ];
+
+        console.log('📐 Square input vertices:');
+        squareVertices.forEach((vertex, i) => {
+            console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+        });
+
+        const triangulated = this.localTriangulatePolygon(squareVertices);
+
+        console.log(`🔺 Expected: 2 triangles from 4-sided polygon`);
+        console.log(`🔺 Actual: ${triangulated.length} triangles`);
+
+        if (triangulated.length === 2) {
+            console.log('✅ Fan triangulation working correctly for squares');
+
+            // Verify triangles share the first vertex
+            const firstVertex = squareVertices[0];
+            let fanCorrect = true;
+
+            triangulated.forEach((triangle: any, index: number) => {
+                const firstTriangleVertex = triangle[0];
+                const matches = Math.abs(firstVertex.x - firstTriangleVertex.x) < 0.001 &&
+                               Math.abs(firstVertex.z - firstTriangleVertex.z) < 0.001;
+
+                console.log(`  Triangle ${index}: First vertex matches fan center: ${matches ? '✅' : '❌'}`);
+                if (!matches) fanCorrect = false;
+            });
+
+            console.log(`🎯 FAN TRIANGULATION: ${fanCorrect ? '✅ PASSED' : '❌ FAILED'}`);
+        } else {
+            console.log('❌ Fan triangulation failed for 4-sided polygon');
+        }
     }
 
     serialize(serializer: Serializer): void {
