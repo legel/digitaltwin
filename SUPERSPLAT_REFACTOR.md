@@ -322,14 +322,59 @@ class PolygonOverlay extends Element {
 - **Next Step**: Connect CPU triangulation system coordinates to hardcoded triangle renderer
 - **Future Requirement**: Geographic → SuperSplat coordinate transformation system
 
+#### ✅ PlayCanvas Uniform Array Limitations - CRITICAL KNOWLEDGE
+**Issue**: PlayCanvas has significant limitations with GLSL uniform arrays that cause rendering failures
+**Research Date**: September 26, 2025
+
+**Problems Discovered**:
+- **Uniform Arrays Fail**: Attempting to use `uniform vec2 triangleV0s[32]` results in all values being 0.0
+- **setValue() with Arrays**: `device.scope.resolve('uniformArray').setValue([...])` doesn't work correctly
+- **Community Confirmed**: PlayCanvas forum discussions confirm this is a known limitation
+
+**Working Solution**: **Vec4 Packing Approach**
+```glsl
+// ❌ DON'T DO THIS (fails in PlayCanvas)
+uniform vec2 triangleV0s[32];
+uniform vec3 triangleColors[32];
+
+// ✅ DO THIS (works reliably)
+uniform vec4 triangleData0;  // Pack: v0.x, v0.z, v1.x, v1.z
+uniform vec4 triangleData1;  // Pack: v2.x, v2.z, color.r, color.g
+// ... up to triangleData15 for 8 triangles
+```
+
+**TypeScript Implementation**:
+```typescript
+// ❌ DON'T DO THIS
+device.scope.resolve('triangleColors').setValue(colorArray);
+
+// ✅ DO THIS
+for (let i = 0; i < 16; i++) {
+    device.scope.resolve(`triangleData${i}`).setValue([x, y, z, w]);
+}
+```
+
+**Architecture Impact**:
+- **Max Triangles**: Limited by number of vec4 uniforms (8 triangles = 16 vec4 uniforms)
+- **Data Packing**: Each triangle requires 2 vec4 uniforms for vertices + color
+- **Shader Helper**: Use `getTriangleData(int index)` function to unpack vec4 data
+- **Performance**: Actually better than arrays - single render call for all triangles
+
+**Key Research Sources**:
+- PlayCanvas Forum: "Shader Problems Setting a Uniform Array" - uniform arrays set to 0.0
+- PlayCanvas Forum: "Sending Array of vec2 Values" - vec4 packing recommended
+- PlayCanvas Docs: "Uniform system supports only simple types" - no array support mentioned
+
+**Critical Learning**: **ALWAYS use vec4 packing for multi-object data in PlayCanvas shaders**
+
 #### Performance & Integration - PLANNED
 **Remaining Challenges**:
 - Scientific data visualization integration
-- Performance optimization for large polygon counts
+- Performance optimization for large polygon counts (now limited to 8 triangles per render call)
 - API compatibility with existing GeoJSON data sources
 - Layer controls integration with SuperSplat event system
 
-**Architecture Foundation**: With working triangle renderer, these challenges are now addressable through iterative development
+**Architecture Foundation**: With working triangle renderer and PlayCanvas uniform limitations solved, these challenges are now addressable through iterative development
 
 ## Progress Tracking
 
@@ -349,13 +394,28 @@ class PolygonOverlay extends Element {
 **Outcome**: Successfully implemented hardcoded triangle renderer using red square pattern
 **Key Achievement**: Proved triangle rendering is possible in SuperSplat with correct approach
 
-### Current Sprint: Triangulation System Integration
-**Objective**: Connect CPU triangulation system to hardcoded triangle renderer
-**Status**: Ready to implement - triangulation algorithms already developed and tested
+### ✅ Completed Sprint: Multi-Triangle Shader Architecture (September 26, 2025)
+**Objective**: Enable variable number of triangles in single render call ✅ COMPLETED
+**Challenge Faced**: PlayCanvas uniform arrays completely fail - all values become 0.0
+**Solution Implemented**: Vec4 packing approach with individual uniform variables
+**Key Achievements**:
+- ✅ **Deep Research**: Investigated PlayCanvas forums, docs, and community solutions
+- ✅ **Vec4 Packing**: Successfully implemented data packing system (2 vec4 per triangle)
+- ✅ **Shader Helper**: Created `getTriangleData()` function for efficient unpacking
+- ✅ **Single Render Call**: All triangles (max 8) rendered in one GPU call
+- ✅ **Verified Working**: Same orange irregular triangle renders through new multi-triangle system
+
+### Current Sprint: Dynamic Coordinate Integration
+**Objective**: Connect triangulation system coordinates to multi-triangle renderer
+**Status**: Ready to implement - both systems are complete and tested
+**Current State**:
+- ✅ Multi-triangle shader working with vec4 packing (max 8 triangles)
+- ✅ Triangulation system tested and coordinates verified
+- ✅ Single triangle test case working in new architecture
 **Next Steps**:
-1. Replace hardcoded triangle coordinates with dynamic triangle data from triangulation system
-2. Test triangulated polygon rendering (triangle, filled square, hollow square)
-3. Verify all 11 triangles from triangulation system render as expected shapes
+1. Replace single triangle with multiple triangles from triangulation
+2. Test with 2-3 triangles to verify multiple triangle rendering
+3. Verify triangulated shapes render correctly (not as circles)
 
 ### Next Sprint: GeoJSON Coordinate Mapping
 **Objective**: Connect real GeoJSON geographic coordinates to triangulation system

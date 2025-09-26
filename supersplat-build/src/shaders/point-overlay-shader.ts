@@ -26,12 +26,27 @@ const fragmentShader = /* glsl*/ `
     uniform mat4 matrix_viewProjection;
     uniform sampler2D blueNoiseTex32;
 
-    // Triangle rendering uniforms
-    uniform float triangleYPlane;  // Y plane for all triangles
-    uniform vec3 triangleColor;    // Color for current triangle
-    uniform vec2 triangleV0;       // XZ coordinates of vertex 0
-    uniform vec2 triangleV1;       // XZ coordinates of vertex 1
-    uniform vec2 triangleV2;       // XZ coordinates of vertex 2
+    // Triangle rendering uniforms using vec4 packing (PlayCanvas compatible)
+    uniform float triangleYPlane;   // Y plane for all triangles
+    uniform int triangleCount;      // Number of active triangles
+
+    // Pack triangle data in vec4 uniforms (max 8 triangles for now)
+    uniform vec4 triangleData0;     // Triangle 0: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData1;     // Triangle 0: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData2;     // Triangle 1: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData3;     // Triangle 1: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData4;     // Triangle 2: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData5;     // Triangle 2: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData6;     // Triangle 3: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData7;     // Triangle 3: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData8;     // Triangle 4: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData9;     // Triangle 4: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData10;    // Triangle 5: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData11;    // Triangle 5: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData12;    // Triangle 6: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData13;    // Triangle 6: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData14;    // Triangle 7: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData15;    // Triangle 7: v2.x, v2.z, color.r, color.g
 
     varying vec3 worldNear;
     varying vec3 worldFar;
@@ -69,6 +84,55 @@ const fragmentShader = /* glsl*/ `
         return alpha > noise;
     }
 
+    // Helper function to get triangle data from vec4 uniforms
+    void getTriangleData(int index, out vec2 v0, out vec2 v1, out vec2 v2, out vec3 color) {
+        // Each triangle uses 2 vec4 uniforms
+        // Even indices: v0.x, v0.z, v1.x, v1.z
+        // Odd indices: v2.x, v2.z, color.r, color.g (color.b = 0 for now)
+
+        if (index == 0) {
+            v0 = triangleData0.xy;
+            v1 = triangleData0.zw;
+            v2 = triangleData1.xy;
+            color = vec3(triangleData1.z, triangleData1.w, 0.0);
+        } else if (index == 1) {
+            v0 = triangleData2.xy;
+            v1 = triangleData2.zw;
+            v2 = triangleData3.xy;
+            color = vec3(triangleData3.z, triangleData3.w, 0.0);
+        } else if (index == 2) {
+            v0 = triangleData4.xy;
+            v1 = triangleData4.zw;
+            v2 = triangleData5.xy;
+            color = vec3(triangleData5.z, triangleData5.w, 0.0);
+        } else if (index == 3) {
+            v0 = triangleData6.xy;
+            v1 = triangleData6.zw;
+            v2 = triangleData7.xy;
+            color = vec3(triangleData7.z, triangleData7.w, 0.0);
+        } else if (index == 4) {
+            v0 = triangleData8.xy;
+            v1 = triangleData8.zw;
+            v2 = triangleData9.xy;
+            color = vec3(triangleData9.z, triangleData9.w, 0.0);
+        } else if (index == 5) {
+            v0 = triangleData10.xy;
+            v1 = triangleData10.zw;
+            v2 = triangleData11.xy;
+            color = vec3(triangleData11.z, triangleData11.w, 0.0);
+        } else if (index == 6) {
+            v0 = triangleData12.xy;
+            v1 = triangleData12.zw;
+            v2 = triangleData13.xy;
+            color = vec3(triangleData13.z, triangleData13.w, 0.0);
+        } else if (index == 7) {
+            v0 = triangleData14.xy;
+            v1 = triangleData14.zw;
+            v2 = triangleData15.xy;
+            color = vec3(triangleData15.z, triangleData15.w, 0.0);
+        }
+    }
+
     void main(void) {
         vec3 p = worldNear;
         vec3 v = normalize(worldFar - worldNear);
@@ -82,52 +146,66 @@ const fragmentShader = /* glsl*/ `
         vec3 worldPos = p + v * t;
         vec2 currentPos = worldPos.xz;
 
-        // Use triangle vertices from uniforms
-        vec2 v0 = triangleV0;
-        vec2 v1 = triangleV1;
-        vec2 v2 = triangleV2;
+        // Loop through all triangles using vec4 packed data
+        vec3 finalColor = vec3(0.0, 0.0, 0.0);
+        float alpha = 0.0;
+        bool foundTriangle = false;
 
-        // Cross product test for triangle inclusion (same as working hardcoded version)
-        vec2 e0 = v1 - v0;
-        vec2 e1 = v2 - v1;
-        vec2 e2 = v0 - v2;
+        for (int i = 0; i < 8; i++) {
+            if (i >= triangleCount) break; // Only process active triangles
 
-        vec2 c0 = currentPos - v0;
-        vec2 c1 = currentPos - v1;
-        vec2 c2 = currentPos - v2;
+            // Get triangle data from vec4 uniforms
+            vec2 v0, v1, v2;
+            vec3 triangleColor;
+            getTriangleData(i, v0, v1, v2, triangleColor);
 
-        float d0 = e0.x * c0.y - e0.y * c0.x;
-        float d1 = e1.x * c1.y - e1.y * c1.x;
-        float d2 = e2.x * c2.y - e2.y * c2.x;
+            // Cross product test for triangle inclusion
+            vec2 e0 = v1 - v0;
+            vec2 e1 = v2 - v1;
+            vec2 e2 = v0 - v2;
 
-        // Triangle bounds check - discard if outside triangle
-        if (!((d0 >= 0.0 && d1 >= 0.0 && d2 >= 0.0) || (d0 <= 0.0 && d1 <= 0.0 && d2 <= 0.0))) {
-            discard;
+            vec2 c0 = currentPos - v0;
+            vec2 c1 = currentPos - v1;
+            vec2 c2 = currentPos - v2;
+
+            float d0 = e0.x * c0.y - e0.y * c0.x;
+            float d1 = e1.x * c1.y - e1.y * c1.x;
+            float d2 = e2.x * c2.y - e2.y * c2.x;
+
+            // Check if point is inside this triangle
+            bool insideTriangle = (d0 >= 0.0 && d1 >= 0.0 && d2 >= 0.0) || (d0 <= 0.0 && d1 <= 0.0 && d2 <= 0.0);
+
+            if (insideTriangle) {
+                foundTriangle = true;
+
+                // Distance-based fading
+                float distFromCamera = length(worldPos - view_position);
+                float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
+
+                // View-dependent opacity
+                vec3 viewDir = normalize(worldPos - view_position);
+                float viewAngleFactor = abs(viewDir.y);
+                float viewOpacity = viewDir.y < 0.0 ?
+                    mix(0.4, 1.0, viewAngleFactor) :
+                    mix(0.8, 0.1, viewAngleFactor);
+
+                // Border effect calculation
+                float triangleSize = 3.0;
+                float distToEdge = min(min(abs(d0), abs(d1)), abs(d2)) / triangleSize;
+                float borderWidth = 0.1;
+                bool isBorder = distToEdge < borderWidth;
+
+                // Use triangle color from vec4 data, white border
+                finalColor = isBorder ? vec3(1.0, 1.0, 1.0) : triangleColor;
+                alpha = fade * viewOpacity;
+                break; // Stop at first triangle found (no overlaps expected)
+            }
         }
 
-        // Distance-based fading
-        float distFromCamera = length(worldPos - view_position);
-        float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
-        if (fade < 0.01) {
+        // Discard if no triangle contains this pixel
+        if (!foundTriangle || alpha < 0.01) {
             discard;
         }
-
-        // View-dependent opacity
-        vec3 viewDir = normalize(worldPos - view_position);
-        float viewAngleFactor = abs(viewDir.y);
-        float viewOpacity = viewDir.y < 0.0 ?
-            mix(0.4, 1.0, viewAngleFactor) :
-            mix(0.8, 0.1, viewAngleFactor);
-
-        // Border effect calculation
-        float triangleSize = 3.0;
-        float distToEdge = min(min(abs(d0), abs(d1)), abs(d2)) / triangleSize;
-        float borderWidth = 0.1;
-        bool isBorder = distToEdge < borderWidth;
-
-        // Final color: use triangle color from uniform, white border
-        vec3 finalColor = isBorder ? vec3(1.0, 1.0, 1.0) : triangleColor;
-        float alpha = fade * viewOpacity;
 
         gl_FragColor = vec4(finalColor, alpha);
         gl_FragDepth = writeDepth(alpha) ? calcDepth(worldPos) : 1.0;

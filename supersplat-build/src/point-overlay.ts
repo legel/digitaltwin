@@ -69,21 +69,51 @@ class TriangleOverlay extends Element {
                 device.setDepthState(DepthState.WRITEDEPTH);
                 device.setStencilState(null, null);
 
-                // Render each triangle
-                for (let i = 0; i < this.triangles.length; i++) {
-                    const triangle = this.triangles[i];
+                // Pack triangle data into vec4 uniforms (max 8 triangles)
+                const maxTriangles = Math.min(this.triangles.length, 8); // Shader limit
 
-                    // Set triangle uniforms
-                    device.scope.resolve('triangleYPlane').setValue(this.yPlane);
-                    device.scope.resolve('triangleColor').setValue([triangle.color.x, triangle.color.y, triangle.color.z]);
-                    device.scope.resolve('triangleV0').setValue([triangle.v0.x, triangle.v0.z]); // XZ only
-                    device.scope.resolve('triangleV1').setValue([triangle.v1.x, triangle.v1.z]); // XZ only
-                    device.scope.resolve('triangleV2').setValue([triangle.v2.x, triangle.v2.z]); // XZ only
-
-                    this.quadRender.render();
+                // Initialize all vec4 uniforms with zeros
+                const vec4Data: number[][] = [];
+                for (let i = 0; i < 16; i++) {
+                    vec4Data[i] = [0, 0, 0, 0];
                 }
 
-                console.log(`🔺 Rendered ${this.triangles.length} triangles at Y-plane ${this.yPlane}`);
+                // Pack triangle data into vec4 uniforms
+                for (let i = 0; i < maxTriangles; i++) {
+                    const triangle = this.triangles[i];
+                    const dataIndex = i * 2; // Each triangle uses 2 vec4 uniforms
+
+                    // First vec4: v0.x, v0.z, v1.x, v1.z
+                    vec4Data[dataIndex] = [
+                        triangle.v0.x, triangle.v0.z,
+                        triangle.v1.x, triangle.v1.z
+                    ];
+
+                    // Second vec4: v2.x, v2.z, color.r, color.g (color.b stored as 0 for now)
+                    vec4Data[dataIndex + 1] = [
+                        triangle.v2.x, triangle.v2.z,
+                        triangle.color.x, triangle.color.y
+                    ];
+                }
+
+                console.log(`🐛 DEBUG: Vec4 packed triangle data for ${maxTriangles} triangles:`);
+                for (let i = 0; i < Math.min(4, vec4Data.length); i++) {
+                    console.log(`  triangleData${i}: [${vec4Data[i].map(v => v.toFixed(3)).join(', ')}]`);
+                }
+
+                // Set shared uniforms
+                device.scope.resolve('triangleYPlane').setValue(this.yPlane);
+                device.scope.resolve('triangleCount').setValue(maxTriangles);
+
+                // Set vec4 uniforms for triangle data
+                for (let i = 0; i < 16; i++) {
+                    device.scope.resolve(`triangleData${i}`).setValue(vec4Data[i]);
+                }
+
+                // Single render call for all triangles
+                this.quadRender.render();
+
+                console.log(`🔺 Rendered ${maxTriangles} triangles at Y-plane ${this.yPlane} (vec4 packed multi-triangle shader)`);
             }
         });
 
@@ -100,8 +130,8 @@ class TriangleOverlay extends Element {
             this.clearTriangles();
         });
 
-        // Add triangle using DYNAMIC coordinates from triangulation (same values as hardcoded)
-        this.addDynamicTriangle();
+        // Add 2 triangles using DYNAMIC coordinates for stress testing
+        this.addDynamicTriangles();
 
         // VERIFICATION TEST: Pass same coordinates through triangulation system
         // Delay to ensure SuperSplatBridge is available
@@ -147,49 +177,68 @@ class TriangleOverlay extends Element {
     }
 
     /**
-     * Add a triangle using dynamic coordinates from triangulation
-     * Creates a non-equilateral triangle with irregular sides for testing
+     * Add 2 triangles using dynamic coordinates for stress testing multi-triangle shader
      */
-    addDynamicTriangle() {
-        console.log('🔺 Adding dynamic triangle from triangulated coordinates...');
+    addDynamicTriangles() {
+        console.log('🔺🔺 Adding 2 dynamic triangles for stress testing...');
 
-        // Define an irregular (non-equilateral) triangle at a different location
-        // This triangle has different side lengths to test coordinate accuracy
-        const triangleVertices = [
+        // First triangle - Orange irregular triangle (original)
+        const triangle1Vertices = [
             {x: 0.0, y: 0, z: 3.0},    // Top vertex (pointed up)
             {x: -2.5, y: 0, z: 0.0},  // Bottom left (wider base)
             {x: 1.0, y: 0, z: 0.0}    // Bottom right (asymmetric)
         ];
 
-        console.log('📐 Input vertices for triangulation:');
-        triangleVertices.forEach((vertex, i) => {
+        // Second triangle - Blue triangle at different position
+        const triangle2Vertices = [
+            {x: 5.0, y: 0, z: 1.0},    // Top vertex
+            {x: 3.0, y: 0, z: -1.0},   // Bottom left
+            {x: 7.0, y: 0, z: -1.0}    // Bottom right
+        ];
+
+        console.log('📐 Triangle 1 vertices (Orange):');
+        triangle1Vertices.forEach((vertex, i) => {
             console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
         });
 
-        // Pass through triangulation system (should return same triangle)
-        const triangulated = this.localTriangulatePolygon(triangleVertices);
+        console.log('📐 Triangle 2 vertices (Blue):');
+        triangle2Vertices.forEach((vertex, i) => {
+            console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+        });
 
-        if (triangulated.length === 1) {
-            const triangle = triangulated[0];
-            console.log('🔺 Using triangulated coordinates for rendering:');
-            triangle.forEach((vertex: any, i: number) => {
-                console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
-            });
+        // Process both triangles through triangulation system
+        const triangulated1 = this.localTriangulatePolygon(triangle1Vertices);
+        const triangulated2 = this.localTriangulatePolygon(triangle2Vertices);
 
-            // Add the triangle using the triangulated coordinates with custom color
-            const customColor = {x: 1, y: 0.5, z: 0};  // Orange color for dynamic testing
+        // Add first triangle (Orange)
+        if (triangulated1.length === 1) {
+            const triangle = triangulated1[0];
+            const orangeColor = {x: 1, y: 0.5, z: 0};  // Orange
             this.addTriangle(
-                triangle[0],  // v0 from triangulation
-                triangle[1],  // v1 from triangulation
-                triangle[2],  // v2 from triangulation
-                customColor,  // Dynamic color (orange)
-                'Dynamic Triangulated Triangle'
+                triangle[0], triangle[1], triangle[2],
+                orangeColor,
+                'Triangle 1 (Orange)'
             );
-
-            console.log(`✅ Dynamic triangle added successfully using triangulated coordinates with color RGB(${customColor.x}, ${customColor.y}, ${customColor.z})`);
+            console.log(`✅ Triangle 1 added: Orange color RGB(${orangeColor.x}, ${orangeColor.y}, ${orangeColor.z})`);
         } else {
-            console.error(`❌ Triangulation failed: expected 1 triangle, got ${triangulated.length}`);
+            console.error(`❌ Triangle 1 triangulation failed: expected 1 triangle, got ${triangulated1.length}`);
         }
+
+        // Add second triangle (Blue)
+        if (triangulated2.length === 1) {
+            const triangle = triangulated2[0];
+            const blueColor = {x: 0, y: 0.3, z: 1};  // Blue
+            this.addTriangle(
+                triangle[0], triangle[1], triangle[2],
+                blueColor,
+                'Triangle 2 (Blue)'
+            );
+            console.log(`✅ Triangle 2 added: Blue color RGB(${blueColor.x}, ${blueColor.y}, ${blueColor.z})`);
+        } else {
+            console.error(`❌ Triangle 2 triangulation failed: expected 1 triangle, got ${triangulated2.length}`);
+        }
+
+        console.log('🎯 STRESS TEST: 2 triangles added to multi-triangle shader system');
     }
 
     /**
