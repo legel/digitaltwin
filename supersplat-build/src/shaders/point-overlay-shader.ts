@@ -31,7 +31,7 @@ const fragmentShader = /* glsl*/ `
     uniform int triangleCount;      // Number of active triangles
 
     // Pack triangle data in vec4 uniforms - now using 4 vec4 per triangle for outline colors
-    // Max triangles reduced to 4 (4 * 4 = 16 vec4 uniforms used)
+    // Max triangles expanded to 8 (8 * 4 = 32 vec4 uniforms used)
     uniform vec4 triangleData0;     // Triangle 0: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData1;     // Triangle 0: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData2;     // Triangle 0: color.b, outlineThickness, outlineColor.r, outlineColor.g
@@ -48,6 +48,22 @@ const fragmentShader = /* glsl*/ `
     uniform vec4 triangleData13;    // Triangle 3: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData14;    // Triangle 3: color.b, outlineThickness, outlineColor.r, outlineColor.g
     uniform vec4 triangleData15;    // Triangle 3: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData16;    // Triangle 4: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData17;    // Triangle 4: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData18;    // Triangle 4: color.b, outlineThickness, outlineColor.r, outlineColor.g
+    uniform vec4 triangleData19;    // Triangle 4: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData20;    // Triangle 5: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData21;    // Triangle 5: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData22;    // Triangle 5: color.b, outlineThickness, outlineColor.r, outlineColor.g
+    uniform vec4 triangleData23;    // Triangle 5: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData24;    // Triangle 6: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData25;    // Triangle 6: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData26;    // Triangle 6: color.b, outlineThickness, outlineColor.r, outlineColor.g
+    uniform vec4 triangleData27;    // Triangle 6: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData28;    // Triangle 7: v0.x, v0.z, v1.x, v1.z
+    uniform vec4 triangleData29;    // Triangle 7: v2.x, v2.z, color.r, color.g
+    uniform vec4 triangleData30;    // Triangle 7: color.b, outlineThickness, outlineColor.r, outlineColor.g
+    uniform vec4 triangleData31;    // Triangle 7: outlineColor.b, fillAlpha, unused, unused
 
     varying vec3 worldNear;
     varying vec3 worldFar;
@@ -87,7 +103,7 @@ const fragmentShader = /* glsl*/ `
 
     // Helper function to get triangle data from vec4 uniforms
     void getTriangleData(int index, out vec2 v0, out vec2 v1, out vec2 v2, out vec3 color, out float fillAlpha, out vec3 outlineColor, out float outlineThickness) {
-        // Each triangle uses 4 vec4 uniforms (max 4 triangles)
+        // Each triangle uses 4 vec4 uniforms (max 8 triangles)
         // Index*4+0: v0.x, v0.z, v1.x, v1.z
         // Index*4+1: v2.x, v2.z, color.r, color.g
         // Index*4+2: color.b, outlineThickness, outlineColor.r, outlineColor.g
@@ -125,6 +141,38 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData14.y;
             outlineColor = vec3(triangleData14.z, triangleData14.w, triangleData15.x);
             fillAlpha = triangleData15.y;
+        } else if (index == 4) {
+            v0 = triangleData16.xy;
+            v1 = triangleData16.zw;
+            v2 = triangleData17.xy;
+            color = vec3(triangleData17.z, triangleData17.w, triangleData18.x);
+            outlineThickness = triangleData18.y;
+            outlineColor = vec3(triangleData18.z, triangleData18.w, triangleData19.x);
+            fillAlpha = triangleData19.y;
+        } else if (index == 5) {
+            v0 = triangleData20.xy;
+            v1 = triangleData20.zw;
+            v2 = triangleData21.xy;
+            color = vec3(triangleData21.z, triangleData21.w, triangleData22.x);
+            outlineThickness = triangleData22.y;
+            outlineColor = vec3(triangleData22.z, triangleData22.w, triangleData23.x);
+            fillAlpha = triangleData23.y;
+        } else if (index == 6) {
+            v0 = triangleData24.xy;
+            v1 = triangleData24.zw;
+            v2 = triangleData25.xy;
+            color = vec3(triangleData25.z, triangleData25.w, triangleData26.x);
+            outlineThickness = triangleData26.y;
+            outlineColor = vec3(triangleData26.z, triangleData26.w, triangleData27.x);
+            fillAlpha = triangleData27.y;
+        } else if (index == 7) {
+            v0 = triangleData28.xy;
+            v1 = triangleData28.zw;
+            v2 = triangleData29.xy;
+            color = vec3(triangleData29.z, triangleData29.w, triangleData30.x);
+            outlineThickness = triangleData30.y;
+            outlineColor = vec3(triangleData30.z, triangleData30.w, triangleData31.x);
+            fillAlpha = triangleData31.y;
         }
     }
 
@@ -146,7 +194,7 @@ const fragmentShader = /* glsl*/ `
         float alpha = 0.0;
         bool foundTriangle = false;
 
-        for (int i = 0; i < 4; i++) { // Max 4 triangles with 4 vec4 per triangle
+        for (int i = 0; i < 8; i++) { // Max 8 triangles with 4 vec4 per triangle
             if (i >= triangleCount) break; // Only process active triangles
 
             // Get triangle data from vec4 uniforms
