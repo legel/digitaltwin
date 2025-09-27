@@ -102,12 +102,12 @@ const fragmentShader = /* glsl*/ `
     }
 
     // Helper function to get triangle data from vec4 uniforms
-    void getTriangleData(int index, out vec2 v0, out vec2 v1, out vec2 v2, out vec3 color, out float fillAlpha, out vec3 outlineColor, out float outlineThickness) {
+    void getTriangleData(int index, out vec2 v0, out vec2 v1, out vec2 v2, out vec3 color, out float fillAlpha, out vec3 outlineColor, out float outlineThickness, out float edgeFlags) {
         // Each triangle uses 4 vec4 uniforms (max 8 triangles)
         // Index*4+0: v0.x, v0.z, v1.x, v1.z
         // Index*4+1: v2.x, v2.z, color.r, color.g
         // Index*4+2: color.b, outlineThickness, outlineColor.r, outlineColor.g
-        // Index*4+3: outlineColor.b, fillAlpha, unused, unused
+        // Index*4+3: outlineColor.b, fillAlpha, edgeFlags, unused
 
         if (index == 0) {
             v0 = triangleData0.xy;
@@ -117,6 +117,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData2.y;
             outlineColor = vec3(triangleData2.z, triangleData2.w, triangleData3.x);
             fillAlpha = triangleData3.y;
+            edgeFlags = triangleData3.z;
         } else if (index == 1) {
             v0 = triangleData4.xy;
             v1 = triangleData4.zw;
@@ -125,6 +126,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData6.y;
             outlineColor = vec3(triangleData6.z, triangleData6.w, triangleData7.x);
             fillAlpha = triangleData7.y;
+            edgeFlags = triangleData7.z;
         } else if (index == 2) {
             v0 = triangleData8.xy;
             v1 = triangleData8.zw;
@@ -133,6 +135,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData10.y;
             outlineColor = vec3(triangleData10.z, triangleData10.w, triangleData11.x);
             fillAlpha = triangleData11.y;
+            edgeFlags = triangleData11.z;
         } else if (index == 3) {
             v0 = triangleData12.xy;
             v1 = triangleData12.zw;
@@ -141,6 +144,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData14.y;
             outlineColor = vec3(triangleData14.z, triangleData14.w, triangleData15.x);
             fillAlpha = triangleData15.y;
+            edgeFlags = triangleData15.z;
         } else if (index == 4) {
             v0 = triangleData16.xy;
             v1 = triangleData16.zw;
@@ -149,6 +153,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData18.y;
             outlineColor = vec3(triangleData18.z, triangleData18.w, triangleData19.x);
             fillAlpha = triangleData19.y;
+            edgeFlags = triangleData19.z;
         } else if (index == 5) {
             v0 = triangleData20.xy;
             v1 = triangleData20.zw;
@@ -157,6 +162,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData22.y;
             outlineColor = vec3(triangleData22.z, triangleData22.w, triangleData23.x);
             fillAlpha = triangleData23.y;
+            edgeFlags = triangleData23.z;
         } else if (index == 6) {
             v0 = triangleData24.xy;
             v1 = triangleData24.zw;
@@ -165,6 +171,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData26.y;
             outlineColor = vec3(triangleData26.z, triangleData26.w, triangleData27.x);
             fillAlpha = triangleData27.y;
+            edgeFlags = triangleData27.z;
         } else if (index == 7) {
             v0 = triangleData28.xy;
             v1 = triangleData28.zw;
@@ -173,6 +180,7 @@ const fragmentShader = /* glsl*/ `
             outlineThickness = triangleData30.y;
             outlineColor = vec3(triangleData30.z, triangleData30.w, triangleData31.x);
             fillAlpha = triangleData31.y;
+            edgeFlags = triangleData31.z;
         }
     }
 
@@ -200,8 +208,8 @@ const fragmentShader = /* glsl*/ `
             // Get triangle data from vec4 uniforms
             vec2 v0, v1, v2;
             vec3 triangleColor, triangleOutlineColor;
-            float triangleFillAlpha, outlineThickness;
-            getTriangleData(i, v0, v1, v2, triangleColor, triangleFillAlpha, triangleOutlineColor, outlineThickness);
+            float triangleFillAlpha, outlineThickness, edgeFlags;
+            getTriangleData(i, v0, v1, v2, triangleColor, triangleFillAlpha, triangleOutlineColor, outlineThickness, edgeFlags);
 
             // Cross product test for triangle inclusion
             vec2 e0 = v1 - v0;
@@ -233,10 +241,24 @@ const fragmentShader = /* glsl*/ `
                     mix(0.4, 1.0, viewAngleFactor) :
                     mix(0.8, 0.1, viewAngleFactor);
 
-                // Border effect calculation with variable thickness
+                // Border effect calculation with per-edge visibility
                 float triangleSize = 3.0;
-                float distToEdge = min(min(abs(d0), abs(d1)), abs(d2)) / triangleSize;
-                bool isBorder = distToEdge < outlineThickness;
+                float distToEdge0 = abs(d0) / triangleSize; // Distance to edge v0→v1
+                float distToEdge1 = abs(d1) / triangleSize; // Distance to edge v1→v2
+                float distToEdge2 = abs(d2) / triangleSize; // Distance to edge v2→v0
+
+                // Extract edge visibility flags from packed float
+                bool edge01Visible = mod(floor(edgeFlags), 2.0) >= 1.0;        // bit 0
+                bool edge12Visible = mod(floor(edgeFlags / 2.0), 2.0) >= 1.0;  // bit 1
+                bool edge20Visible = mod(floor(edgeFlags / 4.0), 2.0) >= 1.0;  // bit 2
+
+                // Check if pixel is near any visible edge
+                bool nearVisibleEdge = false;
+                if (edge01Visible && distToEdge0 < outlineThickness) nearVisibleEdge = true;
+                if (edge12Visible && distToEdge1 < outlineThickness) nearVisibleEdge = true;
+                if (edge20Visible && distToEdge2 < outlineThickness) nearVisibleEdge = true;
+
+                bool isBorder = nearVisibleEdge;
 
                 // Use triangle color from vec4 data, custom outline color
                 finalColor = isBorder ? triangleOutlineColor : triangleColor;

@@ -417,10 +417,149 @@ for (let i = 0; i < 16; i++) {
 2. Test with 2-3 triangles to verify multiple triangle rendering
 3. Verify triangulated shapes render correctly (not as circles)
 
+### ✅ Completed Sprint: Advanced Polygon System (September 27, 2025)
+**Objective**: Implement comprehensive polygon management system for GeoJSON integration ✅ COMPLETED
+**Major Achievement**: **Complete Polygon Abstraction Layer with Edge Visibility**
+
+**Key Features Implemented**:
+- ✅ **Complete Polygon API**: Create, update, delete, show/hide polygons
+- ✅ **Fan Triangulation**: Automatic conversion of N-sided polygons to triangles
+- ✅ **Edge Classification**: Hide internal triangle edges, show only perimeter
+- ✅ **Batched Rendering**: Handle 32+ triangles through batched rendering system
+- ✅ **Visual Properties**: Border thickness, border color, fill color, hollow support
+- ✅ **Visibility Controls**: Per-polygon and global visibility toggles
+- ✅ **Stress Testing**: Verified with 57+ triangles across multiple batches
+
 ### Next Sprint: GeoJSON Coordinate Mapping
-**Objective**: Connect real GeoJSON geographic coordinates to triangulation system
-**Dependencies**: Complete triangulation system integration
+**Objective**: Connect real GeoJSON geographic coordinates to polygon system
+**Dependencies**: Complete polygon system (✅ COMPLETED)
 **Requirements**: Coordinate transformation system for geographic → SuperSplat world space
+
+---
+
+## Polygon System API Reference
+
+### Complete Feature Set
+The polygon system now provides all necessary properties for GeoJSON integration:
+
+#### ✅ Visual Properties
+- **Border Thickness**: `outlineThickness` (number) - Width of polygon outline
+- **Border Color**: `outlineColor` (Vec3) - RGB color for polygon outline
+- **Fill Color**: `color` (Vec3) - RGB color for polygon interior
+- **Hollow Support**: `fillAlpha: 0.0` - Makes polygon completely hollow (outline only)
+- **Fill Transparency**: `fillAlpha` (0.0-1.0) - Controls polygon opacity
+- **Visibility Toggle**: `visible` (boolean) - Show/hide individual polygons
+
+#### ✅ Core API Methods
+```typescript
+// Create polygon
+scene.events.fire('triangleOverlay.addPolygon', vertices, color, fillAlpha, outlineColor, outlineThickness, name, visible);
+
+// Update polygon properties
+scene.events.fire('triangleOverlay.updatePolygon', name, {
+    color: new Vec3(r, g, b),
+    fillAlpha: 0.5,
+    visible: true
+});
+
+// Visibility controls
+scene.events.fire('triangleOverlay.setPolygonVisibility', name, false); // Hide specific polygon
+scene.events.fire('triangleOverlay.setAllPolygonsVisibility', false);   // Hide all polygons
+
+// Management
+scene.events.fire('triangleOverlay.clearPolygons'); // Remove all polygons
+```
+
+#### ✅ Advanced Features
+- **Fan Triangulation**: Automatically converts polygons (4+ sides) to triangles
+- **Edge Classification**: Internal triangle edges are invisible - polygons appear seamless
+- **Batched Rendering**: Supports unlimited polygons through 8-triangle batching
+- **Named References**: Find and update polygons by name
+- **Event Bridge**: Complete terrain-3d ↔ SuperSplat communication
+
+### Technical Architecture
+
+#### Triangle Batching System
+- **Shader Limit**: 8 triangles per batch (32 vec4 uniforms)
+- **Unlimited Polygons**: Multiple render passes handle any quantity
+- **Automatic Batching**: System handles batch management transparently
+- **Performance**: Tested with 57+ triangles across 8 batches
+
+#### Edge Visibility Algorithm
+```typescript
+// Fan triangulation with edge classification
+for (let i = 1; i < numVertices - 1; i++) {
+    const triangle = {
+        edge01Visible: i === 1,                    // First triangle: show center→first edge
+        edge12Visible: true,                       // Always show perimeter edges
+        edge20Visible: i === numVertices - 2       // Last triangle: show last→center edge
+    };
+}
+```
+
+#### Data Packing (PlayCanvas Compatible)
+```glsl
+// Each triangle uses 4 vec4 uniforms
+uniform vec4 triangleData0;  // v0.x, v0.z, v1.x, v1.z
+uniform vec4 triangleData1;  // v2.x, v2.z, color.r, color.g
+uniform vec4 triangleData2;  // color.b, thickness, outlineColor.r, outlineColor.g
+uniform vec4 triangleData3;  // outlineColor.b, fillAlpha, edgeFlags, unused
+```
+
+### GeoJSON Integration Plan
+
+#### Phase 1: Coordinate Transformation
+```javascript
+// Convert GeoJSON coordinates to SuperSplat world space
+function transformGeoJSONToWorld(feature) {
+    return feature.geometry.coordinates.map(coord =>
+        geoToWorldSpace(coord[0], coord[1]) // longitude, latitude → x, z
+    );
+}
+```
+
+#### Phase 2: Property Mapping
+```javascript
+// Map GeoJSON properties to polygon properties
+function createPolygonFromGeoJSON(feature) {
+    const props = feature.properties;
+    return {
+        vertices: transformGeoJSONToWorld(feature),
+        color: parseColor(props.fillColor || '#00FF00'),
+        fillAlpha: props.fillOpacity || 1.0,
+        outlineColor: parseColor(props.strokeColor || '#FFFFFF'),
+        outlineThickness: props.strokeWidth || 0.1,
+        name: props.name || feature.id,
+        visible: props.visible !== false
+    };
+}
+```
+
+#### Phase 3: Layer Controls Integration
+```javascript
+// Bridge existing layer controls to polygon system
+function updatePolygonVisibility(layerState) {
+    layerState.visibleAreas.forEach(areaName => {
+        scene.events.fire('triangleOverlay.setPolygonVisibility', areaName, true);
+    });
+
+    layerState.hiddenAreas.forEach(areaName => {
+        scene.events.fire('triangleOverlay.setPolygonVisibility', areaName, false);
+    });
+}
+```
+
+### Ready for GeoJSON Integration
+The polygon system is now **production-ready** for GeoJSON file integration:
+
+- ✅ **All Required Properties**: Border, fill, transparency, visibility controls
+- ✅ **Scalable Architecture**: Handles dozens of complex polygons efficiently
+- ✅ **Visual Quality**: Seamless polygon appearance (no visible internal edges)
+- ✅ **API Completeness**: Full CRUD operations with event system
+- ✅ **Performance Verified**: Stress tested with 57+ triangles
+- ✅ **PlayCanvas Compatibility**: Works within all engine limitations
+
+**Next Step**: Implement coordinate transformation from GeoJSON geographic coordinates to SuperSplat world space, then connect to existing terrain-3d layer controls.
 
 ---
 
