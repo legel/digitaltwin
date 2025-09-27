@@ -28,6 +28,10 @@ interface TriangleData {
     outlineColor: Vec3;
     outlineThickness: number;
     name?: string;
+    // Edge visibility flags - true means edge should show outline
+    edge01Visible?: boolean; // Edge from v0 to v1
+    edge12Visible?: boolean; // Edge from v1 to v2
+    edge20Visible?: boolean; // Edge from v2 to v0
 }
 
 interface PolygonData {
@@ -37,6 +41,7 @@ interface PolygonData {
     outlineColor: Vec3;
     outlineThickness: number;
     name?: string;
+    visible?: boolean;
 }
 
 class Polygon {
@@ -46,6 +51,7 @@ class Polygon {
     outlineColor: Vec3;
     outlineThickness: number;
     name?: string;
+    visible: boolean;
     triangles: TriangleData[] = [];
 
     constructor(data: PolygonData) {
@@ -55,6 +61,7 @@ class Polygon {
         this.outlineColor = data.outlineColor.clone();
         this.outlineThickness = data.outlineThickness;
         this.name = data.name;
+        this.visible = data.visible !== false; // Default to true
 
         // Automatically triangulate the polygon
         this.triangulate();
@@ -62,6 +69,7 @@ class Polygon {
 
     /**
      * Triangulate the polygon into triangles using fan triangulation
+     * Marks polygon perimeter edges as visible, internal edges as invisible
      */
     private triangulate() {
         this.triangles = [];
@@ -72,7 +80,7 @@ class Polygon {
         }
 
         if (this.vertices.length === 3) {
-            // Already a triangle
+            // Already a triangle - all edges are perimeter edges
             this.triangles.push({
                 v0: this.vertices[0].clone(),
                 v1: this.vertices[1].clone(),
@@ -81,27 +89,68 @@ class Polygon {
                 fillAlpha: this.fillAlpha,
                 outlineColor: this.outlineColor.clone(),
                 outlineThickness: this.outlineThickness,
-                name: `${this.name}_tri_0`
+                name: `${this.name}_tri_0`,
+                edge01Visible: true, // v0 → v1 (perimeter edge)
+                edge12Visible: true, // v1 → v2 (perimeter edge)
+                edge20Visible: true  // v2 → v0 (perimeter edge)
             });
             return;
         }
 
-        // Fan triangulation from first vertex
+        // Fan triangulation from first vertex with edge classification
         const firstVertex = this.vertices[0];
-        for (let i = 1; i < this.vertices.length - 1; i++) {
+        const numVertices = this.vertices.length;
+
+        for (let i = 1; i < numVertices - 1; i++) {
+            const v0 = firstVertex.clone();          // Fan center (first vertex)
+            const v1 = this.vertices[i].clone();     // Current vertex
+            const v2 = this.vertices[i + 1].clone(); // Next vertex
+
+            // Classify edges for this triangle
+            let edge01Visible = false; // v0 → v1 (from center to current)
+            let edge12Visible = false; // v1 → v2 (from current to next)
+            let edge20Visible = false; // v2 → v0 (from next to center)
+
+            // Edge v1 → v2: This is always a perimeter edge (consecutive polygon vertices)
+            edge12Visible = true;
+
+            // Edge v0 → v1: Only visible if v1 is the first polygon vertex after v0
+            // (i.e., this is the first triangle in fan)
+            if (i === 1) {
+                edge01Visible = true; // First perimeter edge from center
+            }
+
+            // Edge v2 → v0: Only visible if v2 is the last polygon vertex before v0
+            // (i.e., this is the last triangle in fan)
+            if (i === numVertices - 2) {
+                edge20Visible = true; // Last perimeter edge back to center
+            }
+
             this.triangles.push({
-                v0: firstVertex.clone(),
-                v1: this.vertices[i].clone(),
-                v2: this.vertices[i + 1].clone(),
+                v0,
+                v1,
+                v2,
                 color: this.color.clone(),
                 fillAlpha: this.fillAlpha,
                 outlineColor: this.outlineColor.clone(),
                 outlineThickness: this.outlineThickness,
-                name: `${this.name}_tri_${i - 1}`
+                name: `${this.name}_tri_${i - 1}`,
+                edge01Visible,
+                edge12Visible,
+                edge20Visible
             });
         }
 
-        console.log(`🔹 Polygon "${this.name}" triangulated: ${this.vertices.length} vertices → ${this.triangles.length} triangles`);
+        console.log(`🔹 Polygon "${this.name}" triangulated: ${this.vertices.length} vertices → ${this.triangles.length} triangles (with edge classification)`);
+
+        // Debug: Log edge visibility for complex polygons
+        if (this.vertices.length > 4) {
+            console.log(`🔍 Edge visibility for "${this.name}":`);
+            this.triangles.forEach((tri, idx) => {
+                const edges = [tri.edge01Visible ? 'v0→v1' : '', tri.edge12Visible ? 'v1→v2' : '', tri.edge20Visible ? 'v2→v0' : ''].filter(e => e);
+                console.log(`  Triangle ${idx}: visible edges = [${edges.join(', ')}]`);
+            });
+        }
     }
 
     /**
@@ -114,6 +163,7 @@ class Polygon {
         if (data.outlineColor) this.outlineColor = data.outlineColor.clone();
         if (data.outlineThickness !== undefined) this.outlineThickness = data.outlineThickness;
         if (data.name) this.name = data.name;
+        if (data.visible !== undefined) this.visible = data.visible;
 
         // Re-triangulate with new properties
         this.triangulate();
@@ -224,10 +274,16 @@ class TriangleOverlay extends Element {
                         triangle.outlineColor.x, triangle.outlineColor.y
                     ];
 
-                    // Fourth vec4: outlineColor.b, fillAlpha, unused, unused
+                    // Fourth vec4: outlineColor.b, fillAlpha, edgeVisibility packed, unused
+                    // Pack edge visibility flags into single float:
+                    // bits 0-2: edge01Visible, edge12Visible, edge20Visible
+                    const edgeFlags = (triangle.edge01Visible !== false ? 1.0 : 0.0) +
+                                     (triangle.edge12Visible !== false ? 2.0 : 0.0) +
+                                     (triangle.edge20Visible !== false ? 4.0 : 0.0);
+
                     vec4Data[dataIndex + 3] = [
                         triangle.outlineColor.z, triangle.fillAlpha,
-                        0.0, 0.0
+                        edgeFlags, 0.0
                     ];
                 }
 
@@ -298,6 +354,14 @@ class TriangleOverlay extends Element {
             this.updatePolygon(name, updates);
         });
 
+        this.scene.events.function('triangleOverlay.setPolygonVisibility', (name: string, visible: boolean) => {
+            this.setPolygonVisibility(name, visible);
+        });
+
+        this.scene.events.function('triangleOverlay.setAllPolygonsVisibility', (visible: boolean) => {
+            this.setAllPolygonsVisibility(visible);
+        });
+
         // Set up automatic Y-plane adjustment when splats are loaded
         this.scene.events.on('scene.elementAdded', (element: any) => {
             // Check if a splat was added
@@ -340,7 +404,7 @@ class TriangleOverlay extends Element {
         this.quadRender?.destroy();
     }
 
-    addTriangle(v0: Vec3 | {x: number, y: number, z: number}, v1: Vec3 | {x: number, y: number, z: number}, v2: Vec3 | {x: number, y: number, z: number}, color: Vec3 | {x: number, y: number, z: number} = {x: 0, y: 1, z: 0}, fillAlpha: number = 1.0, outlineColor: Vec3 | {x: number, y: number, z: number} = {x: 1, y: 1, z: 1}, outlineThickness: number = 0.1, name?: string) {
+    addTriangle(v0: Vec3 | {x: number, y: number, z: number}, v1: Vec3 | {x: number, y: number, z: number}, v2: Vec3 | {x: number, y: number, z: number}, color: Vec3 | {x: number, y: number, z: number} = {x: 0, y: 1, z: 0}, fillAlpha: number = 1.0, outlineColor: Vec3 | {x: number, y: number, z: number} = {x: 1, y: 1, z: 1}, outlineThickness: number = 0.1, name?: string, edge01Visible: boolean = true, edge12Visible: boolean = true, edge20Visible: boolean = true) {
         // Convert plain objects to Vec3 if needed
         const vertex0 = v0 instanceof Vec3 ? v0.clone() : new Vec3(v0.x, v0.y, v0.z);
         const vertex1 = v1 instanceof Vec3 ? v1.clone() : new Vec3(v1.x, v1.y, v1.z);
@@ -356,11 +420,15 @@ class TriangleOverlay extends Element {
             fillAlpha,
             outlineColor: outCol,
             outlineThickness,
-            name
+            name,
+            edge01Visible,
+            edge12Visible,
+            edge20Visible
         });
 
         const nameStr = name ? ` (${name})` : '';
-        console.log(`🔺 Triangle added: v0(${vertex0.x.toFixed(2)}, ${vertex0.z.toFixed(2)}), v1(${vertex1.x.toFixed(2)}, ${vertex1.z.toFixed(2)}), v2(${vertex2.x.toFixed(2)}, ${vertex2.z.toFixed(2)}), fillAlpha=${fillAlpha}, thickness=${outlineThickness}, outlineRGB(${outCol.x}, ${outCol.y}, ${outCol.z})${nameStr}`);
+        const edgeInfo = edge01Visible && edge12Visible && edge20Visible ? '' : ` edges:[${edge01Visible ? '01' : ''}${edge12Visible ? '12' : ''}${edge20Visible ? '20' : ''}]`;
+        console.log(`🔺 Triangle added: v0(${vertex0.x.toFixed(2)}, ${vertex0.z.toFixed(2)}), v1(${vertex1.x.toFixed(2)}, ${vertex1.z.toFixed(2)}), v2(${vertex2.x.toFixed(2)}, ${vertex2.z.toFixed(2)}), fillAlpha=${fillAlpha}, thickness=${outlineThickness}${edgeInfo}${nameStr}`);
     }
 
     setYPlane(yPlane: number) {
@@ -369,17 +437,19 @@ class TriangleOverlay extends Element {
     }
 
     /**
-     * Get all triangles from both direct triangles and polygons
+     * Get all triangles from both direct triangles and visible polygons
      */
     getAllTriangles(): TriangleData[] {
         const allTriangles: TriangleData[] = [];
 
-        // Add direct triangles
+        // Add direct triangles (always visible if overlay is visible)
         allTriangles.push(...this.triangles);
 
-        // Add triangles from polygons
+        // Add triangles from visible polygons only
         for (const polygon of this.polygons) {
-            allTriangles.push(...polygon.getTriangles());
+            if (polygon.visible) {
+                allTriangles.push(...polygon.getTriangles());
+            }
         }
 
         return allTriangles;
@@ -425,6 +495,29 @@ class TriangleOverlay extends Element {
         } else {
             console.warn(`⚠️ Polygon "${name}" not found`);
         }
+    }
+
+    /**
+     * Show/hide polygon by name
+     */
+    setPolygonVisibility(name: string, visible: boolean) {
+        const polygon = this.polygons.find(p => p.name === name);
+        if (polygon) {
+            polygon.visible = visible;
+            console.log(`👁️ Polygon "${name}" ${visible ? 'shown' : 'hidden'}`);
+        } else {
+            console.warn(`⚠️ Polygon "${name}" not found`);
+        }
+    }
+
+    /**
+     * Show/hide all polygons
+     */
+    setAllPolygonsVisibility(visible: boolean) {
+        this.polygons.forEach(polygon => {
+            polygon.visible = visible;
+        });
+        console.log(`👁️ All polygons ${visible ? 'shown' : 'hidden'} (${this.polygons.length} polygons)`);
     }
 
     /**
