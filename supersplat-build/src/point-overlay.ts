@@ -30,6 +30,103 @@ interface TriangleData {
     name?: string;
 }
 
+interface PolygonData {
+    vertices: Vec3[];
+    color: Vec3;
+    fillAlpha: number;
+    outlineColor: Vec3;
+    outlineThickness: number;
+    name?: string;
+}
+
+class Polygon {
+    vertices: Vec3[];
+    color: Vec3;
+    fillAlpha: number;
+    outlineColor: Vec3;
+    outlineThickness: number;
+    name?: string;
+    triangles: TriangleData[] = [];
+
+    constructor(data: PolygonData) {
+        this.vertices = data.vertices.map(v => v.clone());
+        this.color = data.color.clone();
+        this.fillAlpha = data.fillAlpha;
+        this.outlineColor = data.outlineColor.clone();
+        this.outlineThickness = data.outlineThickness;
+        this.name = data.name;
+
+        // Automatically triangulate the polygon
+        this.triangulate();
+    }
+
+    /**
+     * Triangulate the polygon into triangles using fan triangulation
+     */
+    private triangulate() {
+        this.triangles = [];
+
+        if (this.vertices.length < 3) {
+            console.warn(`⚠️ Polygon "${this.name}" has less than 3 vertices - cannot triangulate`);
+            return;
+        }
+
+        if (this.vertices.length === 3) {
+            // Already a triangle
+            this.triangles.push({
+                v0: this.vertices[0].clone(),
+                v1: this.vertices[1].clone(),
+                v2: this.vertices[2].clone(),
+                color: this.color.clone(),
+                fillAlpha: this.fillAlpha,
+                outlineColor: this.outlineColor.clone(),
+                outlineThickness: this.outlineThickness,
+                name: `${this.name}_tri_0`
+            });
+            return;
+        }
+
+        // Fan triangulation from first vertex
+        const firstVertex = this.vertices[0];
+        for (let i = 1; i < this.vertices.length - 1; i++) {
+            this.triangles.push({
+                v0: firstVertex.clone(),
+                v1: this.vertices[i].clone(),
+                v2: this.vertices[i + 1].clone(),
+                color: this.color.clone(),
+                fillAlpha: this.fillAlpha,
+                outlineColor: this.outlineColor.clone(),
+                outlineThickness: this.outlineThickness,
+                name: `${this.name}_tri_${i - 1}`
+            });
+        }
+
+        console.log(`🔹 Polygon "${this.name}" triangulated: ${this.vertices.length} vertices → ${this.triangles.length} triangles`);
+    }
+
+    /**
+     * Update polygon properties and re-triangulate
+     */
+    updateProperties(data: Partial<PolygonData>) {
+        if (data.vertices) this.vertices = data.vertices.map(v => v.clone());
+        if (data.color) this.color = data.color.clone();
+        if (data.fillAlpha !== undefined) this.fillAlpha = data.fillAlpha;
+        if (data.outlineColor) this.outlineColor = data.outlineColor.clone();
+        if (data.outlineThickness !== undefined) this.outlineThickness = data.outlineThickness;
+        if (data.name) this.name = data.name;
+
+        // Re-triangulate with new properties
+        this.triangulate();
+    }
+
+    /**
+     * Get all triangles for rendering
+     */
+    getTriangles(): TriangleData[] {
+        return this.triangles;
+    }
+}
+
 class TriangleOverlay extends Element {
     shader: Shader;
     quadRender: QuadRender;
@@ -38,6 +135,7 @@ class TriangleOverlay extends Element {
 
     visible = true;
     triangles: TriangleData[] = [];
+    polygons: Polygon[] = [];
     yPlane: number = 3.2; // Default Y plane for all triangles
 
     constructor() {
@@ -63,8 +161,12 @@ class TriangleOverlay extends Element {
 
         console.log('🔺 Registering triangle rendering event handler');
         this.scene.camera.entity.camera.on('preRenderLayer', (layer: Layer, transparent: boolean) => {
+            // Combine triangles from direct triangles and polygons
+            const allTriangles = this.getAllTriangles();
+            console.log(`🐛 RENDER DEBUG: Direct triangles: ${this.triangles.length}, Polygon triangles: ${allTriangles.length - this.triangles.length}, Total: ${allTriangles.length}`);
+
             const shouldRender = this.visible && layer === this.scene.debugLayer && !transparent &&
-                this.scene.camera.renderOverlays && this.triangles.length > 0;
+                this.scene.camera.renderOverlays && allTriangles.length > 0;
 
             if (shouldRender) {
                 device.setBlendState(blendState);
@@ -72,18 +174,36 @@ class TriangleOverlay extends Element {
                 device.setDepthState(DepthState.WRITEDEPTH);
                 device.setStencilState(null, null);
 
-                // Pack triangle data into vec4 uniforms (max 4 triangles with outline colors)
-                const maxTriangles = Math.min(this.triangles.length, 4); // New shader limit: 4 triangles * 4 vec4 = 16 uniforms
+                // Pack triangle data into vec4 uniforms (max 8 triangles with outline colors)
+                const TRIANGLES_PER_BATCH = 8; // Conservative start: 8 triangles * 4 vec4 = 32 uniforms
+                const VEC4_PER_BATCH = TRIANGLES_PER_BATCH * 4; // 32 vec4 uniforms per batch
 
-                // Initialize all vec4 uniforms with zeros
-                const vec4Data: number[][] = [];
-                for (let i = 0; i < 16; i++) {
+                if (allTriangles.length > TRIANGLES_PER_BATCH) {
+                    console.log(`ℹ️ BATCHED RENDERING: ${allTriangles.length} triangles will be rendered in ${Math.ceil(allTriangles.length / TRIANGLES_PER_BATCH)} batches of ${TRIANGLES_PER_BATCH}`);
+                }
+
+                // Render triangles in batches
+                let triangleIndex = 0;
+                let batchCount = 0;
+
+                while (triangleIndex < allTriangles.length) {
+                    const remainingTriangles = allTriangles.length - triangleIndex;
+                    const currentBatchSize = Math.min(remainingTriangles, TRIANGLES_PER_BATCH);
+                    batchCount++;
+
+                    if (batchCount > 1) {
+                        console.log(`🔺 Rendering batch ${batchCount}: triangles ${triangleIndex}-${triangleIndex + currentBatchSize - 1}`);
+                    }
+
+                    // Initialize all vec4 uniforms with zeros for this batch
+                    const vec4Data: number[][] = [];
+                    for (let i = 0; i < VEC4_PER_BATCH; i++) {
                     vec4Data[i] = [0, 0, 0, 0];
                 }
 
-                // Pack triangle data into vec4 uniforms (4 vec4 per triangle)
-                for (let i = 0; i < maxTriangles; i++) {
-                    const triangle = this.triangles[i];
+                // Pack triangle data into vec4 uniforms (4 vec4 per triangle) for current batch
+                for (let i = 0; i < currentBatchSize; i++) {
+                    const triangle = allTriangles[triangleIndex + i];
                     const dataIndex = i * 4; // Each triangle uses 4 vec4 uniforms
 
                     // First vec4: v0.x, v0.z, v1.x, v1.z
@@ -111,24 +231,29 @@ class TriangleOverlay extends Element {
                     ];
                 }
 
-                console.log(`🐛 DEBUG: Vec4 packed triangle data for ${maxTriangles} triangles:`);
-                for (let i = 0; i < Math.min(4, vec4Data.length); i++) {
-                    console.log(`  triangleData${i}: [${vec4Data[i].map(v => v.toFixed(3)).join(', ')}]`);
+                    if (batchCount === 1) {
+                        console.log(`🐛 DEBUG: Vec4 packed triangle data for batch ${batchCount} (${currentBatchSize} triangles):`);
+                        for (let i = 0; i < Math.min(4, vec4Data.length); i++) {
+                            console.log(`  triangleData${i}: [${vec4Data[i].map(v => v.toFixed(3)).join(', ')}]`);
+                        }
+                    }
+
+                    // Set shared uniforms
+                    device.scope.resolve('triangleYPlane').setValue(this.yPlane);
+                    device.scope.resolve('triangleCount').setValue(currentBatchSize);
+
+                    // Set vec4 uniforms for triangle data (up to 128 uniforms for 32 triangles)
+                    for (let i = 0; i < VEC4_PER_BATCH; i++) {
+                        device.scope.resolve(`triangleData${i}`).setValue(vec4Data[i]);
+                    }
+
+                    // Render this batch
+                    this.quadRender.render();
+
+                    triangleIndex += currentBatchSize;
                 }
 
-                // Set shared uniforms
-                device.scope.resolve('triangleYPlane').setValue(this.yPlane);
-                device.scope.resolve('triangleCount').setValue(maxTriangles);
-
-                // Set vec4 uniforms for triangle data
-                for (let i = 0; i < 16; i++) {
-                    device.scope.resolve(`triangleData${i}`).setValue(vec4Data[i]);
-                }
-
-                // Single render call for all triangles
-                this.quadRender.render();
-
-                console.log(`🔺 Rendered ${maxTriangles} triangles at Y-plane ${this.yPlane} (vec4 packed multi-triangle shader)`);
+                console.log(`🔺 Rendered ${allTriangles.length} triangles in ${batchCount} batch(es) at Y-plane ${this.yPlane}`);
             }
         });
 
@@ -153,6 +278,26 @@ class TriangleOverlay extends Element {
             return this.calculateSplatYStatistics();
         });
 
+        // Polygon event functions
+        this.scene.events.function('triangleOverlay.addPolygon', (vertices: any[], color: any = {x: 0, y: 1, z: 0}, fillAlpha: number = 1.0, outlineColor: any = {x: 1, y: 1, z: 1}, outlineThickness: number = 0.1, name?: string) => {
+            return this.addPolygon(
+                vertices.map(v => new Vec3(v.x, v.y, v.z)),
+                new Vec3(color.x, color.y, color.z),
+                fillAlpha,
+                new Vec3(outlineColor.x, outlineColor.y, outlineColor.z),
+                outlineThickness,
+                name
+            );
+        });
+
+        this.scene.events.function('triangleOverlay.clearPolygons', () => {
+            this.clearPolygons();
+        });
+
+        this.scene.events.function('triangleOverlay.updatePolygon', (name: string, updates: any) => {
+            this.updatePolygon(name, updates);
+        });
+
         // Set up automatic Y-plane adjustment when splats are loaded
         this.scene.events.on('scene.elementAdded', (element: any) => {
             // Check if a splat was added
@@ -174,6 +319,12 @@ class TriangleOverlay extends Element {
 
         // Add 2 triangles using DYNAMIC coordinates for stress testing
         this.addDynamicTriangles();
+
+        // Add polygon demo - create quadrilateral
+        this.addPolygonDemo();
+
+        // STRESS TEST: Add many triangles to exceed 32 triangle limit
+        this.addStressTestTriangles();
 
         // VERIFICATION TEST: Pass same coordinates through triangulation system
         // Delay to ensure SuperSplatBridge is available
@@ -215,6 +366,65 @@ class TriangleOverlay extends Element {
     setYPlane(yPlane: number) {
         this.yPlane = yPlane;
         console.log(`🔺 Y-plane set to ${yPlane}`);
+    }
+
+    /**
+     * Get all triangles from both direct triangles and polygons
+     */
+    getAllTriangles(): TriangleData[] {
+        const allTriangles: TriangleData[] = [];
+
+        // Add direct triangles
+        allTriangles.push(...this.triangles);
+
+        // Add triangles from polygons
+        for (const polygon of this.polygons) {
+            allTriangles.push(...polygon.getTriangles());
+        }
+
+        return allTriangles;
+    }
+
+    /**
+     * Add a polygon to the overlay
+     */
+    addPolygon(vertices: Vec3[], color: Vec3 = new Vec3(0, 1, 0), fillAlpha: number = 1.0, outlineColor: Vec3 = new Vec3(1, 1, 1), outlineThickness: number = 0.1, name?: string) {
+        const polygon = new Polygon({
+            vertices,
+            color,
+            fillAlpha,
+            outlineColor,
+            outlineThickness,
+            name
+        });
+
+        this.polygons.push(polygon);
+
+        const nameStr = name ? ` (${name})` : '';
+        console.log(`🔹 Polygon added: ${vertices.length} vertices → ${polygon.triangles.length} triangles, fillAlpha=${fillAlpha}, thickness=${outlineThickness}${nameStr}`);
+
+        return polygon;
+    }
+
+    /**
+     * Remove all polygons
+     */
+    clearPolygons() {
+        this.polygons = [];
+        console.log('🧹 All polygons cleared from overlay');
+    }
+
+    /**
+     * Update polygon properties by name
+     */
+    updatePolygon(name: string, updates: Partial<PolygonData>) {
+        const polygon = this.polygons.find(p => p.name === name);
+        if (polygon) {
+            polygon.updateProperties(updates);
+            console.log(`🔹 Polygon "${name}" updated and re-triangulated`);
+        } else {
+            console.warn(`⚠️ Polygon "${name}" not found`);
+        }
     }
 
     /**
@@ -545,6 +755,206 @@ class TriangleOverlay extends Element {
         } else {
             console.log('❌ Fan triangulation failed for 4-sided polygon');
         }
+    }
+
+    /**
+     * Add polygon demonstration - create various polygons including a quadrilateral
+     */
+    addPolygonDemo() {
+        console.log('🔹🔹 Adding polygon demonstration with quadrilateral...');
+
+        // Quadrilateral (4-sided polygon) - Red with thick blue outline
+        const quadVertices = [
+            new Vec3(-8.0, 0, 2.0),   // Top left
+            new Vec3(-4.0, 0, 4.0),   // Top right
+            new Vec3(-3.0, 0, -1.0),  // Bottom right
+            new Vec3(-9.0, 0, -2.0)   // Bottom left
+        ];
+
+        console.log('📐 Quadrilateral vertices:');
+        quadVertices.forEach((vertex, i) => {
+            console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+        });
+
+        const redColor = new Vec3(1, 0, 0);  // Red fill
+        const blueOutlineColor = new Vec3(0, 0.2, 1);  // Blue outline
+        const fillAlpha = 0.8;  // Semi-transparent
+        const thickOutline = 0.15;
+
+        const quadrilateral = this.addPolygon(
+            quadVertices,
+            redColor,
+            fillAlpha,
+            blueOutlineColor,
+            thickOutline,
+            'Quadrilateral Demo'
+        );
+
+        console.log(`✅ Quadrilateral added: ${quadVertices.length} vertices → ${quadrilateral.triangles.length} triangles (red fill, blue outline)`);
+
+        // Pentagon (5-sided polygon) - Green with yellow outline
+        const pentagonVertices = [
+            new Vec3(8.0, 0, 3.0),    // Top
+            new Vec3(10.5, 0, 1.0),   // Top right
+            new Vec3(9.5, 0, -2.0),   // Bottom right
+            new Vec3(6.5, 0, -2.0),   // Bottom left
+            new Vec3(5.5, 0, 1.0)     // Top left
+        ];
+
+        console.log('📐 Pentagon vertices:');
+        pentagonVertices.forEach((vertex, i) => {
+            console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+        });
+
+        const greenColor = new Vec3(0, 0.8, 0.2);  // Green fill
+        const yellowOutlineColor = new Vec3(1, 1, 0);  // Yellow outline
+        const pentagonFillAlpha = 1.0;  // Solid
+        const mediumOutline = 0.08;
+
+        const pentagon = this.addPolygon(
+            pentagonVertices,
+            greenColor,
+            pentagonFillAlpha,
+            yellowOutlineColor,
+            mediumOutline,
+            'Pentagon Demo'
+        );
+
+        console.log(`✅ Pentagon added: ${pentagonVertices.length} vertices → ${pentagon.triangles.length} triangles (green fill, yellow outline)`);
+
+        // Hexagon (6-sided polygon) - HOLLOW with purple outline
+        const hexagonVertices = [
+            new Vec3(0.0, 0, -8.0),   // Top
+            new Vec3(2.0, 0, -6.5),   // Top right
+            new Vec3(2.0, 0, -9.5),   // Bottom right
+            new Vec3(0.0, 0, -11.0),  // Bottom
+            new Vec3(-2.0, 0, -9.5),  // Bottom left
+            new Vec3(-2.0, 0, -6.5)   // Top left
+        ];
+
+        console.log('📐 Hexagon vertices (HOLLOW):');
+        hexagonVertices.forEach((vertex, i) => {
+            console.log(`  v${i}: x=${vertex.x.toFixed(3)}, z=${vertex.z.toFixed(3)}`);
+        });
+
+        const invisibleColor = new Vec3(0.3, 0, 0.3);  // Won't be visible due to fillAlpha=0
+        const purpleOutlineColor = new Vec3(0.7, 0, 0.9);  // Purple outline
+        const hollowFillAlpha = 0.0;  // Completely transparent (hollow)
+        const thinOutline = 0.06;
+
+        const hexagon = this.addPolygon(
+            hexagonVertices,
+            invisibleColor,
+            hollowFillAlpha,
+            purpleOutlineColor,
+            thinOutline,
+            'Hexagon Demo (HOLLOW)'
+        );
+
+        console.log(`✅ Hexagon added: ${hexagonVertices.length} vertices → ${hexagon.triangles.length} triangles (HOLLOW with purple outline)`);
+
+        console.log('🎯 POLYGON DEMO: 3 polygons created (Quadrilateral, Pentagon, Hollow Hexagon)');
+        console.log(`🔹 Total polygons: ${this.polygons.length}`);
+        console.log(`🔺 Total triangles from polygons: ${this.polygons.reduce((sum, poly) => sum + poly.triangles.length, 0)}`);
+    }
+
+    /**
+     * STRESS TEST: Add many triangles and polygons to exceed 32 triangle limit
+     * This tests the batched rendering system's ability to handle large quantities
+     */
+    addStressTestTriangles() {
+        console.log('🚀🚀🚀 STRESS TEST: Adding many triangles to exceed 32 triangle limit...');
+
+        const initialTriangleCount = this.getAllTriangles().length;
+        console.log(`📊 Starting triangle count: ${initialTriangleCount}`);
+
+        // Add 15 individual triangles to reach beyond 32 total (current ~12 + 15 = ~27, need more)
+        console.log('🔺 Adding 15 individual stress test triangles...');
+        for (let i = 0; i < 15; i++) {
+            // Generate triangles in a grid pattern
+            const baseX = -20 + (i % 5) * 4; // 5 columns, 4 units apart
+            const baseZ = -20 + Math.floor(i / 5) * 4; // 3 rows, 4 units apart
+
+            // Create small triangles with unique colors
+            const hue = (i / 15) * 360; // Different hue for each triangle
+            const color = this.hslToRgb(hue, 1.0, 0.6);
+            const outlineColor = this.hslToRgb(hue, 1.0, 0.3); // Darker outline
+
+            this.addTriangle(
+                new Vec3(baseX, 0, baseZ + 1),     // Top vertex
+                new Vec3(baseX - 0.8, 0, baseZ),  // Bottom left
+                new Vec3(baseX + 0.8, 0, baseZ),  // Bottom right
+                new Vec3(color.r, color.g, color.b),
+                0.7, // Semi-transparent
+                new Vec3(outlineColor.r, outlineColor.g, outlineColor.b),
+                0.08, // Thin outline
+                `StressTest_Triangle_${i + 1}`
+            );
+        }
+
+        // Add 5 complex polygons (octagons) to generate many triangles
+        console.log('🔹 Adding 5 octagon polygons (6 triangles each = 30 more triangles)...');
+        for (let i = 0; i < 5; i++) {
+            const centerX = 15 + (i % 3) * 6; // 3 columns
+            const centerZ = -15 + Math.floor(i / 3) * 6; // 2 rows
+            const radius = 2;
+
+            // Create octagon vertices (8-sided polygon = 6 triangles via fan triangulation)
+            const octagonVertices: Vec3[] = [];
+            for (let j = 0; j < 8; j++) {
+                const angle = (j / 8) * Math.PI * 2;
+                octagonVertices.push(new Vec3(
+                    centerX + Math.cos(angle) * radius,
+                    0,
+                    centerZ + Math.sin(angle) * radius
+                ));
+            }
+
+            // Generate unique colors for each octagon
+            const hue = (i / 5) * 360;
+            const color = this.hslToRgb(hue, 0.8, 0.5);
+            const outlineColor = this.hslToRgb(hue, 1.0, 0.2);
+
+            this.addPolygon(
+                octagonVertices,
+                new Vec3(color.r, color.g, color.b),
+                0.6, // Semi-transparent
+                new Vec3(outlineColor.r, outlineColor.g, outlineColor.b),
+                0.1, // Medium outline
+                `StressTest_Octagon_${i + 1}`
+            );
+        }
+
+        const finalTriangleCount = this.getAllTriangles().length;
+        const addedTriangles = finalTriangleCount - initialTriangleCount;
+
+        console.log(`📊 STRESS TEST COMPLETE:`);
+        console.log(`  • Initial triangles: ${initialTriangleCount}`);
+        console.log(`  • Added triangles: ${addedTriangles}`);
+        console.log(`  • Final triangle count: ${finalTriangleCount}`);
+        console.log(`  • Expected batches: ${Math.ceil(finalTriangleCount / 8)}`);
+
+        if (finalTriangleCount > 32) {
+            console.log(`🎯 SUCCESS: Triangle count (${finalTriangleCount}) exceeds 32 - batched rendering will be tested!`);
+            console.log(`⚡ System will render ${Math.ceil(finalTriangleCount / 8)} batches of up to 8 triangles each`);
+        } else {
+            console.log(`⚠️ Need more triangles: Only ${finalTriangleCount} total (target: >32)`);
+        }
+
+        console.log('🚀 STRESS TEST TRIANGLES ADDED - Check console for batch rendering logs during render');
+    }
+
+    /**
+     * Convert HSL to RGB color values
+     */
+    hslToRgb(h: number, s: number, l: number): {r: number, g: number, b: number} {
+        h /= 360;
+        const a = s * Math.min(l, 1 - l);
+        const f = (n: number) => {
+            const k = (n + h * 12) % 12;
+            return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        };
+        return {r: f(0), g: f(8), b: f(4)};
     }
 
     serialize(serializer: Serializer): void {
