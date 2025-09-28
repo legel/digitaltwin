@@ -236,12 +236,13 @@ class SuperSplatBridge {
             window.navigateToSite = (...args) => {
                 const result = originalNavigateToSite.apply(this, args);
 
-                // After site navigation, update SuperSplat
+                // After site navigation, render GeoJSON polygons
                 setTimeout(() => {
                     if (window.currentSiteData && this.isInitialized) {
-                        this.updatePolygonsInSuperSplat(window.currentSiteData, window.layerState);
+                        console.log('🗺️ New site data loaded - rendering GeoJSON polygons');
+                        this.renderGeoJSONPolygons(window.currentSiteData);
                     }
-                }, 100);
+                }, 1000);
 
                 return result;
             };
@@ -252,22 +253,320 @@ class SuperSplatBridge {
      * Perform initial sync with existing data
      */
     performInitialSync() {
-        // DISABLED: Skip automatic polygon rendering to avoid AABB errors
-        // The polygon rendering will be manually triggered only when needed
-        console.log('🎯 Initial sync disabled - skipping automatic polygon rendering');
+        // Wait for loading screen to complete before rendering GeoJSON polygons
+        this.waitForLoadingCompletion().then(() => {
+            if (window.currentSiteData) {
+                console.log('🎯 Loading complete - rendering GeoJSON polygons');
+                this.renderGeoJSONPolygons(window.currentSiteData);
+            } else {
+                console.log('🎯 Loading complete but no site data - polygon rendering will run when site loads');
+            }
+        });
+    }
 
-        /*
-        if (window.currentSiteData) {
-            console.log('🎯 Performing initial sync with existing site data');
-            this.updatePolygonsInSuperSplat(window.currentSiteData, window.layerState || {});
+    /**
+     * Wait for loading screen to complete and splat to be accessible
+     */
+    async waitForLoadingCompletion() {
+        return new Promise((resolve) => {
+            // Check if loading is already complete
+            if (!window.independentLoadingState?.isActive) {
+                console.log('🎯 Loading already complete');
+                resolve();
+                return;
+            }
+
+            // Wait for loading completion
+            console.log('⏳ Waiting for loading screen to complete...');
+            const checkLoading = () => {
+                if (!window.independentLoadingState?.isActive) {
+                    console.log('✅ Loading screen complete - splat should be accessible');
+
+                    // Add extra delay for splat data to be fully processed
+                    setTimeout(() => {
+                        resolve();
+                    }, 2000);
+                } else {
+                    setTimeout(checkLoading, 500); // Check every 500ms
+                }
+            };
+
+            checkLoading();
+        });
+    }
+
+    /**
+     * Render GeoJSON polygons in SuperSplat with coordinate transformation
+     */
+    async renderGeoJSONPolygons(geoJsonData) {
+        if (!geoJsonData || !geoJsonData.features) {
+            console.error('❌ No GeoJSON data provided');
+            return;
         }
 
-        // Process any pending updates
-        this.pendingUpdates.forEach(update => {
-            this.updatePolygonsInSuperSplat(update.geoJsonData, update.layerState);
+        try {
+            await this.waitForLoadingCompletion();
+            await window.coordinateTransform.ensureLoaded();
+
+            const splatBounds = await this.waitForSplatBounds();
+            if (!splatBounds) {
+                console.error('❌ Could not get splat bounds for coordinate transformation');
+                return;
+            }
+
+            console.log('🗺️ Starting GeoJSON polygon rendering:', {
+                features: geoJsonData.features.length,
+                splatBounds: {
+                    width: splatBounds.width.toFixed(3),
+                    height: splatBounds.height.toFixed(3)
+                }
+            });
+
+            const geoBounds = window.coordinateTransform.calculateGeoJSONBounds(geoJsonData);
+            const format = window.detectGeoJsonFormat ? window.detectGeoJsonFormat(geoJsonData.features[0]) : 'boyd';
+
+            // Track polygons for UI controls
+            this.polygonRegistry = this.polygonRegistry || [];
+
+            // Clear existing polygons
+            if (window.superSplatScene && window.superSplatScene.events) {
+                window.superSplatScene.events.fire('triangleOverlay.clearPolygons');
+            }
+
+            let polygonsRendered = 0;
+            const maxPolygons = 10; // Increase to 10 to see more polygons with thin borders
+
+            geoJsonData.features.forEach((feature, index) => {
+                if (polygonsRendered >= maxPolygons) {
+                    return; // Skip remaining polygons
+                }
+                if (feature.geometry && feature.geometry.type === 'Polygon') {
+                    const name = feature.properties.name || `polygon_${index}`;
+
+                    // Skip reference points and test features
+                    if (/^\d+$/.test(name) || name.includes('Test ID')) {
+                        return;
+                    }
+
+                    // Determine if plantable or non-plantable
+                    const isPlantable = this.isPlantableFeature(feature, format);
+
+                    // Transform coordinates to SuperSplat world space
+                    const vertices = this.transformPolygonCoordinates(feature, splatBounds, geoBounds);
+
+                    // Debug: Log coordinate transformation and polygon complexity
+                    if (polygonsRendered < 3) { // Only log first 3 for readability
+                        console.log(`🗺️ COORDINATE DEBUG for "${name}":`, {
+                            originalCoords: feature.geometry.coordinates[0].slice(0, 3), // First 3 points
+                            transformedVertices: vertices.slice(0, 3),
+                            splatBounds: { width: splatBounds.width, height: splatBounds.height },
+                            geoBounds: {
+                                west: geoBounds.west.toFixed(8),
+                                east: geoBounds.east.toFixed(8),
+                                south: geoBounds.south.toFixed(8),
+                                north: geoBounds.north.toFixed(8)
+                            }
+                        });
+
+                        console.log(`🔺 TRIANGULATION ANALYSIS for "${name}":`, {
+                            vertexCount: vertices.length,
+                            expectedTriangles: vertices.length - 2, // Fan triangulation creates n-2 triangles
+                            triangulationMethod: 'Fan (from first vertex)',
+                            suitableFor: 'Convex polygons',
+                            potentialIssues: vertices.length > 10 ?
+                                'Complex polygon - fan triangulation may create artifacts for concave areas' :
+                                'Simple polygon - should triangulate well'
+                        });
+                    }
+
+                    if (vertices.length >= 3) {
+                        // Style based on PA/NPA classification
+                        const style = this.getPolygonStyle(isPlantable, polygonsRendered);
+
+                        // Register polygon for tracking
+                        this.polygonRegistry.push({
+                            name: name,
+                            isPlantable: isPlantable,
+                            feature: feature,
+                            vertices: vertices,
+                            visible: true // Set to true initially as requested
+                        });
+
+                        // Render polygon in SuperSplat
+                        console.log('🔍 Attempting to render polygon:', name);
+                        console.log('🔍 window.superSplatScene exists:', !!window.superSplatScene);
+                        console.log('🔍 window.superSplatScene.events exists:', !!window.superSplatScene?.events);
+
+                        if (window.superSplatScene && window.superSplatScene.events) {
+                            console.log('🔍 Available event methods:', Object.getOwnPropertyNames(window.superSplatScene.events));
+                            console.log('🔍 Calling triangleOverlay.addPolygon with vertices:', vertices.length);
+
+                            // Try multiple event methods to find the working one
+                            try {
+                                let success = false;
+
+                                // Method 1: Try invoke (same as working bounds rectangle)
+                                if (typeof window.superSplatScene.events.invoke === 'function') {
+                                    console.log('🔍 Trying events.invoke() (same as bounds rectangle)...');
+                                    console.log('🔍 Event parameters:', {
+                                        vertices: vertices.length,
+                                        fillColor: style.fillColor,
+                                        fillAlpha: style.fillAlpha,
+                                        outlineColor: style.outlineColor,
+                                        name: name
+                                    });
+
+                                    window.superSplatScene.events.invoke('triangleOverlay.addPolygon',
+                                        vertices, style.fillColor, style.fillAlpha,
+                                        style.outlineColor, style.outlineThickness, name
+                                    );
+
+                                    console.log('🔍 After invoke() - expecting to see SuperSplat EVENT RECEIVED message...');
+                                    success = true;
+                                }
+
+                                // Method 2: Try accessing function directly
+                                else if (window.superSplatScene.events.functions &&
+                                         window.superSplatScene.events.functions['triangleOverlay.addPolygon']) {
+                                    console.log('🔍 Trying direct function call...');
+                                    const addPolygonFunc = window.superSplatScene.events.functions['triangleOverlay.addPolygon'];
+                                    addPolygonFunc(vertices, style.fillColor, style.fillAlpha,
+                                                  style.outlineColor, style.outlineThickness, name, true);
+                                    success = true;
+                                }
+
+                                // Method 3: Try invoke
+                                else if (typeof window.superSplatScene.events.invoke === 'function') {
+                                    console.log('🔍 Trying events.invoke()...');
+                                    window.superSplatScene.events.invoke('triangleOverlay.addPolygon',
+                                        vertices, style.fillColor, style.fillAlpha,
+                                        style.outlineColor, style.outlineThickness, name, true
+                                    );
+                                    success = true;
+                                }
+
+                                if (success) {
+                                    console.log('✅ Event sent successfully for:', name);
+                                    polygonsRendered++;
+                                } else {
+                                    console.error('❌ No working event method found');
+                                    console.log('🔍 Functions available:', Object.keys(window.superSplatScene.events.functions || {}));
+                                }
+
+                            } catch (error) {
+                                console.error('❌ Error sending event:', error);
+                                console.log('🔍 Event object:', window.superSplatScene.events);
+                            }
+                        } else {
+                            console.error('❌ SuperSplat scene or events not available');
+                        }
+                    }
+                }
+            });
+
+            console.log('✅ GeoJSON polygon rendering complete:', {
+                totalFeatures: geoJsonData.features.length,
+                polygonsRendered: polygonsRendered,
+                plantableAreas: this.polygonRegistry.filter(p => p.isPlantable).length,
+                nonPlantableAreas: this.polygonRegistry.filter(p => !p.isPlantable).length
+            });
+
+        } catch (error) {
+            console.error('❌ Failed to render GeoJSON polygons:', error);
+        }
+    }
+
+    /**
+     * Determine if feature is plantable area based on format and properties
+     */
+    isPlantableFeature(feature, format) {
+        if (format === 'boyd') {
+            const name = feature.properties.name;
+            if (!name) return false;
+
+            // Check for PA designation (but not NPA)
+            if (name.startsWith('PA') && name.includes('=') && !name.includes('NPA')) {
+                return true;
+            }
+
+            // NPA features are explicitly non-plantable
+            if (name.includes('NPA')) {
+                return false;
+            }
+
+            return false; // Default to non-plantable for safety
+        } else {
+            // Legacy format: check Layer property
+            return feature.properties.Layer === 'Plantable_Layers';
+        }
+    }
+
+    /**
+     * Get polygon styling based on plantable/non-plantable classification
+     */
+    getPolygonStyle(isPlantable, polygonIndex = -1) {
+        if (isPlantable) {
+            // Special case: First polygon gets blue fill for testing
+            if (polygonIndex === 0) {
+                return {
+                    fillColor: { x: 0.0, y: 0.5, z: 1.0 },    // blue fill
+                    fillAlpha: 0.4,                             // semi-transparent blue
+                    outlineColor: { x: 0.0, y: 0.0, z: 0.0 },  // black border
+                    outlineThickness: 0.015                     // 50% thinner border
+                };
+            }
+            // Other plantable areas: Hollow, black border (thinner)
+            return {
+                fillColor: { x: 0.0, y: 0.0, z: 0.0 },    // black (not visible due to alpha 0)
+                fillAlpha: 0.0,                             // hollow
+                outlineColor: { x: 0.0, y: 0.0, z: 0.0 },  // black border
+                outlineThickness: 0.015                     // 50% thinner border
+            };
+        } else {
+            // Non-plantable areas: Hollow, red border (thinner)
+            return {
+                fillColor: { x: 1.0, y: 0.0, z: 0.0 },    // red (not visible due to alpha 0)
+                fillAlpha: 0.0,                             // hollow
+                outlineColor: { x: 1.0, y: 0.0, z: 0.0 },  // red border
+                outlineThickness: 0.015                     // 50% thinner border
+            };
+        }
+    }
+
+    /**
+     * Transform polygon coordinates from geographic to SuperSplat world space
+     */
+    transformPolygonCoordinates(feature, splatBounds, geoBounds) {
+        const coordinates = feature.geometry.coordinates[0]; // exterior ring
+        const vertices = [];
+
+        coordinates.forEach(coord => {
+            if (coord.length >= 2) {
+                const [lon, lat] = coord;
+                const superSplatCoord = window.coordinateTransform.geoToSuperSplat(
+                    lon, lat, 0, splatBounds, geoBounds
+                );
+
+                // Create 3D vertices for SuperSplat (x, y, z coordinates)
+                // Y coordinate will be set by the triangle overlay system
+                vertices.push({
+                    x: superSplatCoord.x,
+                    y: superSplatCoord.y, // Usually 0
+                    z: superSplatCoord.z
+                });
+            }
         });
-        this.pendingUpdates = [];
-        */
+
+        // Remove duplicate last vertex if it matches the first (common in GeoJSON)
+        if (vertices.length > 3) {
+            const first = vertices[0];
+            const last = vertices[vertices.length - 1];
+            if (first.x === last.x && first.z === last.z) {
+                vertices.pop();
+            }
+        }
+
+        return vertices;
     }
 
     /**
@@ -519,6 +818,108 @@ class SuperSplatBridge {
     }
 
     /**
+     * Get comprehensive splat bounds in SuperSplat coordinates
+     * Returns both center and full bounding box dimensions
+     */
+    getSplatBoundsInSuperSplatCoordinates() {
+        if (!this.polygonOverlayReady) return null;
+
+        try {
+            const scene = window.superSplatScene;
+            const elements = scene?.elements;
+
+            if (elements && elements.length > 0) {
+                // Find the first splat element
+                for (const element of elements) {
+                    if (element.elementType === 'splat' || element.type === 'splat') {
+                        const worldBound = element.worldBound;
+
+                        if (worldBound && worldBound.center && worldBound.halfExtents) {
+                            const bounds = {
+                                center: {
+                                    x: worldBound.center.x,
+                                    y: worldBound.center.y,
+                                    z: worldBound.center.z
+                                },
+                                halfExtents: {
+                                    x: worldBound.halfExtents.x,
+                                    y: worldBound.halfExtents.y,
+                                    z: worldBound.halfExtents.z
+                                },
+                                min: {
+                                    x: worldBound.center.x - worldBound.halfExtents.x,
+                                    y: worldBound.center.y - worldBound.halfExtents.y,
+                                    z: worldBound.center.z - worldBound.halfExtents.z
+                                },
+                                max: {
+                                    x: worldBound.center.x + worldBound.halfExtents.x,
+                                    y: worldBound.center.y + worldBound.halfExtents.y,
+                                    z: worldBound.center.z + worldBound.halfExtents.z
+                                },
+                                width: worldBound.halfExtents.x * 2,
+                                height: worldBound.halfExtents.z * 2, // Z is typically the "height" in top-down view
+                                depth: worldBound.halfExtents.y * 2
+                            };
+
+                            console.log('🎨 Extracted SuperSplat bounds:', bounds);
+                            return bounds;
+                        }
+                    }
+                }
+            }
+
+            console.warn('⚠️ No splat found or splat lacks proper bounds');
+            return null;
+        } catch (error) {
+            console.error('❌ Failed to get splat bounds:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Wait for splats to load and return bounds information
+     * Uses progressive checking intervals to reduce CPU load
+     */
+    async waitForSplatBounds(maxWaitTime = 10000) {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            let currentInterval = 500; // Start with 500ms intervals
+            const maxInterval = 2000; // Max 2 second intervals
+            let totalWaitTime = 0;
+
+            const checkSplatBounds = () => {
+                attempts++;
+                totalWaitTime += currentInterval;
+
+                const bounds = this.getSplatBoundsInSuperSplatCoordinates();
+
+                if (bounds) {
+                    console.log(`✅ Splat bounds detected after ${totalWaitTime}ms (${attempts} attempts)`);
+                    resolve(bounds);
+                    return;
+                }
+
+                if (totalWaitTime >= maxWaitTime) {
+                    console.warn(`⚠️ Timeout waiting for splat bounds after ${totalWaitTime}ms (${attempts} attempts)`);
+                    reject(new Error('Timeout waiting for splat bounds'));
+                    return;
+                }
+
+                // Increase interval progressively to reduce checking frequency
+                if (currentInterval < maxInterval && attempts > 3) {
+                    currentInterval = Math.min(currentInterval * 1.5, maxInterval);
+                    console.log(`📊 Increasing splat bounds check interval to ${currentInterval}ms`);
+                }
+
+                setTimeout(checkSplatBounds, currentInterval);
+            };
+
+            // First check immediately
+            checkSplatBounds();
+        });
+    }
+
+    /**
      * Check if bridge is ready for use
      */
     isReady() {
@@ -537,6 +938,115 @@ class SuperSplatBridge {
             currentSiteData: !!window.currentSiteData,
             layerState: window.layerState
         };
+    }
+
+    /**
+     * Create and render a test rectangle showing the outer bounds of GeoJSON data
+     * Waits for splat bounds and uses dynamic coordinate scaling
+     */
+    async renderGeoJSONBoundsRectangle(geoJsonData) {
+        if (!this.polygonOverlayReady) {
+            console.warn('⚠️ SuperSplat not ready for bounds rectangle test');
+            return false;
+        }
+
+        if (!window.coordinateTransform) {
+            console.error('❌ CoordinateTransform not available - make sure CoordinateTransform.js is loaded');
+            return false;
+        }
+
+        try {
+            console.log('🔬 === GEOJSON BOUNDS RECTANGLE TEST (DYNAMIC SCALING) ===');
+
+            // Ensure coordinate transform is loaded
+            await window.coordinateTransform.ensureLoaded();
+
+            // Wait for splat bounds to be available
+            console.log('⏳ Waiting for splat bounds to load...');
+            let splatBounds = null;
+
+            try {
+                splatBounds = await this.waitForSplatBounds(15000); // Wait up to 15 seconds
+            } catch (error) {
+                console.warn('⚠️ Could not get splat bounds - proceeding with fallback scaling:', error.message);
+            }
+
+            // Create bounds rectangle with dynamic scaling if splat bounds available
+            const rectangleVertices = await window.coordinateTransform.createBoundsRectangle(geoJsonData, splatBounds);
+
+            if (rectangleVertices.length !== 4) {
+                console.error('❌ Invalid rectangle vertices:', rectangleVertices);
+                return false;
+            }
+
+            // Get additional splat information
+            const sceneBounds = this.getSceneBounds();
+            const splatCenter = this.getSplatCenter();
+
+            console.log('🎨 Splat Scene Information:', {
+                splat_center: splatCenter || 'Not available',
+                scene_bounds: sceneBounds || 'Not available',
+                splat_bounds_extracted: splatBounds ? 'Yes (used for dynamic scaling)' : 'No (using fallback scaling)',
+                note: 'These coordinates are in SuperSplat local coordinate system'
+            });
+
+            // Clear existing polygons and triangles
+            this.clearTriangles();
+
+            // Create polygon using SuperSplat polygon system
+            const events = window.superSplatScene.events;
+
+            // Convert vertices to Vec3 format expected by SuperSplat
+            const vec3Vertices = rectangleVertices.map(v => ({
+                x: v.x,
+                y: v.y,
+                z: v.z
+            }));
+
+            // Add polygon with distinctive styling for testing
+            const polygonColor = { x: 0.2, y: 0.8, z: 0.2 }; // Green
+            const fillAlpha = 0.3; // Semi-transparent
+            const outlineColor = { x: 1.0, y: 1.0, z: 0.0 }; // Yellow outline
+            const outlineThickness = splatBounds ? 0.05 : 0.15; // Thinner outline if we have proper scaling
+            const polygonName = `GeoJSON_Bounds_Rectangle_${splatBounds ? 'Dynamic' : 'Fallback'}`;
+
+            console.log('🔹 Creating bounds rectangle polygon:', {
+                vertices: vec3Vertices,
+                color: polygonColor,
+                fillAlpha: fillAlpha,
+                outlineColor: outlineColor,
+                outlineThickness: outlineThickness,
+                name: polygonName,
+                scaling_method: splatBounds ? 'Dynamic (based on splat)' : 'Fallback (static)'
+            });
+
+            // Send polygon to SuperSplat
+            events.invoke('triangleOverlay.addPolygon',
+                vec3Vertices,
+                polygonColor,
+                fillAlpha,
+                outlineColor,
+                outlineThickness,
+                polygonName
+            );
+
+            console.log('✅ GeoJSON bounds rectangle sent to SuperSplat successfully');
+
+            if (splatBounds) {
+                console.log('🎯 Dynamic scaling used - rectangle should cover the entire splat extent');
+            } else {
+                console.log('⚠️ Fallback scaling used - rectangle may be incorrectly sized');
+            }
+
+            console.log('👁️ Look for a semi-transparent green rectangle with yellow outline covering the GeoJSON bounds');
+            console.log('🔬 === BOUNDS RECTANGLE TEST COMPLETE ===');
+
+            return true;
+
+        } catch (error) {
+            console.error('❌ Failed to render GeoJSON bounds rectangle:', error);
+            return false;
+        }
     }
 }
 
@@ -588,3 +1098,25 @@ const sceneCheckInterval = setInterval(() => {
 setTimeout(() => {
     clearInterval(sceneCheckInterval);
 }, 30000);
+
+/**
+ * Test function to manually trigger GeoJSON bounds rectangle rendering
+ * Can be called from browser console for testing
+ */
+window.testGeoJSONBoundsRectangle = async function() {
+    console.log('🧪 Manual test: GeoJSON bounds rectangle');
+
+    if (!window.superSplatBridge) {
+        console.error('❌ SuperSplat bridge not initialized');
+        return false;
+    }
+
+    if (!window.currentSiteData) {
+        console.error('❌ No site data loaded. Please load a site first.');
+        return false;
+    }
+
+    return await window.superSplatBridge.renderGeoJSONBoundsRectangle(window.currentSiteData);
+};
+
+console.log('🌉 SuperSplat Bridge loaded. Use testGeoJSONBoundsRectangle() to test coordinate transformation.');
