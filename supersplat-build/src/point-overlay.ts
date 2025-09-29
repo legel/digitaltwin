@@ -552,10 +552,7 @@ class TriangleOverlay extends Element {
                     const currentBatchSize = Math.min(remainingTriangles, TRIANGLES_PER_BATCH);
                     batchCount++;
 
-                    // Debug batching for complex polygons
-                    if (allTriangles.length > TRIANGLES_PER_BATCH) {
-                        console.log(`🔺 BATCH ${batchCount}: Rendering triangles ${triangleIndex} to ${triangleIndex + currentBatchSize - 1} (${currentBatchSize} triangles)`);
-                    }
+                    // Removed excessive batch logging to reduce console spam
 
                     // Initialize all vec4 uniforms with zeros for this batch
                     const vec4Data: number[][] = [];

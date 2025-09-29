@@ -334,10 +334,10 @@ class SuperSplatBridge {
             }
 
             let polygonsRendered = 0;
-            const maxPolygons = 10; // Increase to 10 to see more polygons with thin borders
+            const maxPolygons = 100; // Increased to 100 to show all plantable areas
 
-            // TESTING: Only render first polygon for debugging triangulation
-            geoJsonData.features.slice(0, 1).forEach((feature, index) => {
+            // Render all plantable area polygons
+            geoJsonData.features.forEach((feature, index) => {
                 if (polygonsRendered >= maxPolygons) {
                     return; // Skip remaining polygons
                 }
@@ -357,7 +357,7 @@ class SuperSplatBridge {
 
                     // Debug: Log coordinate transformation and polygon complexity
                     if (polygonsRendered < 3) { // Only log first 3 for readability
-                        console.log(`🗺️ COORDINATE DEBUG for "${name}":`, {
+                        console.log(`🗺️ COORDINATE DEBUG for "${name}" (${isPlantable ? 'PLANTABLE' : 'NON-PLANTABLE'}):`, {
                             totalOriginalCoords: feature.geometry.coordinates[0].length,
                             totalTransformedVertices: vertices.length,
                             firstOriginalCoords: feature.geometry.coordinates[0].slice(0, 3), // First 3 points for reference
@@ -525,29 +525,20 @@ class SuperSplatBridge {
      */
     getPolygonStyle(isPlantable, polygonIndex = -1) {
         if (isPlantable) {
-            // Special case: First polygon gets blue fill for testing
-            if (polygonIndex === 0) {
-                return {
-                    fillColor: { x: 0.0, y: 0.5, z: 1.0 },    // blue fill
-                    fillAlpha: 0.4,                             // semi-transparent blue
-                    outlineColor: { x: 0.0, y: 0.0, z: 0.0 },  // black border
-                    outlineThickness: 0.015                     // 50% thinner border
-                };
-            }
-            // Other plantable areas: Hollow, black border (thinner)
+            // All plantable areas: Hollow, black border
             return {
                 fillColor: { x: 0.0, y: 0.0, z: 0.0 },    // black (not visible due to alpha 0)
                 fillAlpha: 0.0,                             // hollow
                 outlineColor: { x: 0.0, y: 0.0, z: 0.0 },  // black border
-                outlineThickness: 0.015                     // 50% thinner border
+                outlineThickness: 0.04                      // doubled thickness for better visibility
             };
         } else {
-            // Non-plantable areas: Hollow, red border (thinner)
+            // Non-plantable areas: Hollow, red border
             return {
                 fillColor: { x: 1.0, y: 0.0, z: 0.0 },    // red (not visible due to alpha 0)
                 fillAlpha: 0.0,                             // hollow
                 outlineColor: { x: 1.0, y: 0.0, z: 0.0 },  // red border
-                outlineThickness: 0.015                     // 50% thinner border
+                outlineThickness: 0.04                      // doubled thickness for better visibility
             };
         }
     }
