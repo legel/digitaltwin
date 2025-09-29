@@ -53,6 +53,7 @@ class Polygon {
     name?: string;
     visible: boolean;
     triangles: TriangleData[] = [];
+    private exteriorEdges?: Set<string>;
 
     constructor(data: PolygonData) {
         this.vertices = data.vertices.map(v => v.clone());
@@ -73,6 +74,8 @@ class Polygon {
      */
     private triangulate() {
         this.triangles = [];
+        this.exteriorEdges = undefined; // Reset exterior edge set for re-triangulation
+        this.polygonWindingClockwise = undefined; // Reset winding determination
 
         if (this.vertices.length < 3) {
             console.warn(`⚠️ Polygon "${this.name}" has less than 3 vertices - cannot triangulate`);
@@ -97,7 +100,38 @@ class Polygon {
             return;
         }
 
-        // Fan triangulation from first vertex with edge classification
+        // Choose triangulation method based on polygon complexity
+        if (this.vertices.length <= 6) {
+            // Simple polygon: use fast fan triangulation
+            console.log(`🔺 Using fan triangulation for simple ${this.vertices.length}-vertex polygon "${this.name}"`);
+            this.triangulateWithFan();
+        } else {
+            // Complex polygon: use ear clipping for accurate triangulation
+            console.log(`🔺 Using ear clipping for complex ${this.vertices.length}-vertex polygon "${this.name}"`);
+            this.triangulateWithEarClipping();
+        }
+
+        // Debug: Log triangulation results
+        console.log(`✅ Triangulated "${this.name}":`, {
+            vertices: this.vertices.length,
+            triangles: this.triangles.length
+        });
+
+        // Debug: Log first few triangles to verify coordinates
+        if (this.triangles.length > 0) {
+            console.log(`🔺 TRIANGLE COORDINATES DEBUG for "${this.name}" (first 5 triangles):`);
+            for (let i = 0; i < Math.min(5, this.triangles.length); i++) {
+                const tri = this.triangles[i];
+                console.log(`  Triangle ${i}: [${tri.v0.x.toFixed(3)}, ${tri.v0.z.toFixed(3)}] → [${tri.v1.x.toFixed(3)}, ${tri.v1.z.toFixed(3)}] → [${tri.v2.x.toFixed(3)}, ${tri.v2.z.toFixed(3)}]`);
+            }
+        }
+
+    }
+
+    /**
+     * Fan triangulation (original method) - fast but only works for convex polygons
+     */
+    private triangulateWithFan() {
         const firstVertex = this.vertices[0];
         const numVertices = this.vertices.length;
 
@@ -115,15 +149,13 @@ class Polygon {
             edge12Visible = true;
 
             // Edge v0 → v1: Only visible if v1 is the first polygon vertex after v0
-            // (i.e., this is the first triangle in fan)
             if (i === 1) {
-                edge01Visible = true; // First perimeter edge from center
+                edge01Visible = true;
             }
 
             // Edge v2 → v0: Only visible if v2 is the last polygon vertex before v0
-            // (i.e., this is the last triangle in fan)
             if (i === numVertices - 2) {
-                edge20Visible = true; // Last perimeter edge back to center
+                edge20Visible = true;
             }
 
             this.triangles.push({
@@ -134,24 +166,303 @@ class Polygon {
                 fillAlpha: this.fillAlpha,
                 outlineColor: this.outlineColor.clone(),
                 outlineThickness: this.outlineThickness,
-                name: `${this.name}_tri_${i - 1}`,
+                name: `${this.name}_fan_${i-1}`,
                 edge01Visible,
                 edge12Visible,
                 edge20Visible
             });
         }
+    }
 
-        // Polygon triangulated successfully
+    /**
+     * Ear clipping triangulation - handles complex and concave polygons correctly
+     */
+    private triangulateWithEarClipping() {
+        // Create working copy of vertices with indices
+        const workingVertices = this.vertices.map((v, i) => ({
+            vertex: v.clone(),
+            originalIndex: i
+        }));
 
-        // Debug: Log edge visibility for complex polygons
-        if (this.vertices.length > 4) {
-            console.log(`🔍 Edge visibility for "${this.name}":`);
-            this.triangles.forEach((tri, idx) => {
-                const edges = [tri.edge01Visible ? 'v0→v1' : '', tri.edge12Visible ? 'v1→v2' : '', tri.edge20Visible ? 'v2→v0' : ''].filter(e => e);
-                console.log(`  Triangle ${idx}: visible edges = [${edges.join(', ')}]`);
-            });
+        let triangleIndex = 0;
+        let maxIterations = workingVertices.length * 3; // Prevent infinite loops
+        let iterationCount = 0;
+
+        console.log(`🔍 Starting ear clipping for "${this.name}": ${workingVertices.length} vertices`);
+
+        while (workingVertices.length > 3 && iterationCount < maxIterations) {
+            let earFound = false;
+            iterationCount++;
+
+            console.log(`🔍 Ear clipping iteration ${iterationCount}: ${workingVertices.length} vertices remaining`);
+
+            // Look for an ear (a convex vertex where the triangle contains no other vertices)
+            for (let i = 0; i < workingVertices.length; i++) {
+                const prevI = (i - 1 + workingVertices.length) % workingVertices.length;
+                const nextI = (i + 1) % workingVertices.length;
+
+                const prev = workingVertices[prevI];
+                const curr = workingVertices[i];
+                const next = workingVertices[nextI];
+
+                const isConvex = this.isConvex(prev.vertex, curr.vertex, next.vertex);
+                console.log(`🔍 Testing vertex ${i} (original ${curr.originalIndex}): convex=${isConvex}`);
+
+                if (this.isEar(prev, curr, next, workingVertices)) {
+                    console.log(`✅ Found ear at vertex ${i} (original ${curr.originalIndex})`);
+                    earFound = true;
+                    // Found an ear! Create triangle and remove the ear vertex
+                    const triangle = {
+                        v0: prev.vertex.clone(),
+                        v1: curr.vertex.clone(),
+                        v2: next.vertex.clone(),
+                        color: this.color.clone(),
+                        fillAlpha: this.fillAlpha,
+                        outlineColor: this.outlineColor.clone(),
+                        outlineThickness: this.outlineThickness,
+                        name: `${this.name}_ear_${triangleIndex}`,
+                        ...this.classifyEarEdges(prev.originalIndex, curr.originalIndex, next.originalIndex)
+                    };
+
+                    this.triangles.push(triangle);
+
+                    // Remove the ear vertex
+                    workingVertices.splice(i, 1);
+                    triangleIndex++;
+                    earFound = true;
+                    break;
+                }
+            }
+
+            if (!earFound) {
+                console.warn(`⚠️ EAR CLIPPING STUCK for polygon "${this.name}" after ${iterationCount} iterations`);
+                console.warn(`⚠️ Falling back to fan triangulation for remaining ${workingVertices.length} vertices`);
+
+                // Fallback to fan triangulation for remaining vertices
+                this.triangulateRemainingWithFan(workingVertices, this.triangles.length);
+                break;
+            }
+        }
+
+        // Add final triangle
+        if (workingVertices.length === 3) {
+            const triangle = {
+                v0: workingVertices[0].vertex.clone(),
+                v1: workingVertices[1].vertex.clone(),
+                v2: workingVertices[2].vertex.clone(),
+                color: this.color.clone(),
+                fillAlpha: this.fillAlpha,
+                outlineColor: this.outlineColor.clone(),
+                outlineThickness: this.outlineThickness,
+                name: `${this.name}_ear_final`,
+                ...this.classifyEarEdges(workingVertices[0].originalIndex, workingVertices[1].originalIndex, workingVertices[2].originalIndex)
+            };
+
+            this.triangles.push(triangle);
         }
     }
+
+    /**
+     * Fallback fan triangulation for remaining vertices if ear clipping gets stuck
+     */
+    private triangulateRemainingWithFan(workingVertices: any[], startIndex: number) {
+        if (workingVertices.length < 3) return;
+
+        const firstVertex = workingVertices[0];
+        for (let i = 1; i < workingVertices.length - 1; i++) {
+            const triangle = {
+                v0: firstVertex.vertex.clone(),
+                v1: workingVertices[i].vertex.clone(),
+                v2: workingVertices[i + 1].vertex.clone(),
+                color: this.color.clone(),
+                fillAlpha: this.fillAlpha,
+                outlineColor: this.outlineColor.clone(),
+                outlineThickness: this.outlineThickness,
+                name: `${this.name}_fallback_${startIndex + i - 1}`,
+                ...this.classifyEarEdges(firstVertex.originalIndex, workingVertices[i].originalIndex, workingVertices[i + 1].originalIndex)
+            };
+
+            this.triangles.push(triangle);
+        }
+    }
+
+    /**
+     * Check if a vertex forms a valid ear
+     */
+    private isEar(prev: any, curr: any, next: any, allVertices: any[]): boolean {
+        // Check if the angle at curr is convex
+        if (!this.isConvex(prev.vertex, curr.vertex, next.vertex)) {
+            return false;
+        }
+
+        // Check triangle area - skip degenerate triangles
+        const area = Math.abs(
+            (prev.vertex.x * (curr.vertex.z - next.vertex.z) +
+             curr.vertex.x * (next.vertex.z - prev.vertex.z) +
+             next.vertex.x * (prev.vertex.z - curr.vertex.z)) / 2
+        );
+
+        if (area < 1e-10) {
+            return false; // Skip degenerate triangle
+        }
+
+        // Check if any other vertex lies inside the triangle
+        // Use a slightly more tolerant check for complex polygons
+        let pointsInside = 0;
+        for (const other of allVertices) {
+            if (other === prev || other === curr || other === next) {
+                continue;
+            }
+
+            if (this.pointInTriangle(other.vertex, prev.vertex, curr.vertex, next.vertex)) {
+                pointsInside++;
+            }
+        }
+
+        // Allow ears with fewer interior points for complex polygons
+        return pointsInside === 0;
+    }
+
+    /**
+     * Check if vertex B forms a convex angle in triangle ABC
+     * Works with both clockwise and counter-clockwise winding
+     */
+    private isConvex(a: Vec3, b: Vec3, c: Vec3): boolean {
+        // Calculate cross product in 2D (using x,z coordinates)
+        const cross = (c.x - b.x) * (a.z - b.z) - (c.z - b.z) * (a.x - b.x);
+
+        // Determine polygon winding by checking the first few vertices
+        // If we haven't determined winding yet, do it now
+        if (this.polygonWindingClockwise === undefined) {
+            console.log(`🔍 Determining winding for polygon "${this.name}"`);
+            this.determinePolygonWinding();
+        }
+
+        // For clockwise polygons: cross < 0 means convex
+        // For counter-clockwise polygons: cross > 0 means convex
+        const isConvex = this.polygonWindingClockwise ? cross < 0 : cross > 0;
+
+        console.log(`🔍 isConvex check: cross=${cross.toFixed(6)}, winding=${this.polygonWindingClockwise ? 'CW' : 'CCW'}, result=${isConvex}`);
+        return isConvex;
+    }
+
+    private polygonWindingClockwise?: boolean;
+
+    /**
+     * Determine if the polygon has clockwise or counter-clockwise winding
+     */
+    private determinePolygonWinding(): void {
+        if (this.vertices.length < 3) {
+            this.polygonWindingClockwise = true; // Default
+            return;
+        }
+
+        // Calculate signed area using shoelace formula
+        let signedArea = 0;
+        const n = this.vertices.length;
+
+        for (let i = 0; i < n; i++) {
+            const curr = this.vertices[i];
+            const next = this.vertices[(i + 1) % n];
+            signedArea += (next.x - curr.x) * (next.z + curr.z);
+        }
+
+        this.polygonWindingClockwise = signedArea > 0;
+        console.log(`🔍 Polygon "${this.name}" winding: ${this.polygonWindingClockwise ? 'CLOCKWISE' : 'COUNTER-CLOCKWISE'} (signed area: ${signedArea.toFixed(6)})`);
+    }
+
+    /**
+     * Check if point P is inside triangle ABC
+     */
+    private pointInTriangle(p: Vec3, a: Vec3, b: Vec3, c: Vec3): boolean {
+        // Use barycentric coordinates
+        const v0x = c.x - a.x;
+        const v0z = c.z - a.z;
+        const v1x = b.x - a.x;
+        const v1z = b.z - a.z;
+        const v2x = p.x - a.x;
+        const v2z = p.z - a.z;
+
+        const dot00 = v0x * v0x + v0z * v0z;
+        const dot01 = v0x * v1x + v0z * v1z;
+        const dot02 = v0x * v2x + v0z * v2z;
+        const dot11 = v1x * v1x + v1z * v1z;
+        const dot12 = v1x * v2x + v1z * v2z;
+
+        const denom = dot00 * dot11 - dot01 * dot01;
+        if (Math.abs(denom) < 1e-10) return false; // Degenerate triangle
+
+        const invDenom = 1 / denom;
+        const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+        const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+        return (u >= 0) && (v >= 0) && (u + v < 1);
+    }
+
+    /**
+     * Build set of exterior edges using simple adjacent-vertex matching
+     * Only edges between consecutive vertices in the original polygon should be visible
+     */
+    private buildExteriorEdgeSet(): Set<string> {
+        const exteriorEdges = new Set<string>();
+        const vertexCount = this.vertices.length;
+
+        console.log(`🗺️ Building exterior edges for "${this.name}" with ${vertexCount} vertices`);
+
+        // Add edges between consecutive vertices (including wrap-around)
+        for (let i = 0; i < vertexCount; i++) {
+            const nextIndex = (i + 1) % vertexCount;
+            const edgeKey = this.createEdgeKey(i, nextIndex);
+            exteriorEdges.add(edgeKey);
+        }
+
+        console.log(`🔍 Created ${exteriorEdges.size} exterior edges:`, Array.from(exteriorEdges).sort());
+        return exteriorEdges;
+    }
+
+    /**
+     * Create normalized edge key for consistent lookup
+     */
+    private createEdgeKey(idx1: number, idx2: number): string {
+        // Always put smaller index first for consistent keys
+        const [a, b] = idx1 < idx2 ? [idx1, idx2] : [idx2, idx1];
+        return `${a}-${b}`;
+    }
+
+    /**
+     * Simple edge visibility: only edges between adjacent polygon vertices are visible
+     */
+    private classifyEarEdges(idx0: number, idx1: number, idx2: number): any {
+        if (!this.exteriorEdges) {
+            this.exteriorEdges = this.buildExteriorEdgeSet();
+        }
+
+        // Check if each triangle edge matches an exterior (adjacent-vertex) edge
+        const edge01Key = this.createEdgeKey(idx0, idx1);
+        const edge12Key = this.createEdgeKey(idx1, idx2);
+        const edge20Key = this.createEdgeKey(idx2, idx0);
+
+        const edge01Visible = this.exteriorEdges.has(edge01Key);
+        const edge12Visible = this.exteriorEdges.has(edge12Key);
+        const edge20Visible = this.exteriorEdges.has(edge20Key);
+
+        // Log first few triangles to verify logic
+        if (this.triangles.length < 3) {
+            console.log(`🔺 Triangle ${this.triangles.length} (${idx0}-${idx1}-${idx2}):`, {
+                edge01: `${edge01Key} → ${edge01Visible}`,
+                edge12: `${edge12Key} → ${edge12Visible}`,
+                edge20: `${edge20Key} → ${edge20Visible}`,
+                visibleCount: (edge01Visible ? 1 : 0) + (edge12Visible ? 1 : 0) + (edge20Visible ? 1 : 0)
+            });
+        }
+
+        return {
+            edge01Visible,
+            edge12Visible,
+            edge20Visible
+        };
+    }
+
 
     /**
      * Update polygon properties and re-triangulate
@@ -213,7 +524,6 @@ class TriangleOverlay extends Element {
         this.scene.camera.entity.camera.on('preRenderLayer', (layer: Layer, transparent: boolean) => {
             // Combine triangles from direct triangles and polygons
             const allTriangles = this.getAllTriangles();
-            console.log(`🐛 RENDER DEBUG: Direct triangles: ${this.triangles.length}, Polygon triangles: ${allTriangles.length - this.triangles.length}, Total: ${allTriangles.length}`);
 
             const shouldRender = this.visible && layer === this.scene.debugLayer && !transparent &&
                 this.scene.camera.renderOverlays && allTriangles.length > 0;
@@ -228,8 +538,9 @@ class TriangleOverlay extends Element {
                 const TRIANGLES_PER_BATCH = 8; // Conservative start: 8 triangles * 4 vec4 = 32 uniforms
                 const VEC4_PER_BATCH = TRIANGLES_PER_BATCH * 4; // 32 vec4 uniforms per batch
 
-                if (allTriangles.length > TRIANGLES_PER_BATCH) {
-                    console.log(`ℹ️ BATCHED RENDERING: ${allTriangles.length} triangles will be rendered in ${Math.ceil(allTriangles.length / TRIANGLES_PER_BATCH)} batches of ${TRIANGLES_PER_BATCH}`);
+                // Only log batching info once per render cycle, not every frame
+                if (allTriangles.length > TRIANGLES_PER_BATCH && Math.random() < 0.01) {
+                    console.log(`ℹ️ BATCHED RENDERING: ${allTriangles.length} triangles in ${Math.ceil(allTriangles.length / TRIANGLES_PER_BATCH)} batches`);
                 }
 
                 // Render triangles in batches
@@ -241,8 +552,9 @@ class TriangleOverlay extends Element {
                     const currentBatchSize = Math.min(remainingTriangles, TRIANGLES_PER_BATCH);
                     batchCount++;
 
-                    if (batchCount > 1) {
-                        // Rendering triangle batch
+                    // Debug batching for complex polygons
+                    if (allTriangles.length > TRIANGLES_PER_BATCH) {
+                        console.log(`🔺 BATCH ${batchCount}: Rendering triangles ${triangleIndex} to ${triangleIndex + currentBatchSize - 1} (${currentBatchSize} triangles)`);
                     }
 
                     // Initialize all vec4 uniforms with zeros for this batch
@@ -277,9 +589,10 @@ class TriangleOverlay extends Element {
                     // Fourth vec4: outlineColor.b, fillAlpha, edgeVisibility packed, unused
                     // Pack edge visibility flags into single float:
                     // bits 0-2: edge01Visible, edge12Visible, edge20Visible
-                    const edgeFlags = (triangle.edge01Visible !== false ? 1.0 : 0.0) +
-                                     (triangle.edge12Visible !== false ? 2.0 : 0.0) +
-                                     (triangle.edge20Visible !== false ? 4.0 : 0.0);
+                    // FIXED: Use explicit boolean comparison to avoid undefined issues
+                    const edgeFlags = (triangle.edge01Visible === true ? 1.0 : 0.0) +
+                                     (triangle.edge12Visible === true ? 2.0 : 0.0) +
+                                     (triangle.edge20Visible === true ? 4.0 : 0.0);
 
                     vec4Data[dataIndex + 3] = [
                         triangle.outlineColor.z, triangle.fillAlpha,
@@ -287,12 +600,7 @@ class TriangleOverlay extends Element {
                     ];
                 }
 
-                    if (batchCount === 1) {
-                        console.log(`🐛 DEBUG: Vec4 packed triangle data for batch ${batchCount} (${currentBatchSize} triangles):`);
-                        for (let i = 0; i < Math.min(4, vec4Data.length); i++) {
-                            console.log(`  triangleData${i}: [${vec4Data[i].map(v => v.toFixed(3)).join(', ')}]`);
-                        }
-                    }
+                    // Debug removed due to scope issue - key fix is boolean comparison change above
 
                     // Set shared uniforms
                     device.scope.resolve('triangleYPlane').setValue(this.yPlane);
@@ -309,7 +617,10 @@ class TriangleOverlay extends Element {
                     triangleIndex += currentBatchSize;
                 }
 
-                console.log(`🔺 Rendered ${allTriangles.length} triangles in ${batchCount} batch(es) at Y-plane ${this.yPlane}`);
+                // Only log render completion occasionally to reduce spam
+                if (Math.random() < 0.005) {
+                    console.log(`🔺 Rendered ${allTriangles.length} triangles in ${batchCount} batch(es) at Y-plane ${this.yPlane}`);
+                }
             }
         });
 

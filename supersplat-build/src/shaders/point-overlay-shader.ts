@@ -197,10 +197,11 @@ const fragmentShader = /* glsl*/ `
         vec3 worldPos = p + v * t;
         vec2 currentPos = worldPos.xz;
 
-        // Loop through all triangles using vec4 packed data
+        // Loop through all triangles and accumulate edge information
         vec3 finalColor = vec3(0.0, 0.0, 0.0);
         float alpha = 0.0;
         bool foundTriangle = false;
+        bool isOnVisibleEdge = false;
 
         for (int i = 0; i < 8; i++) { // Max 8 triangles with 4 vec4 per triangle
             if (i >= triangleCount) break; // Only process active triangles
@@ -230,22 +231,28 @@ const fragmentShader = /* glsl*/ `
             if (insideTriangle) {
                 foundTriangle = true;
 
-                // Distance-based fading
-                float distFromCamera = length(worldPos - view_position);
-                float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
+                // Store fill color and alpha (will be overridden if we find visible edge)
+                if (!isOnVisibleEdge) {
+                    finalColor = triangleColor;
 
-                // View-dependent opacity
-                vec3 viewDir = normalize(worldPos - view_position);
-                float viewAngleFactor = abs(viewDir.y);
-                float viewOpacity = viewDir.y < 0.0 ?
-                    mix(0.4, 1.0, viewAngleFactor) :
-                    mix(0.8, 0.1, viewAngleFactor);
+                    // Distance-based fading
+                    float distFromCamera = length(worldPos - view_position);
+                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
 
-                // Border effect calculation with per-edge visibility
-                float triangleSize = 3.0;
-                float distToEdge0 = abs(d0) / triangleSize; // Distance to edge v0→v1
-                float distToEdge1 = abs(d1) / triangleSize; // Distance to edge v1→v2
-                float distToEdge2 = abs(d2) / triangleSize; // Distance to edge v2→v0
+                    // View-dependent opacity
+                    vec3 viewDir = normalize(worldPos - view_position);
+                    float viewAngleFactor = abs(viewDir.y);
+                    float viewOpacity = viewDir.y < 0.0 ?
+                        mix(0.4, 1.0, viewAngleFactor) :
+                        mix(0.8, 0.1, viewAngleFactor);
+
+                    alpha = fade * viewOpacity * triangleFillAlpha;
+                }
+
+                // Calculate proper distance to each edge using point-to-line distance
+                float distToEdge0 = abs(d0) / length(e0); // Distance to edge v0→v1
+                float distToEdge1 = abs(d1) / length(e1); // Distance to edge v1→v2
+                float distToEdge2 = abs(d2) / length(e2); // Distance to edge v2→v0
 
                 // Extract edge visibility flags from packed float
                 bool edge01Visible = mod(floor(edgeFlags), 2.0) >= 1.0;        // bit 0
@@ -253,20 +260,45 @@ const fragmentShader = /* glsl*/ `
                 bool edge20Visible = mod(floor(edgeFlags / 4.0), 2.0) >= 1.0;  // bit 2
 
                 // Check if pixel is near any visible edge
-                bool nearVisibleEdge = false;
-                if (edge01Visible && distToEdge0 < outlineThickness) nearVisibleEdge = true;
-                if (edge12Visible && distToEdge1 < outlineThickness) nearVisibleEdge = true;
-                if (edge20Visible && distToEdge2 < outlineThickness) nearVisibleEdge = true;
+                if (edge01Visible && distToEdge0 < outlineThickness) {
+                    isOnVisibleEdge = true;
+                    finalColor = triangleOutlineColor;
 
-                bool isBorder = nearVisibleEdge;
+                    float distFromCamera = length(worldPos - view_position);
+                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
+                    vec3 viewDir = normalize(worldPos - view_position);
+                    float viewAngleFactor = abs(viewDir.y);
+                    float viewOpacity = viewDir.y < 0.0 ?
+                        mix(0.4, 1.0, viewAngleFactor) :
+                        mix(0.8, 0.1, viewAngleFactor);
+                    alpha = fade * viewOpacity * 1.0;
+                }
+                if (edge12Visible && distToEdge1 < outlineThickness) {
+                    isOnVisibleEdge = true;
+                    finalColor = triangleOutlineColor;
 
-                // Use triangle color from vec4 data, custom outline color
-                finalColor = isBorder ? triangleOutlineColor : triangleColor;
+                    float distFromCamera = length(worldPos - view_position);
+                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
+                    vec3 viewDir = normalize(worldPos - view_position);
+                    float viewAngleFactor = abs(viewDir.y);
+                    float viewOpacity = viewDir.y < 0.0 ?
+                        mix(0.4, 1.0, viewAngleFactor) :
+                        mix(0.8, 0.1, viewAngleFactor);
+                    alpha = fade * viewOpacity * 1.0;
+                }
+                if (edge20Visible && distToEdge2 < outlineThickness) {
+                    isOnVisibleEdge = true;
+                    finalColor = triangleOutlineColor;
 
-                // Apply fillAlpha only to fill areas (not borders)
-                float triangleAlpha = isBorder ? 1.0 : triangleFillAlpha;
-                alpha = fade * viewOpacity * triangleAlpha;
-                break; // Stop at first triangle found (no overlaps expected)
+                    float distFromCamera = length(worldPos - view_position);
+                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
+                    vec3 viewDir = normalize(worldPos - view_position);
+                    float viewAngleFactor = abs(viewDir.y);
+                    float viewOpacity = viewDir.y < 0.0 ?
+                        mix(0.4, 1.0, viewAngleFactor) :
+                        mix(0.8, 0.1, viewAngleFactor);
+                    alpha = fade * viewOpacity * 1.0;
+                }
             }
         }
 

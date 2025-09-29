@@ -336,7 +336,8 @@ class SuperSplatBridge {
             let polygonsRendered = 0;
             const maxPolygons = 10; // Increase to 10 to see more polygons with thin borders
 
-            geoJsonData.features.forEach((feature, index) => {
+            // TESTING: Only render first polygon for debugging triangulation
+            geoJsonData.features.slice(0, 1).forEach((feature, index) => {
                 if (polygonsRendered >= maxPolygons) {
                     return; // Skip remaining polygons
                 }
@@ -357,8 +358,11 @@ class SuperSplatBridge {
                     // Debug: Log coordinate transformation and polygon complexity
                     if (polygonsRendered < 3) { // Only log first 3 for readability
                         console.log(`🗺️ COORDINATE DEBUG for "${name}":`, {
-                            originalCoords: feature.geometry.coordinates[0].slice(0, 3), // First 3 points
-                            transformedVertices: vertices.slice(0, 3),
+                            totalOriginalCoords: feature.geometry.coordinates[0].length,
+                            totalTransformedVertices: vertices.length,
+                            firstOriginalCoords: feature.geometry.coordinates[0].slice(0, 3), // First 3 points for reference
+                            firstTransformedVertices: vertices.slice(0, 3), // First 3 points for reference
+                            lastTransformedVertices: vertices.slice(-3), // Last 3 points for verification
                             splatBounds: { width: splatBounds.width, height: splatBounds.height },
                             geoBounds: {
                                 west: geoBounds.west.toFixed(8),
@@ -368,13 +372,28 @@ class SuperSplatBridge {
                             }
                         });
 
+                        // Calculate bounds of transformed vertices for debugging
+                        const bounds = {
+                            minX: Math.min(...vertices.map(v => v.x)),
+                            maxX: Math.max(...vertices.map(v => v.x)),
+                            minZ: Math.min(...vertices.map(v => v.z)),
+                            maxZ: Math.max(...vertices.map(v => v.z))
+                        };
+
                         console.log(`🔺 TRIANGULATION ANALYSIS for "${name}":`, {
                             vertexCount: vertices.length,
-                            expectedTriangles: vertices.length - 2, // Fan triangulation creates n-2 triangles
-                            triangulationMethod: 'Fan (from first vertex)',
-                            suitableFor: 'Convex polygons',
+                            expectedTriangles: vertices.length - 2, // Ear clipping creates n-2 triangles
+                            triangulationMethod: 'Ear clipping (for complex polygons)',
+                            bounds: {
+                                minX: bounds.minX.toFixed(3),
+                                maxX: bounds.maxX.toFixed(3),
+                                minZ: bounds.minZ.toFixed(3),
+                                maxZ: bounds.maxZ.toFixed(3),
+                                width: (bounds.maxX - bounds.minX).toFixed(3),
+                                height: (bounds.maxZ - bounds.minZ).toFixed(3)
+                            },
                             potentialIssues: vertices.length > 10 ?
-                                'Complex polygon - fan triangulation may create artifacts for concave areas' :
+                                'Complex polygon - using ear clipping for accurate triangulation' :
                                 'Simple polygon - should triangulate well'
                         });
                     }
@@ -1048,6 +1067,7 @@ class SuperSplatBridge {
             return false;
         }
     }
+
 }
 
 // Initialize the bridge when in Lab mode or when SuperSplat is available

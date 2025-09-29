@@ -319,10 +319,48 @@ class CoordinateTransform {
 
         // Transform exterior ring (first coordinate array)
         const coordinates = feature.geometry.coordinates[0];
-        return coordinates.map(coord => {
-            const [lon, lat, elevation] = coord;
-            return this.geoToSuperSplat(lon, lat, elevation);
+        const featureName = feature.properties?.name || feature.id || 'unnamed';
+
+        console.log(`🗺️ COORDINATE CONVERSION: ${featureName} - Converting ${coordinates.length} vertices`);
+        console.log(`📍 Original GeoJSON coordinates (first 5 and last 5):`, {
+            first5: coordinates.slice(0, 5).map((coord, i) => ({
+                index: i,
+                lon: coord[0].toFixed(8),
+                lat: coord[1].toFixed(8),
+                elev: coord[2]?.toFixed(3) || 'n/a'
+            })),
+            last5: coordinates.slice(-5).map((coord, i) => ({
+                index: coordinates.length - 5 + i,
+                lon: coord[0].toFixed(8),
+                lat: coord[1].toFixed(8),
+                elev: coord[2]?.toFixed(3) || 'n/a'
+            }))
         });
+
+        const superSplatVertices = coordinates.map((coord, index) => {
+            const [lon, lat, elevation] = coord;
+            const superSplatCoord = this.geoToSuperSplat(lon, lat, elevation);
+
+            // Log every 5th coordinate and first/last few for debugging
+            if (index < 5 || index >= coordinates.length - 5 || index % 5 === 0) {
+                console.log(`  ${index}: (${lon.toFixed(8)}, ${lat.toFixed(8)}) → (${superSplatCoord.x.toFixed(3)}, ${superSplatCoord.z.toFixed(3)})`);
+            }
+
+            return superSplatCoord;
+        });
+
+        console.log(`🎯 SUPERSPLAT COORDINATES: ${featureName} - Converted to SuperSplat space`);
+        console.log(`📊 SuperSplat bounds analysis:`, {
+            vertices: superSplatVertices.length,
+            minX: Math.min(...superSplatVertices.map(v => v.x)).toFixed(3),
+            maxX: Math.max(...superSplatVertices.map(v => v.x)).toFixed(3),
+            minZ: Math.min(...superSplatVertices.map(v => v.z)).toFixed(3),
+            maxZ: Math.max(...superSplatVertices.map(v => v.z)).toFixed(3),
+            width: (Math.max(...superSplatVertices.map(v => v.x)) - Math.min(...superSplatVertices.map(v => v.x))).toFixed(3),
+            height: (Math.max(...superSplatVertices.map(v => v.z)) - Math.min(...superSplatVertices.map(v => v.z))).toFixed(3)
+        });
+
+        return superSplatVertices;
     }
 }
 
