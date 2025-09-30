@@ -24,8 +24,8 @@ class CoordinateTransform {
 
             console.log('🗺️ Site bounds loaded:', {
                 site: this.siteBounds.site,
-                center: this.siteBounds.site_bounds.center,
-                dimensions: this.siteBounds.site_bounds.dimensions
+                center: this.siteBounds.center,
+                scale_correction_factor: this.siteBounds.scale_correction_factor
             });
 
             return this.siteBounds;
@@ -60,7 +60,7 @@ class CoordinateTransform {
             throw new Error('Site bounds not loaded. Call ensureLoaded() first.');
         }
 
-        const center = this.siteBounds.site_bounds.center;
+        const center = this.siteBounds.center;
 
         // Calculate deltas from site center in geographic coordinates
         const deltaLon = longitude - center.longitude;
@@ -75,10 +75,13 @@ class CoordinateTransform {
             const scaleX = splatBounds.width / geoWidth;
             const scaleZ = splatBounds.height / geoHeight;
 
+            // Apply scale correction factor from site bounds
+            const scaleCorrectionFactor = this.siteBounds.scale_correction_factor || 1.0;
+
             // Transform to SuperSplat coordinates
-            const superSplatX = deltaLon * scaleX;
+            const superSplatX = deltaLon * scaleX * scaleCorrectionFactor;
             const superSplatY = 0; // Fixed Y-plane handled by SuperSplat triangle overlay
-            const superSplatZ = deltaLat * scaleZ;
+            const superSplatZ = -deltaLat * scaleZ * scaleCorrectionFactor; // Negate Z to fix north-south orientation
 
             return {
                 x: superSplatX,
@@ -87,17 +90,20 @@ class CoordinateTransform {
             };
         } else {
             // Fallback to original static scaling method
-            const scaleFactor = this.siteBounds.supersplat_coordinate_system.scale_factor;
+            const scaleFactor = 100.0; // Default scale factor
 
             // Convert degrees to meters using standard conversion
             const centerLatRad = center.latitude * Math.PI / 180;
             const lonToMeters = deltaLon * 111320 * Math.cos(centerLatRad);
             const latToMeters = deltaLat * 111320;
 
+            // Apply scale correction factor from site bounds
+            const scaleCorrectionFactor = this.siteBounds.scale_correction_factor || 1.0;
+
             // Apply scale factor to fit SuperSplat coordinate system
-            const superSplatX = lonToMeters * (scaleFactor / 111320); // East-West
+            const superSplatX = lonToMeters * (scaleFactor / 111320) * scaleCorrectionFactor; // East-West
             const superSplatY = 0; // Fixed Y-plane handled by SuperSplat triangle overlay
-            const superSplatZ = latToMeters * (scaleFactor / 111320); // North-South
+            const superSplatZ = -latToMeters * (scaleFactor / 111320) * scaleCorrectionFactor; // North-South (negated for SuperSplat orientation)
 
             return {
                 x: superSplatX,
@@ -294,9 +300,10 @@ class CoordinateTransform {
 
         // Log splat reference information
         console.log('🗺️ Coordinate Reference Summary:', {
-            geographic_center: this.siteBounds.site_bounds.center,
+            geographic_center: this.siteBounds.center,
             supersplat_origin: { x: 0, y: 0, z: 0 },
-            scaling_method: splatBounds ? 'Dynamic (based on actual splat)' : 'Static (from site-bounds.json)'
+            scaling_method: splatBounds ? 'Dynamic (based on actual splat)' : 'Static (from site-bounds.json)',
+            scale_correction_factor: this.siteBounds.scale_correction_factor || 1.0
         });
 
         return rectangleVertices;

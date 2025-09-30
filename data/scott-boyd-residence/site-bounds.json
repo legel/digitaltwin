@@ -1,61 +1,8 @@
 {
   "site": "scott-boyd-residence",
-  "description": "Scott Boyd Residence - Site boundary and coordinate reference data for SuperSplat polygon rendering",
-  "coordinate_system": "WGS84 Geographic (EPSG:4326)",
-  "generated": "2025-09-28T00:00:00.000Z",
-  "splat_reference": {
-    "description": "Derived from tileset.json transform matrix and GeoJSON feature analysis",
-    "ecef_position": {
-      "x": 813755.6725495858,
-      "y": -5548996.977508134,
-      "z": 3027433.1781400163,
-      "note": "Original ECEF coordinates from tileset.json - not used for coordinate transformation"
-    },
-    "geographic_center": {
-      "longitude": -81.657,
-      "latitude": 28.5217,
-      "elevation_meters": 7.0,
-      "note": "Approximate center derived from GeoJSON feature distribution"
-    }
+  "center": {
+    "longitude": -81.6570725,
+    "latitude": 28.5217321
   },
-  "site_bounds": {
-    "description": "Geographic bounds encompassing all GeoJSON features with buffer",
-    "west": -81.65778,
-    "east": -81.65629,
-    "south": 28.5206,
-    "north": 28.5228,
-    "center": {
-      "longitude": -81.657035,
-      "latitude": 28.5217,
-      "note": "Center point for coordinate transformation origin"
-    },
-    "dimensions": {
-      "width_degrees": 0.00149,
-      "height_degrees": 0.0022,
-      "approximate_width_meters": 165.4,
-      "approximate_height_meters": 244.6,
-      "note": "Approximate dimensions calculated using 111,320 meters per degree"
-    }
-  },
-  "supersplat_coordinate_system": {
-    "description": "Local coordinate system for SuperSplat rendering",
-    "origin": "Site center (longitude: -81.657035, latitude: 28.5217)",
-    "units": "meters",
-    "scale_factor": 100.0,
-    "coordinate_mapping": {
-      "x_axis": "East-West (longitude delta * scale_factor)",
-      "y_axis": "Elevation above splat surface",
-      "z_axis": "North-South (latitude delta * scale_factor)",
-      "note": "Polygons rendered at fixed Y-plane determined by SuperSplat triangle overlay system"
-    }
-  },
-  "validation": {
-    "geojson_feature_count": "~50+ polygons",
-    "coordinate_range_check": "All features within specified bounds",
-    "primary_features": [
-      "PA1 - Southeast Front Door Entrance",
-      "Multiple plantable and non-plantable areas",
-      "Site perimeter and reference points"
-    ]
-  }
+  "scale_correction_factor": 0.7
 }

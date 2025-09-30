@@ -633,7 +633,7 @@ The polygon system is now **production-ready** for GeoJSON file integration:
 
 **Key Features Implemented**:
 - ✅ **Coordinate Transformation System**: CoordinateTransform.js with geographic → SuperSplat mapping
-- ✅ **Site Bounds Configuration**: site-bounds.json coordinate reference system (Cesium-independent)
+- ✅ **Site Bounds Configuration**: site-bounds.json coordinate reference system (Cesium-independent) - **Updated to simplified format in September 30, 2025**
 - ✅ **Dynamic Scaling**: Uses actual splat bounds for accurate coordinate transformation
 - ✅ **PA/NPA Classification**: Automatic plantable vs non-plantable area detection
 - ✅ **Event System Integration**: Fixed invoke() vs fire() communication issue
@@ -667,6 +667,59 @@ The polygon system is now **production-ready** for GeoJSON file integration:
 **Objective**: Connect SuperSplat polygon system to existing terrain-3d UI controls
 **Dependencies**: Triangulation algorithm enhancement (current sprint)
 **Requirements**: Visibility toggles, PA/NPA filtering, focus panel integration
+
+---
+
+## ✅ Completed Sprint: Coordinate System Fixes (September 30, 2025)
+**Objective**: Fix coordinate transformation issues and establish simplified JSON format ✅ COMPLETED
+**Major Achievement**: **Simplified Site Configuration with Accurate Coordinate Alignment**
+
+### Key Issues Resolved:
+- ✅ **North-South Flip Fix**: Corrected Z-axis orientation by negating latitude deltas in SuperSplat coordinate system
+- ✅ **Scale Mismatch Fix**: Applied mathematical scale correction factor (0.7) based on visual polygon alignment analysis
+- ✅ **Center Offset Fix**: Corrected geographic center point using mathematical offset calculation from house polygon misalignment
+- ✅ **JSON Format Simplification**: Reduced complex nested structure to minimal required fields
+
+### Final Site Configuration Format
+
+The site-bounds.json format has been simplified to contain only essential information:
+
+```json
+{
+  "site": "scott-boyd-residence",
+  "center": {
+    "longitude": -81.6570725,
+    "latitude": 28.5217321
+  },
+  "scale_correction_factor": 0.7
+}
+```
+
+#### Field Descriptions:
+
+**site**: Site identifier string for reference
+
+**center**: Geographic center point for coordinate transformation
+- Acts as the origin point for lat/lon → SuperSplat coordinate conversion
+- **Counter-intuitive adjustment**: To move polygons east, decrease longitude; to move polygons south, increase latitude
+- This is due to delta calculation: `deltaLon = longitude - center.longitude`
+
+**scale_correction_factor**: Multiplier applied to coordinate transformation
+- Values < 1.0 scale polygons smaller (closer to center)
+- Values > 1.0 scale polygons larger (farther from center)
+- Applied uniformly to both X and Z axes
+- Based on mathematical analysis of visual polygon alignment with landscape features
+
+#### Coordinate System Assumptions:
+1. **Splat Centering**: SuperSplat splat is centered at origin (0,0,0)
+2. **Uniform Scaling**: Same scale factor applies to both horizontal axes
+3. **Cardinal Alignment**: North = -Z axis in SuperSplat coordinate system
+4. **Standard Geodetic Conversion**: Uses 111,320 meters per degree baseline conversion
+
+#### Integration Points:
+- **CoordinateTransform.js**: Reads center and scale_correction_factor
+- **Dynamic Scaling**: Uses actual splat bounds when available for precise scaling
+- **Fallback Scaling**: Uses scale_correction_factor with standard geodetic conversion (111,320 m/degree)
 
 ---
 
