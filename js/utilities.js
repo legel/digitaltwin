@@ -2177,8 +2177,17 @@ async function initializeSiteDataForLabMode() {
                 };
                 
                 console.log('✅ Site data and UI loaded for Lab mode');
-                
-                // Do NOT initialize layer controls in Lab mode - they should remain hidden
+
+                // Initialize layer controls for Lab mode (they were previously hidden but should be shown per SUPERSPLAT_REFACTOR.md)
+                console.log('🎯 Calling initializeLayerControls from initializeSiteDataForLabMode...');
+                if (window.initializeLayerControls) {
+                    // Small delay to ensure DOM is ready
+                    setTimeout(() => {
+                        window.initializeLayerControls();
+                    }, 100);
+                } else {
+                    console.warn('❌ initializeLayerControls function not available yet');
+                }
             }
         }
         

@@ -525,10 +525,13 @@ class SuperSplatManager {
      * Configures UI elements for Lab mode (shows layer controls, hides site selector)
      */
     hideUIForLabMode() {
+        console.log('🎨 hideUIForLabMode() called - configuring UI for Lab mode...');
+
         // Hide site selector dropdown
         const siteSelector = document.getElementById('siteSelector');
         if (siteSelector) {
             siteSelector.style.display = 'none';
+            console.log('✅ Site selector hidden for Lab mode');
         }
 
         // Show layer controls in Lab mode for Boyd format sites (previously hidden)
@@ -537,9 +540,53 @@ class SuperSplatManager {
             // Check if current site is Boyd format (which supports layer controls)
             const format = window.detectGeoJsonFormat ?
                 window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
+
+            console.log('🔍 Site data format detected:', format);
+            console.log('🔍 Site data features count:', window.currentSiteData.features?.length || 0);
+
             if (format === 'boyd') {
                 layerControls.style.display = 'block';
+                console.log('✅ Layer controls shown for Boyd format site in Lab mode');
+
+                // Initialize layer controls with current site data
+                if (window.initializeLayerControls) {
+                    console.log('🎯 Initializing layer controls for Lab mode...');
+                    window.initializeLayerControls();
+                } else {
+                    console.warn('❌ initializeLayerControls function not available');
+                }
+            } else {
+                console.log('⚠️ Non-Boyd format site - layer controls remain hidden');
             }
+        } else if (!window.currentSiteData) {
+            console.warn('⚠️ No currentSiteData available during hideUIForLabMode()');
+
+            // Auto-load site data for lab mode if not already loaded
+            if (window.autoLoadSiteDataForLabMode) {
+                console.log('🏠 Attempting to auto-load site data for Lab mode...');
+                window.autoLoadSiteDataForLabMode().then(success => {
+                    if (success) {
+                        console.log('✅ Site data auto-loaded, re-checking layer controls...');
+                        // Retry showing layer controls now that data is loaded
+                        const format = window.detectGeoJsonFormat ?
+                            window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
+
+                        if (format === 'boyd') {
+                            layerControls.style.display = 'block';
+                            console.log('✅ Layer controls shown after auto-load');
+
+                            if (window.initializeLayerControls) {
+                                console.log('🎯 Initializing layer controls after auto-load...');
+                                window.initializeLayerControls();
+                            }
+                        }
+                    } else {
+                        console.error('❌ Failed to auto-load site data for Lab mode');
+                    }
+                });
+            }
+        } else if (!layerControls) {
+            console.error('❌ layerControls element not found in DOM');
         }
 
         // Hide focus panel if open
