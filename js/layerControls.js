@@ -81,19 +81,28 @@ function closeOtherDropdowns(currentDropdown) {
         if (plantableToggle && plantableSubOptions) {
             plantableSubOptions.style.display = 'none';
             plantableToggle.classList.remove('expanded');
-            
+
             // Clear any focus view and connection
             if (window.clearPAConnection) {
                 window.clearPAConnection();
             }
-            
-            // Reset plantable state if no specific PA selected
+
+            // Reset plantable state and hide group if no specific PA selected
             if (!window.layerState.selectedPA) {
                 window.layerState.showPlantableAreas = false;
+                // Hide plantable areas group in SuperSplat
+                if (window.superSplatScene && window.superSplatScene.events) {
+                    try {
+                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', false);
+                        console.log('🔹 Plantable areas group hidden in SuperSplat');
+                    } catch (error) {
+                        console.warn('Failed to hide plantable areas group:', error);
+                    }
+                }
             }
         }
     }
-    
+
     // Close non-plantable areas if not current
     if (currentDropdown !== 'nonplantable') {
         const nonPlantableToggle = document.getElementById('nonPlantableAreasToggle');
@@ -101,14 +110,23 @@ function closeOtherDropdowns(currentDropdown) {
         if (nonPlantableToggle && nonPlantableSubOptions) {
             nonPlantableSubOptions.style.display = 'none';
             nonPlantableToggle.classList.remove('expanded');
-            
-            // Reset non-plantable state if no specific NPA selected
+
+            // Reset non-plantable state and hide group if no specific NPA selected
             if (!window.layerState.selectedNPA) {
                 window.layerState.showNonPlantableAreas = false;
+                // Hide non-plantable areas group in SuperSplat
+                if (window.superSplatScene && window.superSplatScene.events) {
+                    try {
+                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', false);
+                        console.log('🔹 Non-plantable areas group hidden in SuperSplat');
+                    } catch (error) {
+                        console.warn('Failed to hide non-plantable areas group:', error);
+                    }
+                }
             }
         }
     }
-    
+
     // Close ecological metrics if not current
     if (currentDropdown !== 'metrics') {
         const ecologicalToggle = document.getElementById('ecologicalMetricsToggle');
@@ -116,7 +134,7 @@ function closeOtherDropdowns(currentDropdown) {
         if (ecologicalToggle && metricsOptions) {
             metricsOptions.style.display = 'none';
             ecologicalToggle.classList.remove('expanded');
-            
+
             // Reset metrics state
             if (window.layerState.showEcologicalMetrics) {
                 window.layerState.showEcologicalMetrics = false;
@@ -125,27 +143,92 @@ function closeOtherDropdowns(currentDropdown) {
             }
         }
     }
+
+    // Note: Polygons are no longer deselected when switching dropdowns
+    // Selection state is maintained until group visibility changes
+}
+
+/**
+ * Automatically loads site data for SuperSplat lab mode
+ * This bypasses the need for site selection dropdown
+ */
+async function autoLoadSiteDataForLabMode() {
+    try {
+        console.log('🏠 AUTO-LOAD: Starting site data auto-load for SuperSplat lab mode...');
+
+        // Check if data is already loaded
+        if (window.currentSiteData) {
+            console.log('✅ AUTO-LOAD: Site data already loaded, skipping...');
+            return true;
+        }
+
+        // Use the same loading logic as the original loadSiteData function
+        const dataUrl = window.TerrainConfig ?
+            window.TerrainConfig.getDataUrl('scott-boyd-residence/Boyd_Residence_Aerial_and_Ground.geojson') :
+            '/data/scott-boyd-residence/Boyd_Residence_Aerial_and_Ground.geojson';
+
+        console.log('🔗 AUTO-LOAD: Fetching from URL:', dataUrl);
+
+        const response = await fetch(dataUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch GeoJSON: ${response.status}`);
+        }
+
+        const geoJsonData = await response.json();
+        console.log('✅ AUTO-LOAD: Successfully loaded GeoJSON data:', {
+            features: geoJsonData.features?.length || 0,
+            firstFeature: geoJsonData.features?.[0]?.properties?.name || 'Unknown',
+            sampleFeatures: geoJsonData.features?.slice(0, 3).map(f => f.properties?.name || 'Unnamed')
+        });
+
+        // Store the data globally (same as site selection would do)
+        window.currentSiteData = geoJsonData;
+        console.log('✅ AUTO-LOAD: Stored as window.currentSiteData');
+
+        // Store current site info for future reference
+        window.currentSiteInfo = {
+            name: 'Winter Garden Residence',
+            filename: 'Boyd_Residence_Aerial_and_Ground.geojson',
+            id: 'scott-boyd-residence',
+            bounds: window.calculateBounds ? window.calculateBounds(geoJsonData) : null
+        };
+
+        console.log('🗂️ AUTO-LOAD: Site info stored:', window.currentSiteInfo);
+
+        // Trigger the detection system
+        if (window.detectGeoJsonFormat) {
+            const format = window.detectGeoJsonFormat(geoJsonData.features[0]);
+            console.log('🔍 AUTO-LOAD: Detected format:', format);
+        }
+
+        return true;
+
+    } catch (error) {
+        console.error('❌ AUTO-LOAD: Failed to auto-load site data:', error);
+        return false;
+    }
 }
 
 /**
  * Initializes the layer control system
  */
 function initializeLayerControls() {
-    // Initializing layer controls
-    
+    console.log('🎯 INIT-CONTROLS: initializeLayerControls() called');
+
     const layerControls = document.getElementById('layerControls');
     if (!layerControls) {
-        console.error('Layer controls element not found!');
+        console.error('❌ INIT-CONTROLS: Layer controls element not found!');
         return;
     }
-    
+
     // Prevent duplicate initialization
     if (layerControls.dataset.initialized === 'true') {
-        // Layer controls already initialized
+        console.log('⚠️ INIT-CONTROLS: Layer controls already initialized, skipping...');
         return;
     }
     layerControls.dataset.initialized = 'true';
-    
+    console.log('✅ INIT-CONTROLS: Layer controls marked as initialized');
+
     // Initialize layer state if not already initialized
     if (!window.layerState) {
         window.layerState = {
@@ -160,9 +243,21 @@ function initializeLayerControls() {
             categorizedPAs: new Map()
         };
     }
-    
+
     // Set up controls and initialize state after a brief delay to ensure DOM is ready
-    setTimeout(() => {
+    setTimeout(async () => {
+        // Check if we're in SuperSplat lab mode and need to auto-load data
+        const isLabMode = window.TERRAIN_LOADING_CONFIG?.initialMode === 'lab';
+
+        if (isLabMode && !window.currentSiteData) {
+            console.log('🎨 Lab mode detected - auto-loading site data...');
+            const loadSuccess = await autoLoadSiteDataForLabMode();
+            if (!loadSuccess) {
+                console.error('❌ Failed to auto-load site data in lab mode');
+                return;
+            }
+        }
+
         // Check site data and format
         // Layer controls initialization logging removed for cleaner console output
         if (window.currentSiteData) {
@@ -182,11 +277,17 @@ function initializeLayerControls() {
             // Try again later when data might be available
             let retryCount = 0;
             const maxRetries = 10;
-            
-            const retryDataCheck = () => {
+
+            const retryDataCheck = async () => {
                 retryCount++;
                 console.log(`🔄 Retry ${retryCount}/${maxRetries} - checking for currentSiteData`);
-                
+
+                // If still no data and we're in lab mode, try auto-loading again
+                if (!window.currentSiteData && isLabMode && retryCount <= 3) {
+                    console.log('🔄 Attempting auto-load on retry...');
+                    await autoLoadSiteDataForLabMode();
+                }
+
                 if (window.currentSiteData) {
                     console.log('✅ Found currentSiteData on retry!', window.currentSiteData);
                     const format = detectGeoJsonFormat(window.currentSiteData.features[0]);
@@ -203,7 +304,7 @@ function initializeLayerControls() {
                     console.error('❌ Failed to find currentSiteData after all retries');
                 }
             };
-            
+
             setTimeout(retryDataCheck, 1000);
         }
         
@@ -297,8 +398,8 @@ function setupPlantableAreaControls() {
             }
         }
         
-        // Small delay to ensure state is properly set
-        setTimeout(() => updateVisualization(), 50);
+        // Skip updateVisualization() to prevent re-rendering that clears selection state
+        // setTimeout(() => updateVisualization(), 50); // Commented out - causes unwanted re-renders
     });
 }
 
@@ -360,8 +461,8 @@ function setupNonPlantableAreaControls() {
             }
         }
         
-        // Small delay to ensure state is properly set
-        setTimeout(() => updateVisualization(), 50);
+        // Skip updateVisualization() to prevent re-rendering that clears selection state
+        // setTimeout(() => updateVisualization(), 50); // Commented out - causes unwanted re-renders
     });
 }
 
@@ -418,8 +519,9 @@ function setupEcologicalMetricsControls() {
                 if (allPARadio) allPARadio.click();
                 const allNPARadio = document.querySelector('input[name="nonPlantableArea"][value="all"]');
                 if (allNPARadio) allNPARadio.click();
-                
-                updateVisualization();
+
+                // Skip updateVisualization() to prevent re-rendering that clears selection state
+                // updateVisualization(); // Commented out - causes unwanted re-renders
             }
         });
     });
@@ -568,25 +670,41 @@ function populatePACategories(categories, categorizedPAs) {
                 if (this.checked) {
                     window.layerState.selectedPA = name;
                     window.layerState.showPlantableAreas = true;
-                    
+
                     // Deselect ecological metrics and NPAs
                     if (window.layerState.showEcologicalMetrics) {
                         window.layerState.showEcologicalMetrics = false;
                         window.layerState.selectedMetric = null;
                         document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
                     }
-                    
+
                     // Deselect any NPA
                     if (window.layerState.selectedNPA) {
                         window.layerState.selectedNPA = null;
                         window.layerState.showNonPlantableAreas = false;
                         document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
                     }
-                    
-                    updateVisualization();
+
+                    // Show plantable areas group and select specific polygon in SuperSplat
+                    if (window.superSplatScene && window.superSplatScene.events) {
+                        try {
+                            // Show plantable areas group
+                            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
+                            console.log('🔹 Plantable areas group shown in SuperSplat');
+
+                            // Select specific polygon (deselects others automatically)
+                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygon', name);
+                            console.log(`🎯 SuperSplat polygon "${name}" selected`);
+                        } catch (error) {
+                            console.warn('Failed to select SuperSplat polygon:', error);
+                        }
+                    }
+
+                    // Skip updateVisualization() to preserve SuperSplat polygon selection state
+                    // updateVisualization(); // Commented out - this was clearing selection state
                     // Zoom to the selected PA
                     zoomToFeature(name, 'PA');
-                    
+
                     // Orchestrate the focus panel animation sequence
                     if (window.focusPanel && window.currentSiteData) {
                         const paFeature = window.currentSiteData.features.find(f => {
@@ -760,22 +878,52 @@ function populateNPACategories(categories) {
             if (this.checked) {
                 window.layerState.selectedNPA = category;
                 window.layerState.showNonPlantableAreas = true;
-                
+
                 // Deselect ecological metrics and PAs
                 if (window.layerState.showEcologicalMetrics) {
                     window.layerState.showEcologicalMetrics = false;
                     window.layerState.selectedMetric = null;
                     document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
                 }
-                
+
                 // Deselect any PA
                 if (window.layerState.selectedPA) {
                     window.layerState.selectedPA = null;
                     window.layerState.showPlantableAreas = false;
                     document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
                 }
-                
-                updateVisualization();
+
+                // Show non-plantable areas group and select first polygon in this category
+                if (window.superSplatScene && window.superSplatScene.events && window.currentSiteData) {
+                    try {
+                        // Show non-plantable areas group
+                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', true);
+                        console.log('🔹 Non-plantable areas group shown in SuperSplat');
+
+                        // Find first NPA in this category for selection
+                        const npaFeatures = window.currentSiteData.features.filter(f => {
+                            if (!f.properties.name || !f.properties.name.includes('NPA')) return false;
+                            const extractedCategory = extractNPACategory(f.properties.name);
+                            return extractedCategory === category;
+                        });
+
+                        if (npaFeatures.length > 0) {
+                            // Parse the first NPA name to get display name
+                            const firstNPAName = npaFeatures[0].properties.name;
+                            const parsed = parseBoydName(firstNPAName);
+                            const displayName = parsed.description || parsed.id;
+
+                            // Select polygon using display name
+                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygon', displayName);
+                            console.log(`🎯 SuperSplat NPA polygon "${displayName}" selected (category: ${category})`);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to show/select SuperSplat NPA polygons:', error);
+                    }
+                }
+
+                // Skip updateVisualization() to preserve SuperSplat polygon selection state
+                // updateVisualization(); // Commented out - this was clearing selection state
                 // Zoom to all features in this NPA category
                 zoomToNPACategory(category);
             }
@@ -811,7 +959,7 @@ function updateVisualization() {
  */
 function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
     if (!window.map3D || !window.map3D.viewer) {
-        console.error('Cesium viewer not available');
+        console.error('2D mode viewer not available');
         return;
     }
     
@@ -969,7 +1117,7 @@ function zoomToFeature(featureName, featureType) {
         finalHeight: finalHeight
     });
     
-    // Animate to position with camera facing straight down (Cesium mode only)
+    // Animate to position with camera facing straight down (2D mode only)
     if (typeof Cesium !== 'undefined' && viewer && viewer.camera) {
         viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
@@ -1069,7 +1217,7 @@ function zoomToNPACategory(categoryName) {
     
     // NPA camera positioning logging removed for cleaner console output
     
-    // Animate to position with camera facing straight down (Cesium mode only)
+    // Animate to position with camera facing straight down (2D mode only)
     if (typeof Cesium !== 'undefined' && viewer && viewer.camera) {
         viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, finalHeight),
@@ -1561,6 +1709,7 @@ function clearPAConnection() {
 }
 
 // Expose functions globally
+window.autoLoadSiteDataForLabMode = autoLoadSiteDataForLabMode;
 window.initializeLayerControls = initializeLayerControls;
 window.updateVisualization = updateVisualization;
 window.visualizeGeoJsonPolygonsWithLayers = visualizeGeoJsonPolygonsWithLayers;
