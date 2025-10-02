@@ -57,6 +57,7 @@ class Polygon {
     baseOutlineThickness: number; // Store original thickness for selection changes
     baseFillColor: Vec3; // Store original fill color for selection changes
     baseFillAlpha: number; // Store original fill alpha for selection changes
+    baseOutlineColor: Vec3; // Store original outline color for selection changes
     group?: string; // Group name for PA/NPA grouping
     triangles: TriangleData[] = [];
     private exteriorEdges?: Set<string>;
@@ -70,6 +71,7 @@ class Polygon {
         this.baseOutlineThickness = data.outlineThickness; // Store original thickness
         this.baseFillColor = data.color.clone(); // Store original fill color
         this.baseFillAlpha = data.fillAlpha; // Store original fill alpha
+        this.baseOutlineColor = data.outlineColor.clone(); // Store original outline color
         this.name = data.name;
         this.visible = data.visible !== false; // Default to true
         this.selected = false; // Default to not selected
@@ -475,26 +477,38 @@ class Polygon {
     }
 
     /**
-     * Select this polygon (doubles outline thickness)
+     * Select this polygon (doubles outline thickness, applies white border and semi-transparent white fill)
      */
     select() {
         if (!this.selected) {
             this.selected = true;
+
+            // Apply selection visual properties
             this.outlineThickness = this.baseOutlineThickness * 2.0; // Double the thickness
-            this.triangulate(); // Re-triangulate with new thickness
-            console.log(`🔹 Polygon "${this.name}" SELECTED (thickness: ${this.baseOutlineThickness} → ${this.outlineThickness})`);
+            this.outlineColor = new Vec3(1, 1, 1); // White border
+            this.color = new Vec3(1, 1, 1); // White fill
+            this.fillAlpha = 0.1; // Semi-transparent fill (0.1 alpha)
+
+            this.triangulate(); // Re-triangulate with new properties
+            console.log(`🔹 Polygon "${this.name}" SELECTED (white border, semi-transparent fill)`);
         }
     }
 
     /**
-     * Deselect this polygon (restores original outline thickness)
+     * Deselect this polygon (restores all original visual properties)
      */
     deselect() {
         if (this.selected) {
             this.selected = false;
+
+            // Restore all original visual properties
             this.outlineThickness = this.baseOutlineThickness; // Restore original thickness
-            this.triangulate(); // Re-triangulate with original thickness
-            console.log(`🔹 Polygon "${this.name}" DESELECTED (thickness: ${this.outlineThickness})`);
+            this.outlineColor = this.baseOutlineColor.clone(); // Restore original border color
+            this.color = this.baseFillColor.clone(); // Restore original fill color
+            this.fillAlpha = this.baseFillAlpha; // Restore original fill alpha
+
+            this.triangulate(); // Re-triangulate with original properties
+            console.log(`🔹 Polygon "${this.name}" DESELECTED (restored original properties)`);
         }
     }
 
@@ -713,6 +727,14 @@ class TriangleOverlay extends Element {
             return this.deselectAllPolygons();
         });
 
+        this.scene.events.function('triangleOverlay.selectPolygons', (polygonNames: string[]) => {
+            return this.selectPolygons(polygonNames);
+        });
+
+        this.scene.events.function('triangleOverlay.selectPolygonArea', (polygonNames: string[]) => {
+            return this.selectPolygonArea(polygonNames);
+        });
+
         this.scene.events.function('triangleOverlay.getSelectedPolygon', () => {
             return this.getSelectedPolygon();
         });
@@ -894,6 +916,48 @@ class TriangleOverlay extends Element {
             console.warn(`⚠️ Polygon "${name}" not found for selection`);
             return false;
         }
+    }
+
+    /**
+     * Select multiple polygons without deselecting others (for multi-polygon areas)
+     */
+    selectPolygons(polygonNames: string[]) {
+        let selectedCount = 0;
+
+        polygonNames.forEach(name => {
+            const polygon = this.polygons.find(p => p.name === name);
+            if (polygon) {
+                if (!polygon.selected) {
+                    polygon.select();
+                    selectedCount++;
+                    console.log(`🎯 Polygon "${name}" SELECTED for multi-selection`);
+                }
+            } else {
+                console.warn(`⚠️ Polygon "${name}" not found for multi-selection`);
+            }
+        });
+
+        if (selectedCount > 0) {
+            this.scene.forceRender = true; // Trigger SuperSplat view update
+            console.log(`🎯 Multi-selection complete: ${selectedCount} polygons selected`);
+        }
+
+        return selectedCount;
+    }
+
+    /**
+     * Clear all selections and then select multiple polygons (for area selection)
+     */
+    selectPolygonArea(polygonNames: string[]) {
+        // First deselect all polygons
+        this.polygons.forEach(polygon => {
+            if (polygon.selected) {
+                polygon.deselect();
+            }
+        });
+
+        // Then select all polygons in the area
+        return this.selectPolygons(polygonNames);
     }
 
     /**

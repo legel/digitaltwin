@@ -8,8 +8,10 @@ window.layerState = {
     showEcologicalMetrics: false,
     selectedMetric: null,
     showNonPlantableAreas: false,
-    selectedPA: null, // Single selected PA
-    selectedNPA: null, // Single selected NPA
+    selectedPA: null, // Selected PA area name (can contain multiple polygons)
+    selectedPAPolygons: [], // Array of polygon names belonging to selected PA area
+    selectedNPA: null, // Selected NPA category name (can contain multiple polygons)
+    selectedNPAPolygons: [], // Array of polygon names belonging to selected NPA category
     npaCategories: new Map(), // Map of NPA category name to metadata
     paCategories: new Map(), // Map of PA name to {number, category}
     categorizedPAs: new Map() // Map of category -> array of PAs
@@ -70,6 +72,111 @@ const paCategoryColors = [
 ];
 
 /**
+ * Helper functions for managing polygon selection
+ */
+
+/**
+ * Clears all selected polygons and resets selection state
+ */
+function clearAllPolygonSelections() {
+    window.layerState.selectedPA = null;
+    window.layerState.selectedPAPolygons = [];
+    window.layerState.selectedNPA = null;
+    window.layerState.selectedNPAPolygons = [];
+}
+
+/**
+ * Finds all polygon names that belong to a specific PA area
+ * @param {string} paAreaName - Name of the PA area (e.g., "Southeast Front Door Entrance")
+ * @param {Object} geoJsonData - The GeoJSON data to search through
+ * @returns {Array} Array of polygon names belonging to this PA area
+ */
+function findPolygonsForPAArea(paAreaName, geoJsonData) {
+    if (!geoJsonData || !geoJsonData.features) return [];
+
+    const polygonNames = [];
+    geoJsonData.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+            const parsed = parseBoydName(feature.properties.name);
+            const featureDescription = parsed.description || parsed.id;
+
+            // Check if this is a plantable area by calling the utility function
+            const isPlantable = window.getBoydFeatureCategory ?
+                window.getBoydFeatureCategory(feature) === 'plantable' :
+                isPlantableFeature(feature, 'boyd');
+
+            if (featureDescription === paAreaName && isPlantable) {
+                // Use full GeoJSON name (unique identifier that SuperSplat stores)
+                polygonNames.push(feature.properties.name);
+            }
+        }
+    });
+
+    return polygonNames;
+}
+
+/**
+ * Finds all polygon names that belong to a specific NPA category
+ * @param {string} npaCategory - Name of the NPA category
+ * @param {Object} geoJsonData - The GeoJSON data to search through
+ * @returns {Array} Array of polygon names belonging to this NPA category
+ */
+function findPolygonsForNPACategory(npaCategory, geoJsonData) {
+    if (!geoJsonData || !geoJsonData.features) return [];
+
+    const polygonNames = [];
+    geoJsonData.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+            const featureCategory = extractNPACategory(feature.properties.name);
+
+            // Check if this is a non-plantable area by calling the utility function
+            const isNonPlantable = window.getBoydFeatureCategory ?
+                window.getBoydFeatureCategory(feature) === 'non-plantable' :
+                !isPlantableFeature(feature, 'boyd');
+
+            if (featureCategory === npaCategory && isNonPlantable) {
+                // Use full GeoJSON name (unique identifier that SuperSplat stores)
+                polygonNames.push(feature.properties.name);
+            }
+        }
+    });
+
+    return polygonNames;
+}
+
+/**
+ * Selects polygons for a specific PA area
+ * @param {string} paAreaName - Name of the PA area to select
+ * @param {Object} geoJsonData - The GeoJSON data to search through
+ */
+function selectPAArea(paAreaName, geoJsonData) {
+    // Clear all previous selections
+    clearAllPolygonSelections();
+
+    // Set new PA selection
+    window.layerState.selectedPA = paAreaName;
+    window.layerState.selectedPAPolygons = findPolygonsForPAArea(paAreaName, geoJsonData);
+
+    console.log(`🎯 Selected PA area "${paAreaName}" with ${window.layerState.selectedPAPolygons.length} polygons:`, window.layerState.selectedPAPolygons);
+}
+
+/**
+ * Selects polygons for a specific NPA category
+ * @param {string} npaCategory - Name of the NPA category to select
+ * @param {Object} geoJsonData - The GeoJSON data to search through
+ */
+function selectNPACategory(npaCategory, geoJsonData) {
+    // Clear all previous selections
+    clearAllPolygonSelections();
+
+    // Set new NPA selection
+    window.layerState.selectedNPA = npaCategory;
+    window.layerState.selectedNPAPolygons = findPolygonsForNPACategory(npaCategory, geoJsonData);
+
+    console.log(`🎯 Selected NPA category "${npaCategory}" with ${window.layerState.selectedNPAPolygons.length} polygons:`, window.layerState.selectedNPAPolygons);
+}
+
+/**
  * Closes other dropdowns and any focus views
  * @param {string} currentDropdown - The dropdown being opened ('plantable', 'nonplantable', 'metrics')
  */
@@ -87,19 +194,8 @@ function closeOtherDropdowns(currentDropdown) {
                 window.clearPAConnection();
             }
 
-            // Reset plantable state and hide group if no specific PA selected
-            if (!window.layerState.selectedPA) {
-                window.layerState.showPlantableAreas = false;
-                // Hide plantable areas group in SuperSplat
-                if (window.superSplatScene && window.superSplatScene.events) {
-                    try {
-                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', false);
-                        console.log('🔹 Plantable areas group hidden in SuperSplat');
-                    } catch (error) {
-                        console.warn('Failed to hide plantable areas group:', error);
-                    }
-                }
-            }
+            // Note: Do not automatically hide polygon groups when dropdowns close
+            // Group visibility should only be controlled by individual area selections
         }
     }
 
@@ -111,19 +207,8 @@ function closeOtherDropdowns(currentDropdown) {
             nonPlantableSubOptions.style.display = 'none';
             nonPlantableToggle.classList.remove('expanded');
 
-            // Reset non-plantable state and hide group if no specific NPA selected
-            if (!window.layerState.selectedNPA) {
-                window.layerState.showNonPlantableAreas = false;
-                // Hide non-plantable areas group in SuperSplat
-                if (window.superSplatScene && window.superSplatScene.events) {
-                    try {
-                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', false);
-                        console.log('🔹 Non-plantable areas group hidden in SuperSplat');
-                    } catch (error) {
-                        console.warn('Failed to hide non-plantable areas group:', error);
-                    }
-                }
-            }
+            // Note: Do not automatically hide polygon groups when dropdowns close
+            // Group visibility should only be controlled by individual area selections
         }
     }
 
@@ -320,7 +405,8 @@ function initializeLayerControls() {
             plantableToggle.classList.add('expanded');
             plantableSubOptions.style.display = 'block';
             window.layerState.showPlantableAreas = true;
-            window.layerState.selectedPA = null; // null means "All"
+            // Clear all polygon selections for "All" mode
+            clearAllPolygonSelections();
             
             // Check the "All" radio button if it exists
             const allRadio = document.querySelector('input[name="plantableArea"][value="all"]');
@@ -507,10 +593,9 @@ function setupEcologicalMetricsControls() {
             if (this.checked) {
                 window.layerState.selectedMetric = this.value;
                 window.layerState.showEcologicalMetrics = true;
-                
+
                 // Deselect all PA and NPA selections
-                window.layerState.selectedPA = null;
-                window.layerState.selectedNPA = null;
+                clearAllPolygonSelections();
                 window.layerState.showPlantableAreas = false;
                 window.layerState.showNonPlantableAreas = false;
                 
@@ -668,7 +753,8 @@ function populatePACategories(categories, categorizedPAs) {
             
             radio.addEventListener('change', function() {
                 if (this.checked) {
-                    window.layerState.selectedPA = name;
+                    // Use the new helper function to select PA area and its polygons
+                    selectPAArea(name, window.currentSiteData);
                     window.layerState.showPlantableAreas = true;
 
                     // Deselect ecological metrics and NPAs
@@ -679,24 +765,26 @@ function populatePACategories(categories, categorizedPAs) {
                     }
 
                     // Deselect any NPA
-                    if (window.layerState.selectedNPA) {
-                        window.layerState.selectedNPA = null;
+                    if (window.layerState.showNonPlantableAreas) {
                         window.layerState.showNonPlantableAreas = false;
                         document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
                     }
 
-                    // Show plantable areas group and select specific polygon in SuperSplat
+                    // Show plantable areas group and select all polygons for this PA in SuperSplat
                     if (window.superSplatScene && window.superSplatScene.events) {
                         try {
                             // Show plantable areas group
                             window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
                             console.log('🔹 Plantable areas group shown in SuperSplat');
 
-                            // Select specific polygon (deselects others automatically)
-                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygon', name);
-                            console.log(`🎯 SuperSplat polygon "${name}" selected`);
+                            // Select all polygons for this PA area
+                            const selectedPolygons = window.layerState.selectedPAPolygons || [];
+                            if (selectedPolygons.length > 0) {
+                                window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
+                                console.log(`🎯 SuperSplat PA area "${name}" selected (${selectedPolygons.length} polygons)`);
+                            }
                         } catch (error) {
-                            console.warn('Failed to select SuperSplat polygon:', error);
+                            console.warn('Failed to select SuperSplat PA polygons:', error);
                         }
                     }
 
@@ -876,7 +964,8 @@ function populateNPACategories(categories) {
         
         radio.addEventListener('change', function() {
             if (this.checked) {
-                window.layerState.selectedNPA = category;
+                // Use the new helper function to select NPA category and its polygons
+                selectNPACategory(category, window.currentSiteData);
                 window.layerState.showNonPlantableAreas = true;
 
                 // Deselect ecological metrics and PAs
@@ -887,8 +976,7 @@ function populateNPACategories(categories) {
                 }
 
                 // Deselect any PA
-                if (window.layerState.selectedPA) {
-                    window.layerState.selectedPA = null;
+                if (window.layerState.showPlantableAreas) {
                     window.layerState.showPlantableAreas = false;
                     document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
                 }
@@ -907,15 +995,11 @@ function populateNPACategories(categories) {
                             return extractedCategory === category;
                         });
 
-                        if (npaFeatures.length > 0) {
-                            // Parse the first NPA name to get display name
-                            const firstNPAName = npaFeatures[0].properties.name;
-                            const parsed = parseBoydName(firstNPAName);
-                            const displayName = parsed.description || parsed.id;
-
-                            // Select polygon using display name
-                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygon', displayName);
-                            console.log(`🎯 SuperSplat NPA polygon "${displayName}" selected (category: ${category})`);
+                        // Select all polygons for this NPA category
+                        const selectedPolygons = window.layerState.selectedNPAPolygons || [];
+                        if (selectedPolygons.length > 0) {
+                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
+                            console.log(`🎯 SuperSplat NPA category "${category}" selected (${selectedPolygons.length} polygons)`);
                         }
                     } catch (error) {
                         console.warn('Failed to show/select SuperSplat NPA polygons:', error);
