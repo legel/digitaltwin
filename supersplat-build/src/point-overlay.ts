@@ -42,6 +42,7 @@ interface PolygonData {
     outlineThickness: number;
     name?: string;
     visible?: boolean;
+    group?: string; // Group name for PA/NPA grouping
 }
 
 class Polygon {
@@ -52,6 +53,11 @@ class Polygon {
     outlineThickness: number;
     name?: string;
     visible: boolean;
+    selected: boolean;
+    baseOutlineThickness: number; // Store original thickness for selection changes
+    baseFillColor: Vec3; // Store original fill color for selection changes
+    baseFillAlpha: number; // Store original fill alpha for selection changes
+    group?: string; // Group name for PA/NPA grouping
     triangles: TriangleData[] = [];
     private exteriorEdges?: Set<string>;
 
@@ -61,8 +67,13 @@ class Polygon {
         this.fillAlpha = data.fillAlpha;
         this.outlineColor = data.outlineColor.clone();
         this.outlineThickness = data.outlineThickness;
+        this.baseOutlineThickness = data.outlineThickness; // Store original thickness
+        this.baseFillColor = data.color.clone(); // Store original fill color
+        this.baseFillAlpha = data.fillAlpha; // Store original fill alpha
         this.name = data.name;
         this.visible = data.visible !== false; // Default to true
+        this.selected = false; // Default to not selected
+        this.group = data.group; // Store group information
 
         // Automatically triangulate the polygon
         this.triangulate();
@@ -103,28 +114,13 @@ class Polygon {
         // Choose triangulation method based on polygon complexity
         if (this.vertices.length <= 6) {
             // Simple polygon: use fast fan triangulation
-            console.log(`🔺 Using fan triangulation for simple ${this.vertices.length}-vertex polygon "${this.name}"`);
             this.triangulateWithFan();
         } else {
             // Complex polygon: use ear clipping for accurate triangulation
-            console.log(`🔺 Using ear clipping for complex ${this.vertices.length}-vertex polygon "${this.name}"`);
             this.triangulateWithEarClipping();
         }
 
-        // Debug: Log triangulation results
-        console.log(`✅ Triangulated "${this.name}":`, {
-            vertices: this.vertices.length,
-            triangles: this.triangles.length
-        });
-
-        // Debug: Log first few triangles to verify coordinates
-        if (this.triangles.length > 0) {
-            console.log(`🔺 TRIANGLE COORDINATES DEBUG for "${this.name}" (first 5 triangles):`);
-            for (let i = 0; i < Math.min(5, this.triangles.length); i++) {
-                const tri = this.triangles[i];
-                console.log(`  Triangle ${i}: [${tri.v0.x.toFixed(3)}, ${tri.v0.z.toFixed(3)}] → [${tri.v1.x.toFixed(3)}, ${tri.v1.z.toFixed(3)}] → [${tri.v2.x.toFixed(3)}, ${tri.v2.z.toFixed(3)}]`);
-            }
-        }
+        // Triangle coordinate logging removed to reduce console spam
 
     }
 
@@ -188,13 +184,13 @@ class Polygon {
         let maxIterations = workingVertices.length * 3; // Prevent infinite loops
         let iterationCount = 0;
 
-        console.log(`🔍 Starting ear clipping for "${this.name}": ${workingVertices.length} vertices`);
+        // Starting ear clipping triangulation
 
         while (workingVertices.length > 3 && iterationCount < maxIterations) {
             let earFound = false;
             iterationCount++;
 
-            console.log(`🔍 Ear clipping iteration ${iterationCount}: ${workingVertices.length} vertices remaining`);
+            // Verbose ear clipping logging removed to reduce console spam
 
             // Look for an ear (a convex vertex where the triangle contains no other vertices)
             for (let i = 0; i < workingVertices.length; i++) {
@@ -206,10 +202,10 @@ class Polygon {
                 const next = workingVertices[nextI];
 
                 const isConvex = this.isConvex(prev.vertex, curr.vertex, next.vertex);
-                console.log(`🔍 Testing vertex ${i} (original ${curr.originalIndex}): convex=${isConvex}`);
+                // Vertex testing logging removed to reduce console spam
 
                 if (this.isEar(prev, curr, next, workingVertices)) {
-                    console.log(`✅ Found ear at vertex ${i} (original ${curr.originalIndex})`);
+                    // Found ear logging removed to reduce console spam
                     earFound = true;
                     // Found an ear! Create triangle and remove the ear vertex
                     const triangle = {
@@ -334,7 +330,6 @@ class Polygon {
         // Determine polygon winding by checking the first few vertices
         // If we haven't determined winding yet, do it now
         if (this.polygonWindingClockwise === undefined) {
-            console.log(`🔍 Determining winding for polygon "${this.name}"`);
             this.determinePolygonWinding();
         }
 
@@ -342,7 +337,7 @@ class Polygon {
         // For counter-clockwise polygons: cross > 0 means convex
         const isConvex = this.polygonWindingClockwise ? cross < 0 : cross > 0;
 
-        console.log(`🔍 isConvex check: cross=${cross.toFixed(6)}, winding=${this.polygonWindingClockwise ? 'CW' : 'CCW'}, result=${isConvex}`);
+        // isConvex logging removed to reduce console spam
         return isConvex;
     }
 
@@ -368,7 +363,7 @@ class Polygon {
         }
 
         this.polygonWindingClockwise = signedArea > 0;
-        console.log(`🔍 Polygon "${this.name}" winding: ${this.polygonWindingClockwise ? 'CLOCKWISE' : 'COUNTER-CLOCKWISE'} (signed area: ${signedArea.toFixed(6)})`);
+        // Polygon winding determined
     }
 
     /**
@@ -407,8 +402,6 @@ class Polygon {
         const exteriorEdges = new Set<string>();
         const vertexCount = this.vertices.length;
 
-        console.log(`🗺️ Building exterior edges for "${this.name}" with ${vertexCount} vertices`);
-
         // Add edges between consecutive vertices (including wrap-around)
         for (let i = 0; i < vertexCount; i++) {
             const nextIndex = (i + 1) % vertexCount;
@@ -416,7 +409,6 @@ class Polygon {
             exteriorEdges.add(edgeKey);
         }
 
-        console.log(`🔍 Created ${exteriorEdges.size} exterior edges:`, Array.from(exteriorEdges).sort());
         return exteriorEdges;
     }
 
@@ -447,14 +439,7 @@ class Polygon {
         const edge20Visible = this.exteriorEdges.has(edge20Key);
 
         // Log first few triangles to verify logic
-        if (this.triangles.length < 3) {
-            console.log(`🔺 Triangle ${this.triangles.length} (${idx0}-${idx1}-${idx2}):`, {
-                edge01: `${edge01Key} → ${edge01Visible}`,
-                edge12: `${edge12Key} → ${edge12Visible}`,
-                edge20: `${edge20Key} → ${edge20Visible}`,
-                visibleCount: (edge01Visible ? 1 : 0) + (edge12Visible ? 1 : 0) + (edge20Visible ? 1 : 0)
-            });
-        }
+        // Edge visibility logging removed to reduce console spam
 
         return {
             edge01Visible,
@@ -469,15 +454,59 @@ class Polygon {
      */
     updateProperties(data: Partial<PolygonData>) {
         if (data.vertices) this.vertices = data.vertices.map(v => v.clone());
-        if (data.color) this.color = data.color.clone();
-        if (data.fillAlpha !== undefined) this.fillAlpha = data.fillAlpha;
+        if (data.color) {
+            this.color = data.color.clone();
+            this.baseFillColor = data.color.clone(); // Update base fill color too
+        }
+        if (data.fillAlpha !== undefined) {
+            this.fillAlpha = data.fillAlpha;
+            this.baseFillAlpha = data.fillAlpha; // Update base fill alpha too
+        }
         if (data.outlineColor) this.outlineColor = data.outlineColor.clone();
-        if (data.outlineThickness !== undefined) this.outlineThickness = data.outlineThickness;
+        if (data.outlineThickness !== undefined) {
+            this.outlineThickness = data.outlineThickness;
+            this.baseOutlineThickness = data.outlineThickness; // Update base thickness too
+        }
         if (data.name) this.name = data.name;
         if (data.visible !== undefined) this.visible = data.visible;
 
         // Re-triangulate with new properties
         this.triangulate();
+    }
+
+    /**
+     * Select this polygon (doubles outline thickness)
+     */
+    select() {
+        if (!this.selected) {
+            this.selected = true;
+            this.outlineThickness = this.baseOutlineThickness * 2.0; // Double the thickness
+            this.triangulate(); // Re-triangulate with new thickness
+            console.log(`🔹 Polygon "${this.name}" SELECTED (thickness: ${this.baseOutlineThickness} → ${this.outlineThickness})`);
+        }
+    }
+
+    /**
+     * Deselect this polygon (restores original outline thickness)
+     */
+    deselect() {
+        if (this.selected) {
+            this.selected = false;
+            this.outlineThickness = this.baseOutlineThickness; // Restore original thickness
+            this.triangulate(); // Re-triangulate with original thickness
+            console.log(`🔹 Polygon "${this.name}" DESELECTED (thickness: ${this.outlineThickness})`);
+        }
+    }
+
+    /**
+     * Toggle selection state
+     */
+    toggleSelection() {
+        if (this.selected) {
+            this.deselect();
+        } else {
+            this.select();
+        }
     }
 
     /**
@@ -643,17 +672,16 @@ class TriangleOverlay extends Element {
         });
 
         // Polygon event functions
-        this.scene.events.function('triangleOverlay.addPolygon', (vertices: any[], color: any = {x: 0, y: 1, z: 0}, fillAlpha: number = 1.0, outlineColor: any = {x: 1, y: 1, z: 1}, outlineThickness: number = 0.1, name?: string) => {
-            console.log(`🔺 EVENT RECEIVED: triangleOverlay.addPolygon - ${name} with ${vertices.length} vertices`);
+        this.scene.events.function('triangleOverlay.addPolygon', (vertices: any[], color: any = {x: 0, y: 1, z: 0}, fillAlpha: number = 1.0, outlineColor: any = {x: 1, y: 1, z: 1}, outlineThickness: number = 0.1, name?: string, group?: string) => {
             const result = this.addPolygon(
                 vertices.map(v => new Vec3(v.x, v.y, v.z)),
                 new Vec3(color.x, color.y, color.z),
                 fillAlpha,
                 new Vec3(outlineColor.x, outlineColor.y, outlineColor.z),
                 outlineThickness,
-                name
+                name,
+                group
             );
-            console.log(`📊 Total polygons in overlay: ${this.polygons.length}`);
             return result;
         });
 
@@ -671,6 +699,34 @@ class TriangleOverlay extends Element {
 
         this.scene.events.function('triangleOverlay.setAllPolygonsVisibility', (visible: boolean) => {
             this.setAllPolygonsVisibility(visible);
+        });
+
+        this.scene.events.function('triangleOverlay.selectPolygon', (name: string) => {
+            return this.selectPolygon(name);
+        });
+
+        this.scene.events.function('triangleOverlay.deselectPolygon', (name: string) => {
+            return this.deselectPolygon(name);
+        });
+
+        this.scene.events.function('triangleOverlay.deselectAllPolygons', () => {
+            return this.deselectAllPolygons();
+        });
+
+        this.scene.events.function('triangleOverlay.getSelectedPolygon', () => {
+            return this.getSelectedPolygon();
+        });
+
+        this.scene.events.function('triangleOverlay.setGroupVisibility', (groupName: string, visible: boolean) => {
+            return this.setGroupVisibility(groupName, visible);
+        });
+
+        this.scene.events.function('triangleOverlay.getGroups', () => {
+            return this.getGroups();
+        });
+
+        this.scene.events.function('triangleOverlay.isGroupVisible', (groupName: string) => {
+            return this.isGroupVisible(groupName);
         });
 
         // Set up automatic Y-plane adjustment when splats are loaded
@@ -756,8 +812,7 @@ class TriangleOverlay extends Element {
     /**
      * Add a polygon to the overlay
      */
-    addPolygon(vertices: Vec3[], color: Vec3 = new Vec3(0, 1, 0), fillAlpha: number = 1.0, outlineColor: Vec3 = new Vec3(1, 1, 1), outlineThickness: number = 0.1, name?: string) {
-        console.log(`🔺 ADDING POLYGON: ${name} with ${vertices.length} vertices, fillAlpha: ${fillAlpha}`);
+    addPolygon(vertices: Vec3[], color: Vec3 = new Vec3(0, 1, 0), fillAlpha: number = 1.0, outlineColor: Vec3 = new Vec3(1, 1, 1), outlineThickness: number = 0.1, name?: string, group?: string) {
 
         const polygon = new Polygon({
             vertices,
@@ -765,12 +820,11 @@ class TriangleOverlay extends Element {
             fillAlpha,
             outlineColor,
             outlineThickness,
-            name
+            name,
+            group
         });
 
         this.polygons.push(polygon);
-        console.log(`📊 Polygon "${name}" added successfully. Triangulated into ${polygon.triangles.length} triangles`);
-
         return polygon;
     }
 
@@ -816,6 +870,114 @@ class TriangleOverlay extends Element {
             polygon.visible = visible;
         });
         console.log(`👁️ All polygons ${visible ? 'shown' : 'hidden'} (${this.polygons.length} polygons)`);
+    }
+
+    /**
+     * Select a polygon by name (deselects all other polygons first)
+     */
+    selectPolygon(name: string) {
+        // First deselect all polygons
+        this.polygons.forEach(polygon => {
+            if (polygon.selected) {
+                polygon.deselect();
+            }
+        });
+
+        // Then select the specified polygon
+        const polygon = this.polygons.find(p => p.name === name);
+        if (polygon) {
+            polygon.select();
+            this.scene.forceRender = true; // Trigger SuperSplat view update
+            console.log(`🎯 Polygon "${name}" selected (all others deselected)`);
+            return true;
+        } else {
+            console.warn(`⚠️ Polygon "${name}" not found for selection`);
+            return false;
+        }
+    }
+
+    /**
+     * Deselect a polygon by name
+     */
+    deselectPolygon(name: string) {
+        const polygon = this.polygons.find(p => p.name === name);
+        if (polygon) {
+            polygon.deselect();
+            this.scene.forceRender = true; // Trigger SuperSplat view update
+            console.log(`🎯 Polygon "${name}" deselected`);
+            return true;
+        } else {
+            console.warn(`⚠️ Polygon "${name}" not found for deselection`);
+            return false;
+        }
+    }
+
+    /**
+     * Deselect all polygons
+     */
+    deselectAllPolygons() {
+        let deselectedCount = 0;
+        this.polygons.forEach(polygon => {
+            if (polygon.selected) {
+                polygon.deselect();
+                deselectedCount++;
+            }
+        });
+        console.log(`🎯 ${deselectedCount} polygons deselected`);
+        return deselectedCount;
+    }
+
+    /**
+     * Get the currently selected polygon (if any)
+     */
+    getSelectedPolygon(): string | null {
+        const selected = this.polygons.find(p => p.selected);
+        return selected ? selected.name || null : null;
+    }
+
+    /**
+     * Set visibility for all polygons in a group
+     */
+    setGroupVisibility(groupName: string, visible: boolean) {
+        let affectedCount = 0;
+        this.polygons.forEach(polygon => {
+            if (polygon.group === groupName) {
+                polygon.visible = visible;
+                // If hiding the group, also deselect any selected polygons in this group
+                if (!visible && polygon.selected) {
+                    polygon.deselect();
+                }
+                affectedCount++;
+            }
+        });
+        if (affectedCount > 0) {
+            this.scene.forceRender = true; // Trigger SuperSplat view update
+        }
+        console.log(`👁️ Group "${groupName}" ${visible ? 'shown' : 'hidden'} (${affectedCount} polygons affected)`);
+        return affectedCount;
+    }
+
+    /**
+     * Get all available groups
+     */
+    getGroups(): string[] {
+        const groups = new Set<string>();
+        this.polygons.forEach(polygon => {
+            if (polygon.group) {
+                groups.add(polygon.group);
+            }
+        });
+        return Array.from(groups).sort();
+    }
+
+    /**
+     * Get visibility status of a group
+     */
+    isGroupVisible(groupName: string): boolean {
+        const groupPolygons = this.polygons.filter(p => p.group === groupName);
+        if (groupPolygons.length === 0) return false;
+        // Group is visible if any polygon in the group is visible
+        return groupPolygons.some(p => p.visible);
     }
 
     /**

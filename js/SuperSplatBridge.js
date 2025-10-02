@@ -151,10 +151,15 @@ class SuperSplatBridge {
         const originalVisualize = window.visualizeGeoJsonPolygonsWithLayers;
 
         window.visualizeGeoJsonPolygonsWithLayers = (geoJsonData) => {
-            console.log('🌉 GeoJSON visualization call intercepted - skipping SuperSplat rendering to avoid AABB errors');
+            console.log('🌉 GeoJSON visualization call intercepted - rendering SuperSplat polygons');
 
-            // DISABLED: Skip SuperSplat polygon rendering to avoid AABB errors
-            // this.updatePolygonsInSuperSplat(geoJsonData, window.layerState);
+            // Render polygons in SuperSplat
+            try {
+                this.renderGeoJSONPolygons(geoJsonData);
+                console.log('✅ SuperSplat polygon rendering initiated');
+            } catch (error) {
+                console.error('❌ SuperSplat polygon rendering failed:', error);
+            }
 
             // Still call original function for Cesium compatibility
             if (originalVisualize && typeof Cesium !== 'undefined') {
@@ -184,35 +189,37 @@ class SuperSplatBridge {
         // Create a proxy to watch for layer state changes
         const originalLayerState = { ...window.layerState };
 
-        // Set up mutation observer for DOM changes that might indicate layer changes
-        const observer = new MutationObserver(() => {
-            // Check if layer state has changed
-            if (this.hasLayerStateChanged(originalLayerState)) {
-                console.log('🔄 Layer state changed, updating SuperSplat');
-                this.updateLayerStateInSuperSplat(window.layerState);
-                Object.assign(originalLayerState, window.layerState);
-            }
-        });
+        // DOM mutation observer disabled to prevent interference with direct SuperSplat polygon selection
+        // The observer was triggering unwanted re-renders that cleared selection state
+        // const observer = new MutationObserver(() => {
+        //     // Check if layer state has changed
+        //     if (this.hasLayerStateChanged(originalLayerState)) {
+        //         console.log('🔄 Layer state changed, updating SuperSplat');
+        //         this.updateLayerStateInSuperSplat(window.layerState);
+        //         Object.assign(originalLayerState, window.layerState);
+        //     }
+        // });
 
-        // Observe the layer controls panel for changes
-        const layerControls = document.getElementById('layerControls');
-        if (layerControls) {
-            observer.observe(layerControls, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                attributeOldValue: true
-            });
-        }
+        // // Observe the layer controls panel for changes
+        // const layerControls = document.getElementById('layerControls');
+        // if (layerControls) {
+        //     observer.observe(layerControls, {
+        //         childList: true,
+        //         subtree: true,
+        //         attributes: true,
+        //         attributeOldValue: true
+        //     });
+        // }
 
-        // Also set up periodic checking as fallback
-        setInterval(() => {
-            if (this.hasLayerStateChanged(originalLayerState)) {
-                console.log('🔄 Layer state changed (periodic check), updating SuperSplat');
-                this.updateLayerStateInSuperSplat(window.layerState);
-                Object.assign(originalLayerState, window.layerState);
-            }
-        }, 1000);
+        // Periodic checking disabled to prevent interference with direct SuperSplat polygon selection
+        // The periodic check was triggering unwanted re-renders that cleared selection state
+        // setInterval(() => {
+        //     if (this.hasLayerStateChanged(originalLayerState)) {
+        //         console.log('🔄 Layer state changed (periodic check), updating SuperSplat');
+        //         this.updateLayerStateInSuperSplat(window.layerState);
+        //         Object.assign(originalLayerState, window.layerState);
+        //     }
+        // }, 1000);
     }
 
     /**
@@ -342,11 +349,19 @@ class SuperSplatBridge {
                     return; // Skip remaining polygons
                 }
                 if (feature.geometry && feature.geometry.type === 'Polygon') {
-                    const name = feature.properties.name || `polygon_${index}`;
+                    const rawName = feature.properties.name || `polygon_${index}`;
 
                     // Skip reference points and test features
-                    if (/^\d+$/.test(name) || name.includes('Test ID')) {
+                    if (/^\d+$/.test(rawName) || rawName.includes('Test ID')) {
                         return;
+                    }
+
+                    // Parse the name to get the same format the UI uses
+                    let name = rawName;
+                    if (rawName.includes('PA') && (rawName.includes('=') || rawName.includes('"'))) {
+                        // Use the same parsing logic as layerControls.js
+                        const parsed = this.parseBoydName(rawName);
+                        name = parsed.description || parsed.id;
                     }
 
                     // Determine if plantable or non-plantable
@@ -402,23 +417,22 @@ class SuperSplatBridge {
                         // Style based on PA/NPA classification
                         const style = this.getPolygonStyle(isPlantable, polygonsRendered);
 
+                        // Assign group based on PA/NPA classification
+                        const group = isPlantable ? 'plantable-areas' : 'non-plantable-areas';
+
                         // Register polygon for tracking
                         this.polygonRegistry.push({
                             name: name,
                             isPlantable: isPlantable,
                             feature: feature,
                             vertices: vertices,
-                            visible: true // Set to true initially as requested
+                            visible: true, // Set to true initially as requested
+                            group: group
                         });
 
-                        // Render polygon in SuperSplat
-                        console.log('🔍 Attempting to render polygon:', name);
-                        console.log('🔍 window.superSplatScene exists:', !!window.superSplatScene);
-                        console.log('🔍 window.superSplatScene.events exists:', !!window.superSplatScene?.events);
+                        // Render polygon in SuperSplat (verbose logging removed)
 
                         if (window.superSplatScene && window.superSplatScene.events) {
-                            console.log('🔍 Available event methods:', Object.getOwnPropertyNames(window.superSplatScene.events));
-                            console.log('🔍 Calling triangleOverlay.addPolygon with vertices:', vertices.length);
 
                             // Try multiple event methods to find the working one
                             try {
@@ -426,55 +440,39 @@ class SuperSplatBridge {
 
                                 // Method 1: Try invoke (same as working bounds rectangle)
                                 if (typeof window.superSplatScene.events.invoke === 'function') {
-                                    console.log('🔍 Trying events.invoke() (same as bounds rectangle)...');
-                                    console.log('🔍 Event parameters:', {
-                                        vertices: vertices.length,
-                                        fillColor: style.fillColor,
-                                        fillAlpha: style.fillAlpha,
-                                        outlineColor: style.outlineColor,
-                                        name: name
-                                    });
-
                                     window.superSplatScene.events.invoke('triangleOverlay.addPolygon',
                                         vertices, style.fillColor, style.fillAlpha,
-                                        style.outlineColor, style.outlineThickness, name
+                                        style.outlineColor, style.outlineThickness, name, group
                                     );
-
-                                    console.log('🔍 After invoke() - expecting to see SuperSplat EVENT RECEIVED message...');
                                     success = true;
                                 }
 
                                 // Method 2: Try accessing function directly
                                 else if (window.superSplatScene.events.functions &&
                                          window.superSplatScene.events.functions['triangleOverlay.addPolygon']) {
-                                    console.log('🔍 Trying direct function call...');
                                     const addPolygonFunc = window.superSplatScene.events.functions['triangleOverlay.addPolygon'];
                                     addPolygonFunc(vertices, style.fillColor, style.fillAlpha,
-                                                  style.outlineColor, style.outlineThickness, name, true);
+                                                  style.outlineColor, style.outlineThickness, name, group);
                                     success = true;
                                 }
 
-                                // Method 3: Try invoke
+                                // Method 3: Try invoke (fallback)
                                 else if (typeof window.superSplatScene.events.invoke === 'function') {
-                                    console.log('🔍 Trying events.invoke()...');
                                     window.superSplatScene.events.invoke('triangleOverlay.addPolygon',
                                         vertices, style.fillColor, style.fillAlpha,
-                                        style.outlineColor, style.outlineThickness, name, true
+                                        style.outlineColor, style.outlineThickness, name, group
                                     );
                                     success = true;
                                 }
 
                                 if (success) {
-                                    console.log('✅ Event sent successfully for:', name);
                                     polygonsRendered++;
                                 } else {
-                                    console.error('❌ No working event method found');
-                                    console.log('🔍 Functions available:', Object.keys(window.superSplatScene.events.functions || {}));
+                                    console.error('❌ No working event method found for polygon:', name);
                                 }
 
                             } catch (error) {
-                                console.error('❌ Error sending event:', error);
-                                console.log('🔍 Event object:', window.superSplatScene.events);
+                                console.error('❌ Error sending polygon event for', name, ':', error);
                             }
                         } else {
                             console.error('❌ SuperSplat scene or events not available');
@@ -490,9 +488,33 @@ class SuperSplatBridge {
                 nonPlantableAreas: this.polygonRegistry.filter(p => !p.isPlantable).length
             });
 
+            // Trigger SuperSplat view update to show newly loaded polygons immediately
+            if (window.superSplatScene && polygonsRendered > 0) {
+                window.superSplatScene.forceRender = true;
+                console.log('🎨 Triggered SuperSplat view update for loaded polygons');
+            }
+
         } catch (error) {
             console.error('❌ Failed to render GeoJSON polygons:', error);
         }
+    }
+
+    /**
+     * Parse Boyd format feature names (same logic as layerControls.js)
+     */
+    parseBoydName(name) {
+        if (!name) return { id: null, description: null, number: null };
+
+        const match = name.match(/^(PA|NPA)(\d+)=?"?([^"]*)"?$/);
+        if (match) {
+            return {
+                id: match[1], // PA or NPA
+                number: match[2],
+                description: match[3].trim() || null
+            };
+        }
+
+        return { id: name, description: null, number: null };
     }
 
     /**
