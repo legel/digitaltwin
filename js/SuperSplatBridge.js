@@ -230,7 +230,23 @@ class SuperSplatBridge {
         const keys = ['showPlantableAreas', 'showNonPlantableAreas', 'showEcologicalMetrics',
                       'selectedMetric', 'selectedPA', 'selectedNPA'];
 
-        return keys.some(key => current[key] !== previousState[key]);
+        // Also check polygon arrays for changes
+        const arrayKeys = ['selectedPAPolygons', 'selectedNPAPolygons'];
+
+        // Check basic keys
+        const basicChanged = keys.some(key => current[key] !== previousState[key]);
+
+        // Check array keys by comparing their content
+        const arrayChanged = arrayKeys.some(key => {
+            const currentArray = current[key] || [];
+            const previousArray = previousState[key] || [];
+
+            if (currentArray.length !== previousArray.length) return true;
+
+            return currentArray.some((item, index) => item !== previousArray[index]);
+        });
+
+        return basicChanged || arrayChanged;
     }
 
     /**
@@ -356,13 +372,9 @@ class SuperSplatBridge {
                         return;
                     }
 
-                    // Parse the name to get the same format the UI uses
+                    // Always use the full GeoJSON name as unique identifier
+                    // SuperSplat needs unique polygon names, even if display names are the same
                     let name = rawName;
-                    if (rawName.includes('PA') && (rawName.includes('=') || rawName.includes('"'))) {
-                        // Use the same parsing logic as layerControls.js
-                        const parsed = this.parseBoydName(rawName);
-                        name = parsed.description || parsed.id;
-                    }
 
                     // Determine if plantable or non-plantable
                     const isPlantable = this.isPlantableFeature(feature, format);

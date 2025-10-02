@@ -1539,12 +1539,18 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                             return; // Skip this polygon
                         }
                     } else if (window.layerState?.showPlantableAreas) {
-                        // Check if this PA is selected
-                        const paName = parsed.description || parsed.id;
-                        if (paName && paName === window.layerState?.selectedPA) {
-                            // Use thicker outline for selected PA
+                        // Check if this polygon is in the selected PA's polygon list
+                        const polygonName = feature.properties.name;
+                        const isSelected = window.layerState?.selectedPAPolygons?.includes(polygonName);
+
+                        if (isSelected) {
+                            // Use thicker outline for selected PA polygons
                             outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
                             outlineWidth = window.layerSettings?.plantableAreas.selectedOutlineWidth || 10;
+                        } else if (window.layerState?.selectedPA === null) {
+                            // "All" selected - use thin outline for all
+                            outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
+                            outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
                         } else {
                             // Use thin white outline for unselected areas
                             outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
@@ -1595,11 +1601,18 @@ function visualizeGeoJsonPolygons(geoJsonData) {
                     
                     // Apply NPA layer settings
                     if (window.layerState?.showNonPlantableAreas) {
-                        const npaCategory = extractNPACategory(feature.properties.name);
-                        if (npaCategory && npaCategory === window.layerState?.selectedNPA) {
-                            // Use thicker outline for selected NPA
+                        // Check if this polygon is in the selected NPA's polygon list
+                        const polygonName = feature.properties.name;
+                        const isSelected = window.layerState?.selectedNPAPolygons?.includes(polygonName);
+
+                        if (isSelected) {
+                            // Use thicker outline for selected NPA polygons
                             outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
                             outlineWidth = window.layerSettings?.nonPlantableAreas.selectedOutlineWidth || 10;
+                        } else if (window.layerState?.selectedNPA === null) {
+                            // "All" selected - use thin outline for all
+                            outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
+                            outlineWidth = window.layerSettings?.nonPlantableAreas.outlineWidth || 2;
                         } else {
                             // Use thin red outline for unselected NPAs
                             outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
