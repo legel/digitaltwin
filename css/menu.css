@@ -24,6 +24,12 @@
     max-height: calc(100vh - 240px); /* Aggressive reduction to prevent overflow past screen bottom */
 }
 
+/* Adjust focus panel positioning in SuperSplat mode to avoid rotation cube */
+.supersplat-mode .focus-panel {
+    top: 120px; /* Match control panel positioning for SuperSplat rotation cube clearance */
+    bottom: 120px; /* Adjust bottom to maintain panel height */
+}
+
 /* Control groups */
 .control-group {
     display: flex;
