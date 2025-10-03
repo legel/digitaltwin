@@ -589,11 +589,12 @@ class SuperSplatManager {
             console.error('❌ layerControls element not found in DOM');
         }
 
-        // Hide focus panel if open
-        const focusPanel = document.getElementById('focusPanel');
-        if (focusPanel) {
-            focusPanel.style.display = 'none';
-        }
+        // Note: Focus panel is now allowed to show in SuperSplat Lab mode
+        // (Previously hidden when Cesium mode was still supported)
+        // const focusPanel = document.getElementById('focusPanel');
+        // if (focusPanel) {
+        //     focusPanel.style.display = 'none';
+        // }
 
         // Make Ecodash logo visible (white color for Lab mode)
         const logo = document.getElementById('logo');

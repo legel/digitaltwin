@@ -17,6 +17,13 @@ window.layerState = {
     categorizedPAs: new Map() // Map of category -> array of PAs
 };
 
+// Toggle tracking variables for detecting re-clicks on radio buttons
+window.uiToggleState = {
+    currentSelectedMetric: null,
+    currentSelectedPA: null,
+    currentSelectedNPA: null
+};
+
 // Default visualization settings for different layer types
 const layerSettings = {
     plantableAreas: {
@@ -77,12 +84,46 @@ const paCategoryColors = [
 
 /**
  * Clears all selected polygons and resets selection state
+ * This includes PA selections, NPA selections, AND environmental metric selections
  */
 function clearAllPolygonSelections() {
+    console.log(`🔧 clearAllPolygonSelections() called - currentSelectedPA was: "${window.uiToggleState?.currentSelectedPA}"`);
+
+    // Clear JavaScript state for all selection types
     window.layerState.selectedPA = null;
     window.layerState.selectedPAPolygons = [];
     window.layerState.selectedNPA = null;
     window.layerState.selectedNPAPolygons = [];
+
+    // Clear environmental metric state
+    window.layerState.selectedMetric = null;
+    window.layerState.showEcologicalMetrics = false;
+
+    // Clear toggle tracking state
+    window.uiToggleState.currentSelectedMetric = null;
+    window.uiToggleState.currentSelectedPA = null;
+    window.uiToggleState.currentSelectedNPA = null;
+
+    // Clear environmental metric UI (uncheck radio buttons)
+    document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
+
+    // Remove color legend if present
+    const existingLegend = document.getElementById('colorLegend');
+    if (existingLegend) {
+        existingLegend.remove();
+        console.log('🔹 Color legend removed');
+    }
+
+    // Also deselect all polygons in SuperSplat to restore visual properties
+    // This restores ALL polygons to their default state regardless of selection type
+    if (window.superSplatScene && window.superSplatScene.events) {
+        try {
+            window.superSplatScene.events.invoke('triangleOverlay.deselectAllPolygons');
+            console.log('🔹 All SuperSplat polygons deselected (PA, NPA, and environmental metric properties restored)');
+        } catch (error) {
+            console.warn('Failed to deselect SuperSplat polygons:', error);
+        }
+    }
 }
 
 /**
@@ -150,12 +191,20 @@ function findPolygonsForNPACategory(npaCategory, geoJsonData) {
  * @param {Object} geoJsonData - The GeoJSON data to search through
  */
 function selectPAArea(paAreaName, geoJsonData) {
-    // Clear all previous selections
-    clearAllPolygonSelections();
-
+    // Note: clearAllPolygonSelections() is now handled by the click handlers
     // Set new PA selection
     window.layerState.selectedPA = paAreaName;
     window.layerState.selectedPAPolygons = findPolygonsForPAArea(paAreaName, geoJsonData);
+
+    // Apply visual selection in SuperSplat
+    if (window.superSplatScene && window.superSplatScene.events && window.layerState.selectedPAPolygons.length > 0) {
+        try {
+            window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', window.layerState.selectedPAPolygons);
+            console.log(`🎯 PA area "${paAreaName}" visually selected in SuperSplat (${window.layerState.selectedPAPolygons.length} polygons)`);
+        } catch (error) {
+            console.warn('Failed to apply PA visual selection:', error);
+        }
+    }
 
     console.log(`🎯 Selected PA area "${paAreaName}" with ${window.layerState.selectedPAPolygons.length} polygons:`, window.layerState.selectedPAPolygons);
 }
@@ -166,14 +215,247 @@ function selectPAArea(paAreaName, geoJsonData) {
  * @param {Object} geoJsonData - The GeoJSON data to search through
  */
 function selectNPACategory(npaCategory, geoJsonData) {
-    // Clear all previous selections
-    clearAllPolygonSelections();
-
+    // Note: clearAllPolygonSelections() is now handled by the click handlers
     // Set new NPA selection
     window.layerState.selectedNPA = npaCategory;
     window.layerState.selectedNPAPolygons = findPolygonsForNPACategory(npaCategory, geoJsonData);
 
+    // Apply visual selection in SuperSplat
+    if (window.superSplatScene && window.superSplatScene.events && window.layerState.selectedNPAPolygons.length > 0) {
+        try {
+            window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', window.layerState.selectedNPAPolygons);
+            console.log(`🎯 NPA category "${npaCategory}" visually selected in SuperSplat (${window.layerState.selectedNPAPolygons.length} polygons)`);
+        } catch (error) {
+            console.warn('Failed to apply NPA visual selection:', error);
+        }
+    }
+
     console.log(`🎯 Selected NPA category "${npaCategory}" with ${window.layerState.selectedNPAPolygons.length} polygons:`, window.layerState.selectedNPAPolygons);
+}
+
+/**
+ * Finds all plantable area polygons for environmental metrics visualization
+ * @param {Object} geoJsonData - The GeoJSON data to search through
+ * @returns {Array} Array of all plantable area polygon names
+ */
+function findAllPlantablePolygons(geoJsonData) {
+    if (!geoJsonData || !geoJsonData.features) return [];
+
+    const plantablePolygons = [];
+    geoJsonData.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+            // Check if this is a plantable area by calling the utility function
+            const isPlantable = window.getBoydFeatureCategory ?
+                window.getBoydFeatureCategory(feature) === 'plantable' :
+                isPlantableFeature(feature, 'boyd');
+
+            if (isPlantable) {
+                plantablePolygons.push(feature.properties.name);
+            }
+        }
+    });
+
+    return plantablePolygons;
+}
+
+/**
+ * Clears current environmental metric selection and restores default state
+ */
+function clearEnvironmentalMetricSelection() {
+    // Clear all selections (this handles both state and visual restoration)
+    clearAllPolygonSelections();
+
+    // Clear environmental metric UI
+    document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
+
+    // Remove color legend if present (redundant with clearAllPolygonSelections but explicit)
+    const existingLegend = document.getElementById('colorLegend');
+    if (existingLegend) {
+        existingLegend.remove();
+        console.log('🔹 Environmental metric color legend removed');
+    }
+
+    // Force immediate SuperSplat polygon update
+    if (window.superSplatScene) {
+        window.superSplatScene.forceRender = true;
+    }
+
+    console.log('🔹 Environmental metric selection cleared - all polygons restored to defaults');
+}
+
+/**
+ * Clears current PA selection and restores default state
+ */
+function clearPASelection() {
+    // Clear all selections (this handles both state and visual restoration)
+    clearAllPolygonSelections();
+
+    // Clear PA UI
+    document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
+    window.layerState.showPlantableAreas = false;
+
+    // Force immediate SuperSplat polygon update
+    if (window.superSplatScene) {
+        window.superSplatScene.forceRender = true;
+    }
+
+    console.log('🔹 PA selection cleared - all polygons restored to defaults');
+}
+
+/**
+ * Clears current NPA selection and restores default state
+ */
+function clearNPASelection() {
+    // Clear all selections (this handles both state and visual restoration)
+    clearAllPolygonSelections();
+
+    // Clear NPA UI
+    document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
+    window.layerState.showNonPlantableAreas = false;
+
+    // Force immediate SuperSplat polygon update
+    if (window.superSplatScene) {
+        window.superSplatScene.forceRender = true;
+    }
+
+    console.log('🔹 NPA selection cleared - all polygons restored to defaults');
+}
+
+/**
+ * Processes environmental metric values and generates color mapping for SuperSplat
+ * @param {string} metricName - Name of the environmental metric
+ * @param {Object} geoJsonData - The GeoJSON data to search through
+ * @returns {Object} - Object containing polygon color mappings and stats
+ */
+function processEnvironmentalMetricColors(metricName, geoJsonData) {
+    const polygonColorMap = {};
+    const parameterValues = [];
+
+    // Find all plantable polygons and extract their metric values
+    geoJsonData.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+            const isPlantable = window.getBoydFeatureCategory ?
+                window.getBoydFeatureCategory(feature) === 'plantable' :
+                false;
+
+            if (isPlantable && feature.properties.name) {
+                const boydData = window.parseBoydEcologicalData(feature.properties.description || '');
+                const paramValue = boydData[metricName];
+
+                if (paramValue && paramValue !== 'Unknown') {
+                    const numericValue = window.parseParameterValue(paramValue, metricName);
+                    parameterValues.push(numericValue);
+                    polygonColorMap[feature.properties.name] = {
+                        value: numericValue,
+                        rawValue: paramValue
+                    };
+                }
+            }
+        }
+    });
+
+    // Calculate min/max for color scaling
+    const minValue = parameterValues.length > 0 ? Math.min(...parameterValues) : 0;
+    const maxValue = parameterValues.length > 0 ? Math.max(...parameterValues) : 1;
+
+    // Generate colors using the existing Cesium color logic adapted for SuperSplat
+    Object.keys(polygonColorMap).forEach(polygonName => {
+        const data = polygonColorMap[polygonName];
+        const normalized = maxValue > minValue ? (data.value - minValue) / (maxValue - minValue) : 0.5;
+
+        let colorInfo;
+        if (metricName === 'moisture') {
+            // Use discrete moisture colors
+            const moistureColors = [
+                { r: 68, g: 1, b: 84 },    // viridis(0.1) - dry
+                { r: 59, g: 82, b: 139 },  // viridis(0.3) - dry-moderate
+                { r: 33, g: 145, b: 140 }, // viridis(0.5) - moderate
+                { r: 94, g: 201, b: 98 },  // viridis(0.7) - moderate-wet
+                { r: 253, g: 231, b: 37 }  // viridis(0.9) - wet
+            ];
+            const colorIndex = Math.round(normalized * 4);
+            colorInfo = moistureColors[Math.min(colorIndex, 4)];
+        } else {
+            // Use continuous Viridis colormap for other metrics
+            const viridisRgb = window.viridisColormap(normalized);
+            colorInfo = {
+                r: Math.round(viridisRgb[0] * 255),
+                g: Math.round(viridisRgb[1] * 255),
+                b: Math.round(viridisRgb[2] * 255)
+            };
+        }
+
+        polygonColorMap[polygonName].color = colorInfo;
+    });
+
+    return {
+        polygonColorMap,
+        minValue,
+        maxValue,
+        totalPolygons: Object.keys(polygonColorMap).length
+    };
+}
+
+/**
+ * Selects environmental metrics and applies metric-based colors to plantable polygons
+ * @param {string} metricName - Name of the environmental metric
+ * @param {Object} geoJsonData - The GeoJSON data to search through
+ */
+function selectEnvironmentalMetric(metricName, geoJsonData) {
+    // Note: clearAllPolygonSelections() is now handled by the click handlers
+    // Set new environmental metric selection
+    window.layerState.selectedMetric = metricName;
+    window.layerState.showEcologicalMetrics = true;
+
+    // Process environmental metric data and generate colors
+    const metricData = processEnvironmentalMetricColors(metricName, geoJsonData);
+    console.log(`🎯 Selected environmental metric "${metricName}" - processed ${metricData.totalPolygons} polygons (range: ${metricData.minValue.toFixed(2)} - ${metricData.maxValue.toFixed(2)})`);
+
+    // Apply metric-based colors via SuperSplat
+    if (window.superSplatScene && window.superSplatScene.events && metricData.totalPolygons > 0) {
+        try {
+            // Show plantable areas group
+            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
+            console.log('🔹 Plantable areas group shown for environmental metrics');
+
+            // Group polygons by color to minimize SuperSplat calls
+            const colorGroups = {};
+            Object.keys(metricData.polygonColorMap).forEach(polygonName => {
+                const colorInfo = metricData.polygonColorMap[polygonName].color;
+                const colorKey = `${colorInfo.r},${colorInfo.g},${colorInfo.b}`;
+
+                if (!colorGroups[colorKey]) {
+                    colorGroups[colorKey] = {
+                        polygons: [],
+                        color: colorInfo
+                    };
+                }
+                colorGroups[colorKey].polygons.push(polygonName);
+            });
+
+            // Apply colors to each group
+            Object.keys(colorGroups).forEach(colorKey => {
+                const group = colorGroups[colorKey];
+                const hexColor = `#${group.color.r.toString(16).padStart(2, '0')}${group.color.g.toString(16).padStart(2, '0')}${group.color.b.toString(16).padStart(2, '0')}`;
+
+                window.superSplatScene.events.invoke('triangleOverlay.selectEnvironmentalMetricPolygons',
+                    group.polygons, hexColor);
+
+                console.log(`🎨 Applied color ${hexColor} to ${group.polygons.length} polygons`);
+            });
+
+            // Create color legend for the environmental metric
+            if (window.createColorLegend) {
+                window.createColorLegend(metricName, metricData.minValue, metricData.maxValue);
+                console.log(`📊 Created color legend for ${metricName} (${metricData.minValue.toFixed(2)} - ${metricData.maxValue.toFixed(2)})`);
+            }
+
+        } catch (error) {
+            console.warn('Failed to apply environmental metric colors:', error);
+        }
+    } else if (metricData.totalPolygons === 0) {
+        console.warn(`⚠️ No plantable polygons found with ${metricName} data`);
+    }
 }
 
 /**
@@ -465,10 +747,19 @@ function setupPlantableAreaControls() {
                 window.layerState.showEcologicalMetrics = false;
                 window.layerState.selectedMetric = null;
                 document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
+
+                // Remove color legend when switching away from environmental metrics
+                const existingLegend = document.getElementById('colorLegend');
+                if (existingLegend) {
+                    existingLegend.remove();
+                    console.log('🔹 Color legend removed (switched away from metrics)');
+                }
             }
             
-            // Reset any selected radio
-            document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
+            // Reset any selected radio but restore current selection if active
+            document.querySelectorAll('input[name="plantableArea"]').forEach(r => {
+                r.checked = (r.value === window.uiToggleState.currentSelectedPA);
+            });
         } else {
             // Closing dropdown
             updatedSubOptions.style.display = 'none';
@@ -532,10 +823,19 @@ function setupNonPlantableAreaControls() {
                 window.layerState.showEcologicalMetrics = false;
                 window.layerState.selectedMetric = null;
                 document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
+
+                // Remove color legend when switching away from environmental metrics
+                const existingLegend = document.getElementById('colorLegend');
+                if (existingLegend) {
+                    existingLegend.remove();
+                    console.log('🔹 Color legend removed (switched away from metrics)');
+                }
             }
             
-            // Reset any selected radio
-            document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
+            // Reset any selected radio but restore current selection if active
+            document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => {
+                r.checked = (r.value === window.uiToggleState.currentSelectedNPA);
+            });
         } else {
             // Closing dropdown
             updatedSubOptions.style.display = 'none';
@@ -580,6 +880,11 @@ function setupEcologicalMetricsControls() {
             // Show this dropdown
             metricsOptions.style.display = 'block';
             newToggle.classList.add('expanded');
+
+            // Restore current environmental metric selection visual state
+            document.querySelectorAll('input[name="metric"]').forEach(r => {
+                r.checked = (r.value === window.uiToggleState.currentSelectedMetric);
+            });
         } else {
             // Closing dropdown
             metricsOptions.style.display = 'none';
@@ -587,27 +892,36 @@ function setupEcologicalMetricsControls() {
         }
     });
     
-    // Metric radio buttons
+    // Metric radio buttons with toggle functionality
     document.querySelectorAll('input[name="metric"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.checked) {
-                window.layerState.selectedMetric = this.value;
-                window.layerState.showEcologicalMetrics = true;
-
-                // Deselect all PA and NPA selections
-                clearAllPolygonSelections();
-                window.layerState.showPlantableAreas = false;
-                window.layerState.showNonPlantableAreas = false;
-                
-                // Update UI to reflect deselection
-                const allPARadio = document.querySelector('input[name="plantableArea"][value="all"]');
-                if (allPARadio) allPARadio.click();
-                const allNPARadio = document.querySelector('input[name="nonPlantableArea"][value="all"]');
-                if (allNPARadio) allNPARadio.click();
-
-                // Skip updateVisualization() to prevent re-rendering that clears selection state
-                // updateVisualization(); // Commented out - causes unwanted re-renders
+        radio.addEventListener('click', function(event) {
+            // Simple toggle logic: if already checked, uncheck and deselect
+            if (window.uiToggleState.currentSelectedMetric === this.value) {
+                this.checked = false;
+                window.uiToggleState.currentSelectedMetric = null;
+                clearEnvironmentalMetricSelection();
+                return;
             }
+
+            // New selection: clear all previous selections first
+            clearAllPolygonSelections();
+            window.uiToggleState.currentSelectedMetric = this.value;
+
+            // Clear focus panel when switching to environmental metrics
+            if (window.clearPAConnection) {
+                window.clearPAConnection();
+            }
+
+            // Re-check this button since clearAllPolygonSelections() unchecked it
+            this.checked = true;
+
+            selectEnvironmentalMetric(this.value, window.currentSiteData);
+
+            // Deselect other layer types
+            window.layerState.showPlantableAreas = false;
+            window.layerState.showNonPlantableAreas = false;
+            document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
+            document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
         });
     });
 }
@@ -727,85 +1041,102 @@ function populatePACategories(categories, categorizedPAs) {
         group.appendChild(title);
         
         const pas = categorizedPAs.get(categoryName);
+
         pas.forEach(({ name, data }) => {
             const label = document.createElement('label');
             label.className = 'pa-category';
-            
+
             const radio = document.createElement('input');
             radio.type = 'radio';
             radio.name = 'plantableArea';
             radio.value = name;
-            
+
             // No need for hidden radio anymore since we have "All" option
-            
+
             const number = document.createElement('span');
             number.className = 'pa-number';
             number.textContent = `#${paIndex}`;
             paIndex++;
-            
+
             const text = document.createElement('span');
             text.textContent = name;
             text.title = name; // Show full text on hover if truncated
-            
+
             label.appendChild(radio);
             label.appendChild(number);
             label.appendChild(text);
-            
-            radio.addEventListener('change', function() {
-                if (this.checked) {
-                    // Use the new helper function to select PA area and its polygons
-                    selectPAArea(name, window.currentSiteData);
-                    window.layerState.showPlantableAreas = true;
 
-                    // Deselect ecological metrics and NPAs
-                    if (window.layerState.showEcologicalMetrics) {
-                        window.layerState.showEcologicalMetrics = false;
-                        window.layerState.selectedMetric = null;
-                        document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
-                    }
+            radio.addEventListener('click', function(event) {
+                console.log(`🔧 PA CLICK: "${this.value}", currentSelected: "${window.uiToggleState.currentSelectedPA}", checked: ${this.checked}`);
 
-                    // Deselect any NPA
-                    if (window.layerState.showNonPlantableAreas) {
-                        window.layerState.showNonPlantableAreas = false;
-                        document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
-                    }
+                // Simple toggle logic: if already checked, uncheck and deselect
+                if (window.uiToggleState.currentSelectedPA === this.value) {
+                    console.log(`🔧 TOGGLING OFF: "${this.value}"`);
+                    this.checked = false;
+                    window.uiToggleState.currentSelectedPA = null;
+                    clearPASelection();
+                    return;
+                }
 
-                    // Show plantable areas group and select all polygons for this PA in SuperSplat
-                    if (window.superSplatScene && window.superSplatScene.events) {
-                        try {
-                            // Show plantable areas group
-                            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
-                            console.log('🔹 Plantable areas group shown in SuperSplat');
+                // New selection: clear all previous selections first
+                console.log(`🔧 NEW SELECTION: "${this.value}"`);
+                clearAllPolygonSelections();
+                window.uiToggleState.currentSelectedPA = this.value;
 
-                            // Select all polygons for this PA area
-                            const selectedPolygons = window.layerState.selectedPAPolygons || [];
-                            if (selectedPolygons.length > 0) {
-                                window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
-                                console.log(`🎯 SuperSplat PA area "${name}" selected (${selectedPolygons.length} polygons)`);
-                            }
-                        } catch (error) {
-                            console.warn('Failed to select SuperSplat PA polygons:', error);
+                // Use the new helper function to select PA area and its polygons
+                selectPAArea(name, window.currentSiteData);
+                window.layerState.showPlantableAreas = true;
+
+                // Deselect ecological metrics and NPAs
+                if (window.layerState.showEcologicalMetrics) {
+                    window.layerState.showEcologicalMetrics = false;
+                    window.layerState.selectedMetric = null;
+                    document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
+                }
+
+                // Deselect any NPA
+                if (window.layerState.showNonPlantableAreas) {
+                    window.layerState.showNonPlantableAreas = false;
+                    document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
+                }
+
+                // Show plantable areas group and select all polygons for this PA in SuperSplat
+                if (window.superSplatScene && window.superSplatScene.events) {
+                    try {
+                        // Show plantable areas group
+                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
+                        console.log('🔹 Plantable areas group shown in SuperSplat');
+
+                        // Select all polygons for this PA area
+                        const selectedPolygons = window.layerState.selectedPAPolygons || [];
+                        if (selectedPolygons.length > 0) {
+                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
+                            console.log(`🎯 SuperSplat PA area "${name}" selected (${selectedPolygons.length} polygons)`);
                         }
-                    }
-
-                    // Skip updateVisualization() to preserve SuperSplat polygon selection state
-                    // updateVisualization(); // Commented out - this was clearing selection state
-                    // Zoom to the selected PA
-                    zoomToFeature(name, 'PA');
-
-                    // Orchestrate the focus panel animation sequence
-                    if (window.focusPanel && window.currentSiteData) {
-                        const paFeature = window.currentSiteData.features.find(f => {
-                            const parsed = parseBoydName(f.properties.name);
-                            return (parsed.description || parsed.id) === name;
-                        });
-                        if (paFeature) {
-                            // Update highlighting is now done inside the animation
-                            updateSelectedPAHighlight(name);
-                            orchestrateFocusAnimation(label, name, paFeature);
-                        }
+                    } catch (error) {
+                        console.warn('Failed to select SuperSplat PA polygons:', error);
                     }
                 }
+
+                // Trigger focus panel animation for the selected PA
+                if (window.focusPanel && window.currentSiteData) {
+                    const paFeature = window.currentSiteData.features.find(f => {
+                        const parsed = parseBoydName(f.properties.name);
+                        return (parsed.description || parsed.id) === name;
+                    });
+                    if (paFeature) {
+                        console.log(`🎬 Triggering focus panel animation for PA: ${name}`);
+                        updateSelectedPAHighlight(name);
+                        orchestrateFocusAnimation(label, name, paFeature);
+                    }
+                }
+
+                // Skip updateVisualization() to preserve SuperSplat polygon selection state
+                // updateVisualization(); // Commented out - this was clearing selection state
+                // Zoom to the selected PA
+                zoomToFeature(name, 'PA');
+
+                // Note: Focus panel animation is already triggered above in the radio button handler
             });
             
             group.appendChild(label);
@@ -962,55 +1293,67 @@ function populateNPACategories(categories) {
         label.appendChild(number);
         label.appendChild(text);
         
-        radio.addEventListener('change', function() {
-            if (this.checked) {
-                // Use the new helper function to select NPA category and its polygons
-                selectNPACategory(category, window.currentSiteData);
-                window.layerState.showNonPlantableAreas = true;
-
-                // Deselect ecological metrics and PAs
-                if (window.layerState.showEcologicalMetrics) {
-                    window.layerState.showEcologicalMetrics = false;
-                    window.layerState.selectedMetric = null;
-                    document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
-                }
-
-                // Deselect any PA
-                if (window.layerState.showPlantableAreas) {
-                    window.layerState.showPlantableAreas = false;
-                    document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
-                }
-
-                // Show non-plantable areas group and select first polygon in this category
-                if (window.superSplatScene && window.superSplatScene.events && window.currentSiteData) {
-                    try {
-                        // Show non-plantable areas group
-                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', true);
-                        console.log('🔹 Non-plantable areas group shown in SuperSplat');
-
-                        // Find first NPA in this category for selection
-                        const npaFeatures = window.currentSiteData.features.filter(f => {
-                            if (!f.properties.name || !f.properties.name.includes('NPA')) return false;
-                            const extractedCategory = extractNPACategory(f.properties.name);
-                            return extractedCategory === category;
-                        });
-
-                        // Select all polygons for this NPA category
-                        const selectedPolygons = window.layerState.selectedNPAPolygons || [];
-                        if (selectedPolygons.length > 0) {
-                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
-                            console.log(`🎯 SuperSplat NPA category "${category}" selected (${selectedPolygons.length} polygons)`);
-                        }
-                    } catch (error) {
-                        console.warn('Failed to show/select SuperSplat NPA polygons:', error);
-                    }
-                }
-
-                // Skip updateVisualization() to preserve SuperSplat polygon selection state
-                // updateVisualization(); // Commented out - this was clearing selection state
-                // Zoom to all features in this NPA category
-                zoomToNPACategory(category);
+        radio.addEventListener('click', function(event) {
+            // Simple toggle logic: if already checked, uncheck and deselect
+            if (window.uiToggleState.currentSelectedNPA === this.value) {
+                this.checked = false;
+                window.uiToggleState.currentSelectedNPA = null;
+                clearNPASelection();
+                return;
             }
+
+            // New selection: clear all previous selections first
+            clearAllPolygonSelections();
+            window.uiToggleState.currentSelectedNPA = this.value;
+
+            // Use the new helper function to select NPA category and its polygons
+            selectNPACategory(category, window.currentSiteData);
+            window.layerState.showNonPlantableAreas = true;
+
+            // Deselect ecological metrics and PAs
+            if (window.layerState.showEcologicalMetrics) {
+                window.layerState.showEcologicalMetrics = false;
+                window.layerState.selectedMetric = null;
+                document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
+            }
+
+            // Deselect any PA
+            if (window.layerState.showPlantableAreas) {
+                window.layerState.showPlantableAreas = false;
+                document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
+            }
+
+            // Show non-plantable areas group and select first polygon in this category
+            if (window.superSplatScene && window.superSplatScene.events && window.currentSiteData) {
+                try {
+                    // Show non-plantable areas group
+                    window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', true);
+                    console.log('🔹 Non-plantable areas group shown in SuperSplat');
+
+                    // Find first NPA in this category for selection
+                    const npaFeatures = window.currentSiteData.features.filter(f => {
+                        if (!f.properties.name || !f.properties.name.includes('NPA')) return false;
+                        const extractedCategory = extractNPACategory(f.properties.name);
+                        return extractedCategory === category;
+                    });
+
+                    // Select all polygons for this NPA category
+                    const selectedPolygons = window.layerState.selectedNPAPolygons || [];
+                    if (selectedPolygons.length > 0) {
+                        window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
+                        console.log(`🎯 SuperSplat NPA category "${category}" selected (${selectedPolygons.length} polygons)`);
+                    }
+                } catch (error) {
+                    console.warn('Failed to show/select SuperSplat NPA polygons:', error);
+                }
+            }
+
+            // Note: NPAs do not show flyouts as they don't have environmental metrics
+
+            // Skip updateVisualization() to preserve SuperSplat polygon selection state
+            // updateVisualization(); // Commented out - this was clearing selection state
+            // Zoom to all features in this NPA category
+            zoomToNPACategory(category);
         });
         
         container.appendChild(label);
@@ -1428,10 +1771,13 @@ function startFocusAnimation(label, paName, paFeature) {
     setTimeout(() => {
         // Phase 1: Extend connection line
         createAnimatedConnectionLine(label, () => {
+            console.log('🔗 Connection line animation completed, starting vertical edge...');
             // Phase 2: Create vertical edge line
             createVerticalEdge(() => {
+                console.log('📏 Vertical edge animation completed, expanding to focus panel...');
                 // Phase 3: Expand edge to oval and reveal content
                 expandToFocusPanel(paName, paFeature, () => {
+                    console.log('📋 Focus panel expansion completed');
                     currentAnimationState.isAnimating = false;
                 });
             });
@@ -1534,6 +1880,7 @@ function createAnimatedConnectionLine(paLabel, callback) {
                     line.style.width = `${lineWidth}px`;
                 }
                 setTimeout(() => {
+                    console.log('🔗 Connection line setTimeout callback executed, calling next phase...');
                     if (callback) callback();
                 }, 300);
             } catch (error) {
@@ -1552,6 +1899,7 @@ function createAnimatedConnectionLine(paLabel, callback) {
  * Creates vertical edge at the end of connection line
  */
 function createVerticalEdge(callback) {
+    console.log('📏 Creating vertical edge...');
     const edge = document.createElement('div');
     edge.className = 'focus-edge animated';
     edge.style.position = 'fixed';
@@ -1571,7 +1919,10 @@ function createVerticalEdge(callback) {
         const targetHeight = window.innerHeight - 200; // 100px margins
         edge.style.height = `${targetHeight}px`;
         edge.style.top = '100px';
-        setTimeout(callback, 300);
+        setTimeout(() => {
+            console.log('📏 Vertical edge animation completed, calling next phase...');
+            callback();
+        }, 300);
     });
 }
 
@@ -1579,6 +1930,7 @@ function createVerticalEdge(callback) {
  * Expands vertical edge into full focus panel
  */
 function expandToFocusPanel(paName, paFeature, callback) {
+    console.log('📋 Expanding to focus panel for PA:', paName);
     // Remove the vertical edge
     if (currentAnimationState.verticalEdge) {
         currentAnimationState.verticalEdge.remove();
@@ -1586,12 +1938,20 @@ function expandToFocusPanel(paName, paFeature, callback) {
     
     // Ensure focus panel exists (recreate if it was removed)
     if (!window.focusPanel.panel || !document.body.contains(window.focusPanel.panel)) {
+        console.log('📋 Focus panel missing, initializing...');
         window.focusPanel.init();
     }
-    
+
     // Get focus panel reference
     const panel = window.focusPanel.panel;
-    
+    console.log('📋 Panel reference:', panel ? 'Found' : 'NULL', 'isInDOM:', panel ? document.body.contains(panel) : false);
+
+    if (!panel) {
+        console.error('❌ Focus panel could not be created or found!');
+        if (callback) callback();
+        return;
+    }
+
     // Temporarily remove visible class to prevent ghost appearance
     panel.classList.remove('visible');
     panel.classList.add('animating-in');
@@ -1600,16 +1960,33 @@ function expandToFocusPanel(paName, paFeature, callback) {
     // Panel width is 420px, so its right edge should be at lineEndX
     const panelWidth = 420;
     const panelLeft = currentAnimationState.lineEndX - panelWidth;
-    
+
+    console.log('📋 Panel positioning:', {
+        lineEndX: currentAnimationState.lineEndX,
+        panelWidth,
+        panelLeft,
+        windowWidth: window.innerWidth
+    });
+
     // Hide panel initially to prevent position jump
     panel.style.visibility = 'hidden';
     panel.style.opacity = '1'; // Keep opacity for the scale animation
-    
-    // Override default CSS position temporarily
-    panel.style.left = `${panelLeft}px`;
-    panel.style.right = 'auto';
+
+    // Override default CSS position temporarily - use !important to override CSS
+    panel.style.setProperty('left', `${panelLeft}px`, 'important');
+    panel.style.setProperty('right', 'auto', 'important');
+    panel.style.transition = 'none'; // Clear any existing transitions
     panel.style.transform = 'scaleX(0)';
-    panel.style.transformOrigin = 'right center';
+    panel.style.transformOrigin = 'left center';
+
+    console.log('📋 Panel computed styles:', {
+        left: panel.style.left,
+        right: panel.style.right,
+        transform: panel.style.transform,
+        visibility: panel.style.visibility,
+        display: getComputedStyle(panel).display,
+        position: getComputedStyle(panel).position
+    });
     
     // Populate panel content without triggering visibility
     window.focusPanel.currentPA = paName;
@@ -1636,23 +2013,41 @@ function expandToFocusPanel(paName, paFeature, callback) {
     
     // Make panel visible and animate expansion in next frame
     requestAnimationFrame(() => {
+        console.log('📋 Making panel visible and starting expansion...');
         panel.style.visibility = 'visible';
+        panel.style.opacity = '1'; // Force opacity to 1 to override CSS
         panel.classList.add('visible'); // Add visible class now that positioning is set
         panel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-        
+
+        console.log('📋 Panel final pre-animation state:', {
+            boundingRect: panel.getBoundingClientRect(),
+            offsetWidth: panel.offsetWidth,
+            offsetHeight: panel.offsetHeight,
+            scrollWidth: panel.scrollWidth,
+            scrollHeight: panel.scrollHeight
+        });
+
         requestAnimationFrame(() => {
+            console.log('📋 Animating panel scale from 0 to 1...');
             panel.style.transform = 'scaleX(1)';
+
+            // Log final state after transform
+            setTimeout(() => {
+                console.log('📋 Panel final post-animation state:', {
+                    boundingRect: panel.getBoundingClientRect(),
+                    finalTransform: getComputedStyle(panel).transform
+                });
+            }, 100);
         });
         
         setTimeout(() => {
             panel.classList.remove('animating-in');
-            // Reset to default CSS positioning
-            panel.style.left = '';
-            panel.style.right = '';
+            // Reset animation properties but KEEP positioning fixes
             panel.style.transform = '';
             panel.style.transformOrigin = '';
             panel.style.transition = '';
             panel.style.visibility = '';
+            // DON'T reset left/right - keep the !important positioning fixes
             if (callback) callback();
         }, 400);
     });
@@ -1804,3 +2199,4 @@ window.updateSelectedPAHighlight = updateSelectedPAHighlight;
 window.createPAConnection = createPAConnection;
 window.clearPAConnection = clearPAConnection;
 window.orchestrateFocusAnimation = orchestrateFocusAnimation;
+
