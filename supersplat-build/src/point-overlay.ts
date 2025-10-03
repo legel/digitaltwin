@@ -453,21 +453,25 @@ class Polygon {
 
     /**
      * Update polygon properties and re-triangulate
+     * NOTE: This updates current properties but preserves original base properties for restoration
      */
     updateProperties(data: Partial<PolygonData>) {
         if (data.vertices) this.vertices = data.vertices.map(v => v.clone());
         if (data.color) {
             this.color = data.color.clone();
-            this.baseFillColor = data.color.clone(); // Update base fill color too
+            // DO NOT update baseFillColor - preserve original for restoration
         }
         if (data.fillAlpha !== undefined) {
             this.fillAlpha = data.fillAlpha;
-            this.baseFillAlpha = data.fillAlpha; // Update base fill alpha too
+            // DO NOT update baseFillAlpha - preserve original for restoration
         }
-        if (data.outlineColor) this.outlineColor = data.outlineColor.clone();
+        if (data.outlineColor) {
+            this.outlineColor = data.outlineColor.clone();
+            // DO NOT update baseOutlineColor - preserve original for restoration
+        }
         if (data.outlineThickness !== undefined) {
             this.outlineThickness = data.outlineThickness;
-            this.baseOutlineThickness = data.outlineThickness; // Update base thickness too
+            // DO NOT update baseOutlineThickness - preserve original for restoration
         }
         if (data.name) this.name = data.name;
         if (data.visible !== undefined) this.visible = data.visible;
@@ -483,11 +487,15 @@ class Polygon {
         if (!this.selected) {
             this.selected = true;
 
+            console.log(`🔸 BEFORE selection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z}), baseOutlineColor(${this.baseOutlineColor.x}, ${this.baseOutlineColor.y}, ${this.baseOutlineColor.z})`);
+
             // Apply selection visual properties
             this.outlineThickness = this.baseOutlineThickness * 2.0; // Double the thickness
             this.outlineColor = new Vec3(1, 1, 1); // White border
             this.color = new Vec3(1, 1, 1); // White fill
             this.fillAlpha = 0.1; // Semi-transparent fill (0.1 alpha)
+
+            console.log(`🔸 AFTER selection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z})`);
 
             this.triangulate(); // Re-triangulate with new properties
             console.log(`🔹 Polygon "${this.name}" SELECTED (white border, semi-transparent fill)`);
@@ -501,11 +509,15 @@ class Polygon {
         if (this.selected) {
             this.selected = false;
 
+            console.log(`🔸 BEFORE deselection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z}), baseOutlineColor(${this.baseOutlineColor.x}, ${this.baseOutlineColor.y}, ${this.baseOutlineColor.z})`);
+
             // Restore all original visual properties
             this.outlineThickness = this.baseOutlineThickness; // Restore original thickness
             this.outlineColor = this.baseOutlineColor.clone(); // Restore original border color
             this.color = this.baseFillColor.clone(); // Restore original fill color
             this.fillAlpha = this.baseFillAlpha; // Restore original fill alpha
+
+            console.log(`🔸 AFTER deselection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z})`);
 
             this.triangulate(); // Re-triangulate with original properties
             console.log(`🔹 Polygon "${this.name}" DESELECTED (restored original properties)`);
@@ -735,6 +747,10 @@ class TriangleOverlay extends Element {
             return this.selectPolygonArea(polygonNames);
         });
 
+        this.scene.events.function('triangleOverlay.selectEnvironmentalMetricPolygons', (polygonNames: string[], colorType: string) => {
+            return this.selectEnvironmentalMetricPolygons(polygonNames, colorType);
+        });
+
         this.scene.events.function('triangleOverlay.getSelectedPolygon', () => {
             return this.getSelectedPolygon();
         });
@@ -958,6 +974,70 @@ class TriangleOverlay extends Element {
 
         // Then select all polygons in the area
         return this.selectPolygons(polygonNames);
+    }
+
+    /**
+     * Select multiple polygons with specific environmental metric colors
+     */
+    selectEnvironmentalMetricPolygons(polygonNames: string[], colorType: string) {
+        let selectedCount = 0;
+
+        // Parse color type - support both named colors and hex colors
+        let colorSet: { border: Vec3, fill: Vec3 };
+
+        if (colorType.startsWith('#')) {
+            // Parse hex color
+            const hex = colorType.substring(1);
+            const r = parseInt(hex.substring(0, 2), 16) / 255;
+            const g = parseInt(hex.substring(2, 4), 16) / 255;
+            const b = parseInt(hex.substring(4, 6), 16) / 255;
+            colorSet = {
+                border: new Vec3(r, g, b),
+                fill: new Vec3(r, g, b)
+            };
+        } else {
+            // Use predefined named colors for backward compatibility
+            const colors: { [key: string]: { border: Vec3, fill: Vec3 } } = {
+                purple: { border: new Vec3(0.6, 0.2, 0.8), fill: new Vec3(0.6, 0.2, 0.8) },
+                yellow: { border: new Vec3(1.0, 0.9, 0.0), fill: new Vec3(1.0, 0.9, 0.0) }
+            };
+
+            colorSet = colors[colorType];
+            if (!colorSet) {
+                console.warn(`⚠️ Unknown environmental metric color type: ${colorType}`);
+                return 0;
+            }
+        }
+
+        polygonNames.forEach(name => {
+            const polygon = this.polygons.find(p => p.name === name);
+            if (polygon) {
+                if (!polygon.selected) {
+                    // Apply environmental metric selection properties
+                    polygon.selected = true;
+
+                    // Use updateProperties method to properly apply changes and re-triangulate
+                    polygon.updateProperties({
+                        outlineThickness: polygon.baseOutlineThickness, // Use default thickness (not doubled)
+                        outlineColor: colorSet.border, // Colored border
+                        color: colorSet.fill, // Colored fill
+                        fillAlpha: 0.5 // Semi-transparent fill (0.5 alpha as requested)
+                    });
+
+                    selectedCount++;
+                    console.log(`🎨 Polygon "${name}" styled with ${colorType.toUpperCase()} environmental metric`);
+                }
+            } else {
+                console.warn(`⚠️ Polygon "${name}" not found for environmental metric styling`);
+            }
+        });
+
+        if (selectedCount > 0) {
+            this.scene.forceRender = true; // Trigger SuperSplat view update
+            console.log(`🎨 Environmental metric styling complete: ${selectedCount} polygons with ${colorType} colors`);
+        }
+
+        return selectedCount;
     }
 
     /**
