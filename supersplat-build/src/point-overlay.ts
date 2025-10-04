@@ -554,12 +554,23 @@ class TriangleOverlay extends Element {
     polygons: Polygon[] = [];
     yPlane: number = 3.2; // Default Y plane for all triangles
 
+    // Click detection properties
+    private dragId: number | undefined;
+    private dragMoved: boolean = false;
+    private clickHandlers: { pointerdown: any, pointermove: any, pointerup: any } = { pointerdown: null, pointermove: null, pointerup: null };
+    private dragStartX = 0;
+    private dragStartY = 0;
+    private readonly DRAG_THRESHOLD = 10; // pixels - threshold for distinguishing click from drag
+
     constructor() {
         super(ElementType.debug);
     }
 
     add() {
-        console.log('🔺 TriangleOverlay.add() called - setting up triangle rendering system');
+        console.log('🔺 ===============================================');
+        console.log('🔺 TriangleOverlay.add() called - STARTING SETUP');
+        console.log('🔺 ===============================================');
+
         const device = this.scene.app.graphicsDevice;
 
         this.shader = createShaderFromCode(device, vertexShader, fragmentShader, 'triangle-overlay', {
@@ -568,6 +579,15 @@ class TriangleOverlay extends Element {
 
         this.quadRender = new QuadRender(this.shader);
         console.log('🎨 Triangle shader and QuadRender created successfully');
+
+        // Setup click detection for polygon interaction
+        console.log('🔺 About to call setupClickDetection()...');
+        try {
+            this.setupClickDetection();
+            console.log('🔺 ✅ setupClickDetection() completed successfully');
+        } catch (error) {
+            console.error('🔺 ❌ setupClickDetection() failed:', error);
+        }
 
         const blendState = new BlendState(
             true,
@@ -791,7 +811,368 @@ class TriangleOverlay extends Element {
         console.log('✅ TriangleOverlay initialized with dynamic irregular triangle and dynamic color');
     }
 
+    /**
+     * Setup click detection for polygon interaction
+     * Uses SuperSplat's proven click vs drag differentiation pattern
+     */
+    setupClickDetection() {
+        const canvas = this.scene.app.graphicsDevice.canvas;
+        console.log('🖱️ Setting up polygon click detection');
+        console.log('🎯 Canvas element:', canvas);
+        console.log('🎯 Canvas dimensions:', canvas.width, 'x', canvas.height);
+        console.log('🎯 Canvas client dimensions:', canvas.clientWidth, 'x', canvas.clientHeight);
+
+        // Test if we can attach any event listener at all
+        const testHandler = () => console.log('🧪 Test event fired');
+        canvas.addEventListener('click', testHandler);
+        console.log('🧪 Test click listener attached');
+
+        // Pointer down event - start tracking potential click
+        this.clickHandlers.pointerdown = (e: PointerEvent) => {
+            console.log('🖱️ POINTERDOWN EVENT FIRED:', {
+                pointerType: e.pointerType,
+                button: e.button,
+                pointerId: e.pointerId,
+                currentDragId: this.dragId,
+                offsetX: e.offsetX,
+                offsetY: e.offsetY,
+                target: e.target
+            });
+
+            // SAFETY: If we have a stuck drag state, reset it (override mechanism)
+            if (this.dragId !== undefined) {
+                console.warn('🛠️ OVERRIDE: Starting new drag while another was active. Resetting...');
+                this.dragId = undefined;
+                this.dragMoved = false;
+            }
+
+            // Only handle left mouse button clicks
+            if (e.pointerType === 'mouse' && e.button === 0) {
+                this.dragId = e.pointerId;
+                this.dragMoved = false;
+                this.dragStartX = e.offsetX;
+                this.dragStartY = e.offsetY;
+                console.log(`🖱️ ✅ Started tracking click/drag for pointer ${this.dragId} at (${this.dragStartX}, ${this.dragStartY})`);
+
+                // Don't use setPointerCapture as it might be interfering with SuperSplat's controls
+                // Instead, rely on global event listeners
+                console.log('🖱️ ✅ Click tracking started successfully (no pointer capture)');
+            } else {
+                console.log('🖱️ ⏭️ Ignoring pointer down:', {
+                    reason: e.pointerType !== 'mouse' ? 'not mouse' : 'not left button'
+                });
+            }
+        };
+
+        // Pointer move event - detect if this is a drag using distance threshold
+        this.clickHandlers.pointermove = (e: PointerEvent) => {
+            if (e.pointerId === this.dragId && !this.dragMoved) {
+                // Calculate distance from start position
+                const deltaX = Math.abs(e.offsetX - this.dragStartX);
+                const deltaY = Math.abs(e.offsetY - this.dragStartY);
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                if (distance >= this.DRAG_THRESHOLD) {
+                    console.log(`🖱️ ✅ Drag detected: distance ${distance.toFixed(1)}px >= threshold ${this.DRAG_THRESHOLD}px`);
+                    this.dragMoved = true;
+                }
+            }
+        };
+
+        // Pointer up event - process click if no drag occurred
+        this.clickHandlers.pointerup = (e: PointerEvent) => {
+            console.log('🖱️ POINTERUP EVENT FIRED:', {
+                pointerId: e.pointerId,
+                currentDragId: this.dragId,
+                dragMoved: this.dragMoved,
+                offsetX: e.offsetX,
+                offsetY: e.offsetY,
+                button: e.button
+            });
+
+            // Check if this is our tracked pointer
+            if (e.pointerId === this.dragId) {
+                console.log('🖱️ Processing pointer up event');
+
+                // Fallback distance check in case pointermove events were missed
+                if (!this.dragMoved) {
+                    const deltaX = Math.abs(e.offsetX - this.dragStartX);
+                    const deltaY = Math.abs(e.offsetY - this.dragStartY);
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                    console.log(`🖱️ Final distance check: ${distance.toFixed(1)}px from start (${this.dragStartX}, ${this.dragStartY}) to end (${e.offsetX}, ${e.offsetY})`);
+
+                    if (distance >= this.DRAG_THRESHOLD) {
+                        console.log(`🖱️ ✅ FALLBACK: Drag detected in pointerup - distance ${distance.toFixed(1)}px >= threshold ${this.DRAG_THRESHOLD}px`);
+                        this.dragMoved = true;
+                    }
+                }
+
+                if (!this.dragMoved) {
+                    // This is a single click - check for polygon intersection
+                    console.log('🎯 ✅ SINGLE CLICK CONFIRMED - Processing polygon intersection');
+                    console.log('🎯 Click coordinates:', e.offsetX, e.offsetY);
+                    this.handlePolygonClick(e.offsetX, e.offsetY);
+                } else {
+                    console.log('🖱️ ⏭️ Ignoring click - was a drag operation');
+                }
+
+                // Always reset state on pointerup
+                this.dragId = undefined;
+                this.dragMoved = false;
+                this.dragStartX = 0;
+                this.dragStartY = 0;
+
+                console.log('🖱️ Drag state reset');
+            } else {
+                console.log('🖱️ ⏭️ Ignoring pointer up - different pointer ID or no tracked drag');
+            }
+        };
+
+        // Attach event listeners to canvas AND document for better coverage
+        console.log('🔗 Attaching event listeners to canvas and document...');
+
+        // Canvas listeners (primary)
+        try {
+            canvas.addEventListener('pointerdown', this.clickHandlers.pointerdown);
+            console.log('✅ pointerdown listener attached to canvas');
+        } catch (error) {
+            console.error('❌ Failed to attach pointerdown listener to canvas:', error);
+        }
+
+        try {
+            // Try canvas first with capturing to get events before SuperSplat's controls
+            canvas.addEventListener('pointermove', this.clickHandlers.pointermove, { capture: true });
+            console.log('✅ pointermove listener attached to canvas (capturing)');
+        } catch (error) {
+            console.error('❌ Failed to attach pointermove listener to canvas:', error);
+        }
+
+        try {
+            canvas.addEventListener('pointerup', this.clickHandlers.pointerup);
+            console.log('✅ pointerup listener attached to canvas');
+        } catch (error) {
+            console.error('❌ Failed to attach pointerup listener to canvas:', error);
+        }
+
+        // Document listeners (fallback for events that bubble up)
+        try {
+            document.addEventListener('pointermove', this.clickHandlers.pointermove);
+            console.log('✅ pointermove listener attached to document (fallback)');
+        } catch (error) {
+            console.error('❌ Failed to attach pointermove listener to document:', error);
+        }
+
+        try {
+            document.addEventListener('pointerup', this.clickHandlers.pointerup);
+            console.log('✅ pointerup listener attached to document (fallback)');
+        } catch (error) {
+            console.error('❌ Failed to attach pointerup listener to document:', error);
+        }
+
+        console.log('🖱️ ✅ Polygon click detection setup complete');
+
+        // Also add a simple click event for debugging
+        const simpleClickHandler = (e: MouseEvent) => {
+            console.log('🖱️ 🧪 SIMPLE CLICK EVENT FIRED:', {
+                offsetX: e.offsetX,
+                offsetY: e.offsetY,
+                button: e.button,
+                target: e.target
+            });
+        };
+        canvas.addEventListener('click', simpleClickHandler);
+        console.log('🧪 Simple click listener also attached for debugging');
+    }
+
+    /**
+     * Handle polygon click detection using 2D coordinate intersection
+     * This method determines which polygon was clicked and fires the appropriate event
+     */
+    handlePolygonClick(screenX: number, screenY: number) {
+        console.log(`🎯 ===== POLYGON CLICK DETECTION START =====`);
+        console.log(`🎯 Screen coordinates: (${screenX}, ${screenY})`);
+
+        try {
+            // Convert screen coordinates to normalized device coordinates
+            const canvas = this.scene.app.graphicsDevice.canvas;
+            console.log(`🎯 Canvas info:`, {
+                width: canvas.width,
+                height: canvas.height,
+                clientWidth: canvas.clientWidth,
+                clientHeight: canvas.clientHeight
+            });
+
+            const rect = canvas.getBoundingClientRect();
+            console.log(`🎯 Canvas bounding rect:`, rect);
+
+            const normalizedX = (screenX / canvas.clientWidth) * 2 - 1;
+            const normalizedY = -((screenY / canvas.clientHeight) * 2 - 1);
+
+            console.log(`🎯 Normalized coordinates: (${normalizedX.toFixed(3)}, ${normalizedY.toFixed(3)})`);
+
+            // Convert to world coordinates using camera ray casting
+            const camera = this.scene.camera.entity.camera;
+            console.log(`🎯 Camera info:`, {
+                farClip: camera.farClip,
+                nearClip: camera.nearClip,
+                fov: camera.fov
+            });
+
+            const worldPoint = new Vec3();
+
+            // Project screen point to world space at the Y-plane level
+            camera.screenToWorld(screenX, screenY, camera.farClip * 0.5, worldPoint);
+            console.log(`🎯 Screen-to-world result: (${worldPoint.x.toFixed(2)}, ${worldPoint.y.toFixed(2)}, ${worldPoint.z.toFixed(2)})`);
+
+            // Create a ray from camera to the world point
+            const cameraPos = this.scene.camera.entity.getPosition();
+            console.log(`🎯 Camera position: (${cameraPos.x.toFixed(2)}, ${cameraPos.y.toFixed(2)}, ${cameraPos.z.toFixed(2)})`);
+
+            const rayDirection = worldPoint.sub(cameraPos).normalize();
+            console.log(`🎯 Ray direction: (${rayDirection.x.toFixed(3)}, ${rayDirection.y.toFixed(3)}, ${rayDirection.z.toFixed(3)})`);
+
+            // Intersect ray with Y-plane to get world coordinates
+            console.log(`🎯 Y-plane level: ${this.yPlane}`);
+
+            if (Math.abs(rayDirection.y) < 0.0001) {
+                console.warn('⚠️ Ray is nearly parallel to Y-plane, cannot intersect');
+                return;
+            }
+
+            const t = (this.yPlane - cameraPos.y) / rayDirection.y;
+            console.log(`🎯 Ray parameter t: ${t.toFixed(3)}`);
+
+            const worldIntersection = new Vec3(
+                cameraPos.x + rayDirection.x * t,
+                this.yPlane,
+                cameraPos.z + rayDirection.z * t
+            );
+
+            console.log(`🌍 World intersection point: (${worldIntersection.x.toFixed(2)}, ${worldIntersection.z.toFixed(2)}) at Y=${this.yPlane}`);
+
+            // Check each visible polygon for intersection
+            console.log(`🔍 Starting polygon intersection check...`);
+            const clickedPolygon = this.findPolygonAtWorldPoint(worldIntersection);
+
+            if (clickedPolygon) {
+                console.log(`🎯 ✅ POLYGON CLICKED: "${clickedPolygon.name}" (group: ${clickedPolygon.group})`);
+
+                // Fire event to bridge to terrain-3d
+                console.log(`🔥 Firing polygon.clicked event...`);
+                this.scene.events.fire('polygon.clicked', {
+                    polygonName: clickedPolygon.name,
+                    polygonGroup: clickedPolygon.group,
+                    worldPosition: { x: worldIntersection.x, y: worldIntersection.y, z: worldIntersection.z },
+                    screenPosition: { x: screenX, y: screenY }
+                });
+                console.log(`🔥 Event fired successfully`);
+            } else {
+                console.log('🎯 ❌ No polygon found at click position');
+            }
+        } catch (error) {
+            console.error('❌ Error in handlePolygonClick:', error);
+            console.error('❌ Stack trace:', error.stack);
+        }
+
+        console.log(`🎯 ===== POLYGON CLICK DETECTION END =====`);
+    }
+
+    /**
+     * Find which polygon (if any) contains the given world point
+     * Uses point-in-polygon algorithm for 2D polygons projected onto Y-plane
+     */
+    findPolygonAtWorldPoint(worldPoint: Vec3): Polygon | null {
+        console.log(`🔍 === POLYGON INTERSECTION CHECK ===`);
+        console.log(`🔍 World point: (${worldPoint.x.toFixed(2)}, ${worldPoint.z.toFixed(2)})`);
+        console.log(`🔍 Total polygons available: ${this.polygons.length}`);
+
+        // Only check visible polygons
+        const visiblePolygons = this.polygons.filter(polygon => polygon.visible);
+        console.log(`🔍 Visible polygons: ${visiblePolygons.length}`);
+
+        if (visiblePolygons.length === 0) {
+            console.log('🔍 ❌ No visible polygons to check');
+            return null;
+        }
+
+        // Log details about each visible polygon
+        for (let i = 0; i < visiblePolygons.length; i++) {
+            const polygon = visiblePolygons[i];
+            console.log(`🔍 Polygon ${i}: "${polygon.name}" (${polygon.vertices.length} vertices, group: ${polygon.group})`);
+
+            // Show first few vertices for debugging
+            const vertexSample = polygon.vertices.slice(0, 3).map(v => `(${v.x.toFixed(1)}, ${v.z.toFixed(1)})`).join(', ');
+            console.log(`🔍   Sample vertices: ${vertexSample}${polygon.vertices.length > 3 ? '...' : ''}`);
+        }
+
+        for (let i = 0; i < visiblePolygons.length; i++) {
+            const polygon = visiblePolygons[i];
+            console.log(`🔍 Testing polygon ${i}: "${polygon.name}"`);
+
+            if (this.isPointInPolygon(worldPoint, polygon)) {
+                console.log(`🔍 ✅ MATCH FOUND: "${polygon.name}"`);
+                return polygon;
+            } else {
+                console.log(`🔍 ❌ No match: "${polygon.name}"`);
+            }
+        }
+
+        console.log(`🔍 ❌ No polygon contains the point`);
+        return null;
+    }
+
+    /**
+     * Point-in-polygon test using ray casting algorithm
+     * Tests if a 3D world point is inside a polygon when projected to the Y-plane
+     */
+    isPointInPolygon(worldPoint: Vec3, polygon: Polygon): boolean {
+        const vertices = polygon.vertices;
+        const testX = worldPoint.x;
+        const testZ = worldPoint.z;
+
+        console.log(`🔍   Ray casting test for "${polygon.name}": point(${testX.toFixed(2)}, ${testZ.toFixed(2)})`);
+
+        let isInside = false;
+        let j = vertices.length - 1;
+        let intersectionCount = 0;
+
+        for (let i = 0; i < vertices.length; i++) {
+            const xi = vertices[i].x;
+            const zi = vertices[i].z;
+            const xj = vertices[j].x;
+            const zj = vertices[j].z;
+
+            // Check if ray crosses this edge
+            if (((zi > testZ) !== (zj > testZ)) &&
+                (testX < (xj - xi) * (testZ - zi) / (zj - zi) + xi)) {
+                isInside = !isInside;
+                intersectionCount++;
+            }
+            j = i;
+        }
+
+        console.log(`🔍   Ray intersections: ${intersectionCount}, inside: ${isInside}`);
+        return isInside;
+    }
+
     remove() {
+        // Clean up click event listeners
+        const canvas = this.scene.app.graphicsDevice.canvas;
+        if (this.clickHandlers.pointerdown) {
+            canvas.removeEventListener('pointerdown', this.clickHandlers.pointerdown);
+        }
+        if (this.clickHandlers.pointermove) {
+            canvas.removeEventListener('pointermove', this.clickHandlers.pointermove);
+        }
+        if (this.clickHandlers.pointerup) {
+            canvas.removeEventListener('pointerup', this.clickHandlers.pointerup);
+            document.removeEventListener('pointermove', this.clickHandlers.pointermove);
+            document.removeEventListener('pointerup', this.clickHandlers.pointerup);
+        }
+
+        // Click detection cleanup - no timeouts to clear
+
         this.shader?.destroy();
         this.quadRender?.destroy();
     }

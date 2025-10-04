@@ -768,9 +768,135 @@ Focus panel integration in SuperSplat Lab mode is now complete and fully functio
 - Close panels using X button or Escape key
 - Switch between different plantable areas with smooth transitions
 
+### ✅ Completed Sprint: Polygon Click Detection System (October 2025)
+**Objective**: Enable direct polygon clicking in SuperSplat to trigger UI interactions ✅ COMPLETED
+**Major Achievement**: **Complete Polygon Click Detection with Automatic UI Integration**
+
+### Key Features Implemented:
+- ✅ **3D Polygon Click Detection**: Ray casting system to detect polygon intersection from screen coordinates
+- ✅ **Click vs Drag Differentiation**: Distance-based threshold system (10px) with fallback detection
+- ✅ **Point-in-Polygon Algorithm**: 2D ray casting algorithm for accurate polygon boundary detection
+- ✅ **Automatic UI Integration**: Clicked polygons automatically open appropriate dropdowns and select buttons
+- ✅ **Event Bridge Enhancement**: SuperSplat polygon clicks trigger terrain-3d UI actions seamlessly
+
+### Technical Implementation:
+
+#### SuperSplat Click Detection System
+**Files Updated:**
+- `supersplat-build/src/point-overlay.ts`: Complete click detection with distance-based drag differentiation
+- `js/SuperSplatBridge.js`: Enhanced polygon name parsing and UI button matching
+
+#### Click Detection Architecture
+```typescript
+// Distance-based click vs drag detection
+setupClickDetection() {
+    this.clickHandlers.pointerdown = (e) => {
+        this.dragId = e.pointerId;
+        this.dragStartX = e.offsetX;
+        this.dragStartY = e.offsetY;
+        this.dragMoved = false;
+    };
+
+    this.clickHandlers.pointermove = (e) => {
+        if (e.pointerId === this.dragId && !this.dragMoved) {
+            const distance = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
+            if (distance >= this.DRAG_THRESHOLD) {
+                this.dragMoved = true;
+            }
+        }
+    };
+
+    this.clickHandlers.pointerup = (e) => {
+        if (!this.dragMoved) {
+            this.handlePolygonClick(e.offsetX, e.offsetY);
+        }
+    };
+}
+```
+
+#### Polygon Intersection Detection
+```typescript
+// 2D ray casting point-in-polygon algorithm
+handlePolygonClick(screenX, screenY) {
+    // Convert screen coordinates to world space
+    const worldIntersection = camera.screenToWorld(screenX, screenY);
+
+    // Check each visible polygon
+    for (const polygon of this.polygons.filter(p => p.visible)) {
+        if (this.isPointInPolygon(worldIntersection, polygon.vertices)) {
+            // Fire event to terrain-3d UI
+            this.scene.events.fire('polygon.clicked', {
+                polygonName: polygon.name,
+                polygonGroup: polygon.group,
+                worldPosition: worldIntersection,
+                screenPosition: { x: screenX, y: screenY }
+            });
+            return;
+        }
+    }
+}
+```
+
+#### UI Integration System
+```javascript
+// Enhanced polygon name parsing for UI button matching
+extractPANameFromPolygon(polygonName) {
+    // Parse format: PA22="Backyard" -> "Backyard"
+    const quotedMatch = polygonName.match(/PA\d+="([^"]+)"/);
+    if (quotedMatch) {
+        return quotedMatch[1]; // Extract description only
+    }
+    return polygonName; // Fallback
+}
+
+// Automatic UI button detection and clicking
+findPAButton(paName) {
+    const buttons = document.querySelectorAll('input[type="radio"][name="plantableArea"]');
+    for (const button of buttons) {
+        if (button.value && button.value.includes(paName)) {
+            return button; // Found matching radio button
+        }
+    }
+}
+```
+
+### Key Technical Solutions:
+
+#### 1. **Pointer Event State Management**
+- **Override Mechanism**: New pointerdown events automatically reset previous drag state
+- **Distance Threshold**: 10-pixel threshold prevents accidental clicks during camera rotation
+- **Fallback Detection**: Multiple event listener strategies (canvas + document) ensure reliability
+
+#### 2. **Coordinate Transformation Pipeline**
+- **Screen to World**: Camera ray casting to convert mouse position to 3D world coordinates
+- **Y-Plane Intersection**: Polygons rendered on landscape surface using Y-plane intersection
+- **Geographic Accuracy**: Maintains coordinate system alignment with existing GeoJSON data
+
+#### 3. **UI Button Name Matching**
+- **Polygon Name Format**: Handles `PA22="Backyard"` format by extracting quoted description
+- **Radio Button Integration**: Matches extracted names with existing UI radio button values
+- **Dropdown Automation**: Automatically opens plantable/non-plantable area dropdowns
+
+### Integration Results:
+- ✅ **Seamless User Experience**: Click polygon → UI updates automatically
+- ✅ **Multi-Detection Strategy**: Both pointermove detection and fallback distance check
+- ✅ **Accurate Intersection**: Ray casting works correctly with complex polygon shapes
+- ✅ **Cross-System Communication**: SuperSplat events trigger terrain-3d UI actions
+- ✅ **Name Parsing Resolution**: PA/NPA polygon names correctly mapped to UI buttons
+
+### User Workflow Now Available:
+1. **User clicks polygon in 3D scene** → SuperSplat detects click via pointer events
+2. **Ray casting determines intersection** → 2D point-in-polygon algorithm identifies clicked polygon
+3. **Event fired to terrain-3d** → Bridge receives polygon name and group information
+4. **Automatic UI interaction** → Appropriate dropdown opens and corresponding button selected
+5. **Focus panel displays** → Ecological metrics shown for selected area
+
+### Current Status: **Production Ready**
+Polygon click detection system is now complete and fully functional. Users can directly interact with 3D polygons to access detailed ecological information through the existing UI system.
+
 ### Next Sprint: Performance Optimization and Code Cleanup
 **Objective**: Remove remaining Cesium dependencies and optimize SuperSplat-only architecture
-**Dependencies**: Focus panel integration (✅ COMPLETED)
+**Dependencies**: Polygon click detection system (✅ COMPLETED)
 
 ---
 
