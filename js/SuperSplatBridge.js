@@ -176,6 +176,9 @@ class SuperSplatBridge {
 
         // Bridge site data changes
         this.setupSiteDataWatching();
+
+        // Setup polygon click event handling
+        this.setupPolygonClickHandling();
     }
 
     /**
@@ -1091,6 +1094,236 @@ class SuperSplatBridge {
             console.error('❌ Failed to render GeoJSON bounds rectangle:', error);
             return false;
         }
+    }
+
+    /**
+     * Setup polygon click event handling
+     * Listens for polygon.clicked events from SuperSplat and triggers terrain-3d UI actions
+     */
+    setupPolygonClickHandling() {
+        if (!window.superSplatScene || !window.superSplatScene.events) {
+            console.warn('⚠️ SuperSplat scene not ready for polygon click handling');
+            return;
+        }
+
+        console.log('🖱️ Setting up polygon click event bridge');
+
+        // Listen for polygon click events from SuperSplat
+        window.superSplatScene.events.on('polygon.clicked', (data) => {
+            console.log('🎯 Polygon click received from SuperSplat:', data);
+
+            const { polygonName, polygonGroup, worldPosition, screenPosition } = data;
+
+            // Determine if this is a PA or NPA polygon based on the polygon name (same logic as elsewhere in codebase)
+            if (polygonName && polygonName.startsWith('PA') && polygonName.includes('=') && !polygonName.includes('NPA')) {
+                // This is a plantable area - trigger PA selection
+                console.log('🌱 Detected plantable area:', polygonName);
+                this.handlePlantableAreaClick(polygonName, polygonGroup);
+            } else if (polygonName && polygonName.startsWith('NPA')) {
+                // This is a non-plantable area - trigger NPA selection
+                console.log('🚫 Detected non-plantable area:', polygonName);
+                this.handleNonPlantableAreaClick(polygonName, polygonGroup);
+            } else {
+                console.log('🤷 Unknown polygon type, treating as general polygon click. Name:', polygonName);
+                // Generic polygon click - could trigger focus panel or other behavior
+                this.handleGenericPolygonClick(polygonName, polygonGroup);
+            }
+        });
+
+        console.log('✅ Polygon click event bridge established');
+    }
+
+    /**
+     * Handle plantable area polygon clicks
+     * Opens the PA dropdown and selects the corresponding button
+     */
+    handlePlantableAreaClick(polygonName, polygonGroup) {
+        console.log(`🌱 Handling plantable area click: ${polygonName} (group: ${polygonGroup})`);
+
+        try {
+            // Ensure plantable areas dropdown is open
+            this.ensureDropdownOpen('plantableAreasToggle');
+
+            // Find and click the corresponding PA button
+            const paName = this.extractPANameFromPolygon(polygonName);
+            if (paName) {
+                const paButton = this.findPAButton(paName);
+                if (paButton) {
+                    console.log(`🎯 Triggering PA button click for: ${paName}`);
+                    paButton.click();
+                } else {
+                    console.warn(`⚠️ Could not find PA button for: ${paName}`);
+                }
+            } else {
+                console.warn(`⚠️ Could not extract PA name from polygon: ${polygonName}`);
+            }
+        } catch (error) {
+            console.error('❌ Error handling plantable area click:', error);
+        }
+    }
+
+    /**
+     * Handle non-plantable area polygon clicks
+     * Opens the NPA dropdown and selects the corresponding button
+     */
+    handleNonPlantableAreaClick(polygonName, polygonGroup) {
+        console.log(`🚫 Handling non-plantable area click: ${polygonName} (group: ${polygonGroup})`);
+
+        try {
+            // Ensure non-plantable areas dropdown is open
+            this.ensureDropdownOpen('nonPlantableAreasToggle');
+
+            // Find and click the corresponding NPA button
+            const npaName = this.extractNPANameFromPolygon(polygonName);
+            if (npaName) {
+                const npaButton = this.findNPAButton(npaName);
+                if (npaButton) {
+                    console.log(`🎯 Triggering NPA button click for: ${npaName}`);
+                    npaButton.click();
+                } else {
+                    console.warn(`⚠️ Could not find NPA button for: ${npaName}`);
+                }
+            } else {
+                console.warn(`⚠️ Could not extract NPA name from polygon: ${polygonName}`);
+            }
+        } catch (error) {
+            console.error('❌ Error handling non-plantable area click:', error);
+        }
+    }
+
+    /**
+     * Handle generic polygon clicks (fallback behavior)
+     */
+    handleGenericPolygonClick(polygonName, polygonGroup) {
+        console.log(`🔍 Handling generic polygon click: ${polygonName} (group: ${polygonGroup})`);
+
+        // For now, just log the click - could extend with additional behavior
+        console.log('ℹ️ Generic polygon click processed, no specific action taken');
+    }
+
+    /**
+     * Ensure a dropdown is open by clicking its toggle button
+     */
+    ensureDropdownOpen(toggleId) {
+        const toggle = document.getElementById(toggleId);
+        if (!toggle) {
+            console.warn(`⚠️ Could not find dropdown toggle: ${toggleId}`);
+            return;
+        }
+
+        // Check if dropdown is already open
+        const dropdownContent = toggle.nextElementSibling;
+        if (dropdownContent && (!dropdownContent.style.display || dropdownContent.style.display === 'none')) {
+            console.log(`📋 Opening dropdown: ${toggleId}`);
+            toggle.click();
+        } else {
+            console.log(`📋 Dropdown already open: ${toggleId}`);
+        }
+    }
+
+    /**
+     * Extract PA name from polygon name
+     * Handles polygons that may have numerical suffixes or other variations
+     */
+    extractPANameFromPolygon(polygonName) {
+        // Extract description from formats like PA22="Backyard" or PA1="Southeast Front Door Entrance"
+        console.log(`🔍 PA name extraction input: "${polygonName}"`);
+
+        // Check if it's in the format PA##="Description"
+        const quotedMatch = polygonName.match(/PA\d+="([^"]+)"/);
+        if (quotedMatch) {
+            const description = quotedMatch[1];
+            console.log(`🔍 PA name extraction: "${polygonName}" -> "${description}" (quoted format)`);
+            return description;
+        }
+
+        // Fallback: remove numerical suffixes for other formats
+        // Example: "PA1 Southeast Front Door Entrance 0" -> "PA1 Southeast Front Door Entrance"
+        const cleanName = polygonName.replace(/\s+\d+$/, '').trim();
+        console.log(`🔍 PA name extraction: "${polygonName}" -> "${cleanName}" (fallback)`);
+        return cleanName;
+    }
+
+    /**
+     * Extract NPA name from polygon name
+     */
+    extractNPANameFromPolygon(polygonName) {
+        // Extract description from formats like NPA5="Utilities" or similar
+        console.log(`🔍 NPA name extraction input: "${polygonName}"`);
+
+        // Check if it's in the format NPA##="Description" or NPA##='Description'
+        const quotedMatch = polygonName.match(/NPA\d+=['"]([^'"]+)['"]/);
+        if (quotedMatch) {
+            const description = quotedMatch[1];
+            console.log(`🔍 NPA name extraction: "${polygonName}" -> "${description}" (quoted format)`);
+            return description;
+        }
+
+        // Fallback: remove numerical suffixes for other formats
+        const cleanName = polygonName.replace(/\s+\d+$/, '').trim();
+        console.log(`🔍 NPA name extraction: "${polygonName}" -> "${cleanName}" (fallback)`);
+        return cleanName;
+    }
+
+    /**
+     * Find PA button in the UI by PA name
+     */
+    findPAButton(paName) {
+        console.log(`🔍 Looking for PA button with name: "${paName}"`);
+
+        // Look for buttons or radio inputs that correspond to this PA
+        const buttons = document.querySelectorAll('input[type="radio"][name="plantableArea"], button[data-pa-name]');
+        console.log(`🔍 Found ${buttons.length} potential PA buttons`);
+
+        for (const button of buttons) {
+            const buttonValue = button.value || button.dataset.paName || button.textContent;
+            console.log(`🔍 Checking button value: "${buttonValue}" against target: "${paName}"`);
+
+            if (buttonValue && buttonValue.includes(paName)) {
+                console.log(`✅ Found matching button with value: "${buttonValue}"`);
+                return button;
+            }
+        }
+
+        console.log(`❌ No matching button found for: "${paName}"`);
+        return null;
+
+        // Try looking in the parent labels or nearby text
+        const labels = document.querySelectorAll('label');
+        for (const label of labels) {
+            if (label.textContent.includes(paName)) {
+                const input = label.querySelector('input[type="radio"]');
+                if (input) return input;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find NPA button in the UI by NPA name
+     */
+    findNPAButton(npaName) {
+        // Similar to PA button finding, but for NPAs
+        const buttons = document.querySelectorAll('input[type="radio"][name="nonPlantableArea"], button[data-npa-name]');
+
+        for (const button of buttons) {
+            const buttonValue = button.value || button.dataset.npaName || button.textContent;
+            if (buttonValue && buttonValue.includes(npaName)) {
+                return button;
+            }
+        }
+
+        // Try looking in the parent labels or nearby text
+        const labels = document.querySelectorAll('label');
+        for (const label of labels) {
+            if (label.textContent.includes(npaName)) {
+                const input = label.querySelector('input[type="radio"]');
+                if (input) return input;
+            }
+        }
+
+        return null;
     }
 
 }
