@@ -503,6 +503,16 @@ class SuperSplatBridge {
                 nonPlantableAreas: this.polygonRegistry.filter(p => !p.isPlantable).length
             });
 
+            // Sort polygons by area for optimal nested click detection (smallest first)
+            if (window.superSplatScene && polygonsRendered > 0) {
+                try {
+                    window.superSplatScene.events.invoke('triangleOverlay.sortPolygonsByArea');
+                    console.log('🔄 Polygons sorted by area for nested click detection');
+                } catch (error) {
+                    console.warn('⚠️ Failed to sort polygons by area:', error);
+                }
+            }
+
             // Trigger SuperSplat view update to show newly loaded polygons immediately
             if (window.superSplatScene && polygonsRendered > 0) {
                 window.superSplatScene.forceRender = true;
@@ -1275,14 +1285,31 @@ class SuperSplatBridge {
         const buttons = document.querySelectorAll('input[type="radio"][name="plantableArea"], button[data-pa-name]');
         console.log(`🔍 Found ${buttons.length} potential PA buttons`);
 
+        // Smart matching: exact match first, then longest match wins
+        const candidates = [];
         for (const button of buttons) {
             const buttonValue = button.value || button.dataset.paName || button.textContent;
             console.log(`🔍 Checking button value: "${buttonValue}" against target: "${paName}"`);
 
-            if (buttonValue && buttonValue.includes(paName)) {
-                console.log(`✅ Found matching button with value: "${buttonValue}"`);
-                return button;
+            if (buttonValue) {
+                // Exact match (highest priority)
+                if (buttonValue.trim() === paName.trim()) {
+                    console.log(`✅ Found EXACT match: "${buttonValue}"`);
+                    return button;
+                }
+                // Substring match (store for sorting)
+                if (buttonValue.includes(paName)) {
+                    candidates.push({ button, buttonValue, length: buttonValue.length });
+                }
             }
+        }
+
+        // Return longest matching candidate (prevents "Front Door Entrance" matching "Southeast Front Door Entrance")
+        if (candidates.length > 0) {
+            candidates.sort((a, b) => b.length - a.length); // Longest first
+            const winner = candidates[0];
+            console.log(`✅ Found LONGEST match: "${winner.buttonValue}" (${winner.length} chars)`);
+            return winner.button;
         }
 
         console.log(`❌ No matching button found for: "${paName}"`);
@@ -1304,25 +1331,56 @@ class SuperSplatBridge {
      * Find NPA button in the UI by NPA name
      */
     findNPAButton(npaName) {
+        console.log(`🔍 Looking for NPA button with name: "${npaName}"`);
+
         // Similar to PA button finding, but for NPAs
         const buttons = document.querySelectorAll('input[type="radio"][name="nonPlantableArea"], button[data-npa-name]');
+        console.log(`🔍 Found ${buttons.length} potential NPA buttons`);
 
+        // Smart matching: exact match first, then longest match wins
+        const candidates = [];
         for (const button of buttons) {
             const buttonValue = button.value || button.dataset.npaName || button.textContent;
-            if (buttonValue && buttonValue.includes(npaName)) {
-                return button;
+            console.log(`🔍 Checking button value: "${buttonValue}" against target: "${npaName}"`);
+
+            if (buttonValue) {
+                // Exact match (highest priority)
+                if (buttonValue.trim() === npaName.trim()) {
+                    console.log(`✅ Found EXACT match: "${buttonValue}"`);
+                    return button;
+                }
+                // Substring match (store for sorting)
+                if (buttonValue.includes(npaName)) {
+                    candidates.push({ button, buttonValue, length: buttonValue.length });
+                }
             }
+        }
+
+        // Return longest matching candidate
+        if (candidates.length > 0) {
+            candidates.sort((a, b) => b.length - a.length); // Longest first
+            const winner = candidates[0];
+            console.log(`✅ Found LONGEST match: "${winner.buttonValue}" (${winner.length} chars)`);
+            return winner.button;
         }
 
         // Try looking in the parent labels or nearby text
+        console.log(`🔍 No direct button match, trying labels...`);
         const labels = document.querySelectorAll('label');
         for (const label of labels) {
-            if (label.textContent.includes(npaName)) {
+            const labelText = label.textContent;
+            console.log(`🔍 Checking label text: "${labelText}" against target: "${npaName}"`);
+
+            if (labelText && labelText.includes(npaName)) {
                 const input = label.querySelector('input[type="radio"]');
-                if (input) return input;
+                if (input) {
+                    console.log(`✅ Found matching label with text: "${labelText}"`);
+                    return input;
+                }
             }
         }
 
+        console.log(`❌ No matching NPA button found for: "${npaName}"`);
         return null;
     }
 

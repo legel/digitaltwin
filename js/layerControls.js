@@ -1254,10 +1254,9 @@ function extractNPACategory(name) {
     const match = name.match(/NPA\d+[=_]['"]?([^'"]+)['"]?/);
     if (match) {
         let category = match[1];
-        // Clean up category name
+        // Clean up category name - only replace underscores, preserve original spacing
         category = category
             .replace(/_/g, ' ')
-            .replace(/([A-Z])/g, ' $1')
             .trim();
         return category;
     }

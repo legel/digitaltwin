@@ -61,6 +61,7 @@ class Polygon {
     group?: string; // Group name for PA/NPA grouping
     triangles: TriangleData[] = [];
     private exteriorEdges?: Set<string>;
+    area: number; // Polygon area for nested click detection priority
 
     constructor(data: PolygonData) {
         this.vertices = data.vertices.map(v => v.clone());
@@ -77,8 +78,33 @@ class Polygon {
         this.selected = false; // Default to not selected
         this.group = data.group; // Store group information
 
+        // Calculate polygon area for nested click detection priority
+        this.area = this.calculateArea();
+
         // Automatically triangulate the polygon
         this.triangulate();
+    }
+
+    /**
+     * Calculate polygon area using the shoelace formula (for 2D projection on Y-plane)
+     * Used for nested polygon click detection priority - smaller polygons checked first
+     */
+    private calculateArea(): number {
+        if (this.vertices.length < 3) {
+            return 0;
+        }
+
+        let area = 0;
+        const n = this.vertices.length;
+
+        // Use shoelace formula with X and Z coordinates (Y-plane projection)
+        for (let i = 0; i < n; i++) {
+            const j = (i + 1) % n;
+            area += this.vertices[i].x * this.vertices[j].z;
+            area -= this.vertices[j].x * this.vertices[i].z;
+        }
+
+        return Math.abs(area) / 2; // Return positive area
     }
 
     /**
@@ -735,6 +761,10 @@ class TriangleOverlay extends Element {
             this.clearPolygons();
         });
 
+        this.scene.events.function('triangleOverlay.sortPolygonsByArea', () => {
+            this.sortPolygonsByArea();
+        });
+
         this.scene.events.function('triangleOverlay.updatePolygon', (name: string, updates: any) => {
             this.updatePolygon(name, updates);
         });
@@ -1081,37 +1111,38 @@ class TriangleOverlay extends Element {
     /**
      * Find which polygon (if any) contains the given world point
      * Uses point-in-polygon algorithm for 2D polygons projected onto Y-plane
+     * Polygons are checked in order of size (smallest first) for nested polygon priority
      */
     findPolygonAtWorldPoint(worldPoint: Vec3): Polygon | null {
         console.log(`🔍 === POLYGON INTERSECTION CHECK ===`);
         console.log(`🔍 World point: (${worldPoint.x.toFixed(2)}, ${worldPoint.z.toFixed(2)})`);
         console.log(`🔍 Total polygons available: ${this.polygons.length}`);
 
-        // Only check visible polygons
+        // Only check visible polygons - they maintain smallest-first order
         const visiblePolygons = this.polygons.filter(polygon => polygon.visible);
-        console.log(`🔍 Visible polygons: ${visiblePolygons.length}`);
+        console.log(`🔍 Visible polygons: ${visiblePolygons.length} (sorted by area: smallest first)`);
 
         if (visiblePolygons.length === 0) {
             console.log('🔍 ❌ No visible polygons to check');
             return null;
         }
 
-        // Log details about each visible polygon
-        for (let i = 0; i < visiblePolygons.length; i++) {
+        // Log details about each visible polygon with area and group info
+        console.log(`🔍 === VISIBLE POLYGON ORDER (by area, smallest first) ===`);
+        for (let i = 0; i < Math.min(visiblePolygons.length, 10); i++) {
             const polygon = visiblePolygons[i];
-            console.log(`🔍 Polygon ${i}: "${polygon.name}" (${polygon.vertices.length} vertices, group: ${polygon.group})`);
-
-            // Show first few vertices for debugging
-            const vertexSample = polygon.vertices.slice(0, 3).map(v => `(${v.x.toFixed(1)}, ${v.z.toFixed(1)})`).join(', ');
-            console.log(`🔍   Sample vertices: ${vertexSample}${polygon.vertices.length > 3 ? '...' : ''}`);
+            console.log(`🔍 ${i+1}. "${polygon.name}" | Area: ${polygon.area.toFixed(2)} | Group: ${polygon.group} | Vertices: ${polygon.vertices.length}`);
+        }
+        if (visiblePolygons.length > 10) {
+            console.log(`🔍   ... and ${visiblePolygons.length - 10} more polygons`);
         }
 
         for (let i = 0; i < visiblePolygons.length; i++) {
             const polygon = visiblePolygons[i];
-            console.log(`🔍 Testing polygon ${i}: "${polygon.name}"`);
+            console.log(`🔍 Testing polygon ${i}: "${polygon.name}" (area: ${polygon.area.toFixed(2)})`);
 
             if (this.isPointInPolygon(worldPoint, polygon)) {
-                console.log(`🔍 ✅ MATCH FOUND: "${polygon.name}"`);
+                console.log(`🔍 ✅ MATCH FOUND: "${polygon.name}" (smallest matching polygon)`);
                 return polygon;
             } else {
                 console.log(`🔍 ❌ No match: "${polygon.name}"`);
@@ -1253,6 +1284,34 @@ class TriangleOverlay extends Element {
     clearPolygons() {
         this.polygons = [];
         console.log('🧹 All polygons cleared from overlay');
+    }
+
+    /**
+     * Sort polygons by area (smallest first) for nested click detection priority
+     * Call this after loading all polygons for a site to optimize click detection
+     */
+    sortPolygonsByArea() {
+        console.log(`🔄 === SORTING POLYGONS BY AREA ===`);
+        console.log(`🔄 Total polygons to sort: ${this.polygons.length}`);
+
+        // Log first few polygons before sorting
+        const beforeSort = this.polygons.slice(0, 10).map(p => ({
+            name: p.name?.substring(0, 20) || 'unnamed',
+            area: p.area?.toFixed(2) || 'undefined',
+            group: p.group
+        }));
+        console.log(`🔄 Before sort (first 10):`, beforeSort);
+
+        this.polygons.sort((a, b) => a.area - b.area);
+
+        // Log first few polygons after sorting
+        const afterSort = this.polygons.slice(0, 10).map(p => ({
+            name: p.name?.substring(0, 20) || 'unnamed',
+            area: p.area?.toFixed(2) || 'undefined',
+            group: p.group
+        }));
+        console.log(`🔄 After sort (first 10):`, afterSort);
+        console.log(`🔄 === SORTING COMPLETE ===`);
     }
 
     /**
