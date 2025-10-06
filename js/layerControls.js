@@ -737,7 +737,7 @@ function setupVisibilityToggleButtons() {
             // Update button image
             const img = paVisibilityToggle.querySelector('img');
             if (img) {
-                img.src = window.layerState.showPlantableAreas ? '/images/visible.png' : '/images/Invisible.png';
+                img.src = window.layerState.showPlantableAreas ? '/images/visible.png' : '/images/invisible.png';
                 img.alt = window.layerState.showPlantableAreas ? 'Visible' : 'Hidden';
             }
 
@@ -769,7 +769,7 @@ function setupVisibilityToggleButtons() {
             // Update button image
             const img = npaVisibilityToggle.querySelector('img');
             if (img) {
-                img.src = window.layerState.showNonPlantableAreas ? '/images/visible.png' : '/images/Invisible.png';
+                img.src = window.layerState.showNonPlantableAreas ? '/images/visible.png' : '/images/invisible.png';
                 img.alt = window.layerState.showNonPlantableAreas ? 'Visible' : 'Hidden';
             }
 
@@ -799,7 +799,7 @@ function updateVisibilityButtonIcons() {
         const img = paVisibilityToggle.querySelector('img');
         if (img) {
             const isVisible = window.layerState.showPlantableAreas;
-            img.src = isVisible ? '/images/visible.png' : '/images/Invisible.png';
+            img.src = isVisible ? '/images/visible.png' : '/images/invisible.png';
             img.alt = isVisible ? 'Visible' : 'Hidden';
             console.log('👁️ PA button icon updated:', isVisible ? 'visible' : 'hidden');
         }
@@ -811,7 +811,7 @@ function updateVisibilityButtonIcons() {
         const img = npaVisibilityToggle.querySelector('img');
         if (img) {
             const isVisible = window.layerState.showNonPlantableAreas;
-            img.src = isVisible ? '/images/visible.png' : '/images/Invisible.png';
+            img.src = isVisible ? '/images/visible.png' : '/images/invisible.png';
             img.alt = isVisible ? 'Visible' : 'Hidden';
             console.log('👁️ NPA button icon updated:', isVisible ? 'visible' : 'hidden');
         }
