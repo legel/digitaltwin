@@ -382,6 +382,16 @@ class SuperSplatBridge {
                     // Determine if plantable or non-plantable
                     const isPlantable = this.isPlantableFeature(feature, format);
 
+                    // Check visibility state for this polygon type
+                    const layerState = window.layerState || {};
+                    const shouldShowPlantable = layerState.showPlantableAreas !== false;
+                    const shouldShowNonPlantable = layerState.showNonPlantableAreas !== false;
+
+                    // Visibility logic implemented - polygons respect layer state
+
+                    // Determine if this polygon should be visible
+                    const shouldBeVisible = isPlantable ? shouldShowPlantable : shouldShowNonPlantable;
+
                     // Transform coordinates to SuperSplat world space
                     const vertices = this.transformPolygonCoordinates(feature, splatBounds, geoBounds);
 
@@ -441,7 +451,7 @@ class SuperSplatBridge {
                             isPlantable: isPlantable,
                             feature: feature,
                             vertices: vertices,
-                            visible: true, // Set to true initially as requested
+                            visible: shouldBeVisible, // Respect layer visibility state
                             group: group
                         });
 
@@ -517,6 +527,31 @@ class SuperSplatBridge {
             if (window.superSplatScene && polygonsRendered > 0) {
                 window.superSplatScene.forceRender = true;
                 console.log('🎨 Triggered SuperSplat view update for loaded polygons');
+            }
+
+            // Sync window.layerState with actual polygon visibility defaults
+            // Both PA and NPA polygons default to visible in SuperSplat (using !== false logic means both show unless explicitly hidden)
+            // Since polygons are being rendered for both types, set both to visible
+            window.layerState.showPlantableAreas = true;
+            window.layerState.showNonPlantableAreas = true;
+
+            console.log('🔄 Synced layer state with actual polygon visibility:', {
+                showPlantableAreas: window.layerState.showPlantableAreas,
+                showNonPlantableAreas: window.layerState.showNonPlantableAreas
+            });
+
+            // Sync SuperSplat group visibility with layer state
+            if (window.superSplatScene && window.superSplatScene.events) {
+                console.log('🔄 Syncing SuperSplat group visibility with corrected layer state');
+                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', window.layerState.showPlantableAreas);
+                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', window.layerState.showNonPlantableAreas);
+            }
+
+            // Update visibility button icons to match actual polygon visibility
+            if (window.updateVisibilityButtonIcons) {
+                setTimeout(() => {
+                    window.updateVisibilityButtonIcons();
+                }, 100); // Small delay to ensure SuperSplat rendering is complete
             }
 
         } catch (error) {

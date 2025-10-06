@@ -137,8 +137,8 @@
 
     <!-- Unified Control Panel -->
     <div id="controlPanel" class="control-panel">
-        <!-- Top row: buttons + site selector -->
-        <div class="control-group view-controls">
+        <!-- Main control row: buttons + site selector + layer controls -->
+        <div class="control-group main-controls">
             <!-- Tilt Controls - COMMENTED OUT -->
             <!-- <button id="tilt0Button" class="control-button icon-button tilt-0-button" title="Top-down view"></button>
             <button id="tilt45Button" class="control-button icon-button tilt-45-button" title="Angled view"></button> -->
@@ -151,7 +151,6 @@
             <!-- <button id="homeButton" class="control-button icon-button home-button" title="Go to my location"></button>
             <button id="terrainToggleButton" class="control-button text-button terrain-toggle" title="Switch between high quality and performance modes">HQ</button> -->
             <button id="superSplatButton" class="control-button icon-button globe-icon-button" title="Switch to Cesium 3D view" style="display: inline-block;"></button>
-            <button id="viewSwitchButton" class="control-button text-button view-switch" title="Switch to 2D top-down view" style="display: none;">2D</button>
 
             <!-- Site Selector (inline with buttons) -->
             <div id="siteSelector" class="control-item site-selector">
@@ -159,16 +158,18 @@
                     <!-- Options populated by JavaScript -->
                 </select>
             </div>
-        </div>
 
-        <!-- Bottom row: layer controls -->
-        <div class="control-group data-controls">
-            <!-- Layer Controls -->
+            <!-- Layer Controls (moved from bottom row) -->
             <div id="layerControls" class="layer-controls" style="display: none;">
                 <div class="layer-section">
                     <div class="layer-toggle" id="plantableAreasToggle">
                         <span>Plantable Areas</span>
-                        <div class="layer-toggle-arrow"></div>
+                        <div class="layer-controls-right">
+                            <button id="paVisibilityToggle" class="visibility-toggle-button" title="Toggle PA visibility">
+                                <img src="/images/visible.png" alt="Toggle Visibility">
+                            </button>
+                            <div class="layer-toggle-arrow"></div>
+                        </div>
                     </div>
                     <div id="plantableSubOptions" class="sub-options" style="display: none;">
                         <!-- Dynamically populated PA categories -->
@@ -177,7 +178,12 @@
                 <div class="layer-section">
                     <div class="layer-toggle" id="nonPlantableAreasToggle">
                         <span>Non-Plantable Areas</span>
-                        <div class="layer-toggle-arrow"></div>
+                        <div class="layer-controls-right">
+                            <button id="npaVisibilityToggle" class="visibility-toggle-button" title="Toggle NPA visibility">
+                                <img src="/images/visible.png" alt="Toggle Visibility">
+                            </button>
+                            <div class="layer-toggle-arrow"></div>
+                        </div>
                     </div>
                     <div id="nonPlantableSubOptions" class="sub-options" style="display: none;">
                         <!-- Dynamically populated NPA categories -->

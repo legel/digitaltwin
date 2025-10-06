@@ -14,20 +14,20 @@
     pointer-events: none; /* Allow click-through except on actual controls */
 }
 
-/* Adjust control panel positioning in SuperSplat Lab mode to avoid rotation cube */
+/* Adjust control panel positioning in SuperSplat Lab mode to avoid view cube */
 .supersplat-mode .control-panel {
-    top: 120px; /* Provide clearance for SuperSplat view-cube-container and rotation controls */
+    top: 115px; /* Additional clearance to fully avoid viewcube overlap */
 }
 
-/* Adjust layer controls max-height in SuperSplat mode to account for lower positioning */
+/* Adjust layer controls max-height in SuperSplat mode */
 .supersplat-mode .layer-controls {
-    max-height: calc(100vh - 240px); /* Aggressive reduction to prevent overflow past screen bottom */
+    max-height: calc(100vh - 220px); /* Adjust for lower positioning */
 }
 
-/* Adjust focus panel positioning in SuperSplat mode to avoid rotation cube */
+/* Adjust focus panel positioning in SuperSplat mode to avoid view cube */
 .supersplat-mode .focus-panel {
-    top: 120px; /* Match control panel positioning for SuperSplat rotation cube clearance */
-    bottom: 120px; /* Adjust bottom to maintain panel height */
+    top: 115px; /* Match control panel positioning */
+    bottom: 115px; /* Adjust bottom to maintain panel height */
 }
 
 /* Control groups */
@@ -38,17 +38,10 @@
     pointer-events: auto; /* Re-enable pointer events for controls */
 }
 
-/* View controls specific styling - buttons in a row */
-.view-controls {
+/* Main controls styling - single row with buttons, site selector, and layer controls */
+.main-controls {
     justify-content: flex-end;
-}
-
-/* Data controls specific styling - parameter filter positioned below site selector */
-.data-controls {
-    position: relative;
-    justify-content: flex-end;
-    margin-left: auto; /* Push to right side */
-    width: 290px; /* Match expanded layer controls width */
+    align-items: flex-start; /* Allow layer controls to expand downward */
 }
 
 /* Base control item styling */
@@ -454,6 +447,46 @@
     background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Container for visibility button and dropdown arrow */
+.layer-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Visibility toggle button */
+.visibility-toggle-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    /* Prevent event bubbling conflicts */
+    z-index: 10;
+    position: relative;
+}
+
+.visibility-toggle-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.visibility-toggle-button img {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.visibility-toggle-button:hover img {
+    opacity: 1;
+}
+
 .layer-toggle-arrow {
     width: 0;
     height: 0;
@@ -461,7 +494,6 @@
     border-right: 5px solid transparent;
     border-top: 5px solid white;
     transition: transform 0.2s;
-    margin-left: 10px;
 }
 
 .layer-toggle.expanded .layer-toggle-arrow {
