@@ -292,7 +292,6 @@ function clearPASelection() {
 
     // Clear PA UI
     document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
-    window.layerState.showPlantableAreas = false;
 
     // Force immediate SuperSplat polygon update
     if (window.superSplatScene) {
@@ -311,7 +310,6 @@ function clearNPASelection() {
 
     // Clear NPA UI
     document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
-    window.layerState.showNonPlantableAreas = false;
 
     // Force immediate SuperSplat polygon update
     if (window.superSplatScene) {
@@ -414,15 +412,9 @@ function selectEnvironmentalMetric(metricName, geoJsonData) {
     // Apply metric-based colors via SuperSplat
     if (window.superSplatScene && window.superSplatScene.events && metricData.totalPolygons > 0) {
         try {
-            // Show plantable areas group
-            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
-            window.layerState.showPlantableAreas = true; // Sync layer state
-            console.log('🔹 Plantable areas group shown for environmental metrics');
-
-            // Update button icon to match
-            if (window.updateVisibilityButtonIcons) {
-                setTimeout(window.updateVisibilityButtonIcons, 50);
-            }
+            // Note: PA visibility is controlled by visibility toggle buttons only
+            // Environmental metrics don't change group visibility
+            console.log('🔹 Environmental metrics applied - visibility controlled by toggle buttons');
 
             // Group polygons by color to minimize SuperSplat calls
             const colorGroups = {};
@@ -1031,9 +1023,7 @@ function setupEcologicalMetricsControls() {
 
             selectEnvironmentalMetric(this.value, window.currentSiteData);
 
-            // Deselect other layer types
-            window.layerState.showPlantableAreas = false;
-            window.layerState.showNonPlantableAreas = false;
+            // Deselect other layer radio buttons (but don't change visibility)
             document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
             document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
         });
@@ -1199,7 +1189,6 @@ function populatePACategories(categories, categorizedPAs) {
 
                 // Use the new helper function to select PA area and its polygons
                 selectPAArea(name, window.currentSiteData);
-                window.layerState.showPlantableAreas = true;
 
                 // Deselect ecological metrics and NPAs
                 if (window.layerState.showEcologicalMetrics) {
@@ -1208,24 +1197,15 @@ function populatePACategories(categories, categorizedPAs) {
                     document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
                 }
 
-                // Deselect any NPA
-                if (window.layerState.showNonPlantableAreas) {
-                    window.layerState.showNonPlantableAreas = false;
-                    document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
-                }
+                // Deselect any NPA radio buttons (but don't change visibility)
+                document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
 
                 // Show plantable areas group and select all polygons for this PA in SuperSplat
                 if (window.superSplatScene && window.superSplatScene.events) {
                     try {
-                        // Show plantable areas group
-                        window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
-                        window.layerState.showPlantableAreas = true; // Sync layer state
-                        console.log('🔹 Plantable areas group shown in SuperSplat');
-
-                        // Update button icon to match
-                        if (window.updateVisibilityButtonIcons) {
-                            setTimeout(window.updateVisibilityButtonIcons, 50);
-                        }
+                        // Note: PA visibility is controlled by visibility toggle buttons only
+                        // This PA selection does not change group visibility
+                        console.log('🔹 PA selection made - visibility controlled by toggle buttons');
 
                         // Select all polygons for this PA area
                         const selectedPolygons = window.layerState.selectedPAPolygons || [];
@@ -1427,7 +1407,6 @@ function populateNPACategories(categories) {
 
             // Use the new helper function to select NPA category and its polygons
             selectNPACategory(category, window.currentSiteData);
-            window.layerState.showNonPlantableAreas = true;
 
             // Deselect ecological metrics and PAs
             if (window.layerState.showEcologicalMetrics) {
@@ -1436,24 +1415,15 @@ function populateNPACategories(categories) {
                 document.querySelectorAll('input[name="metric"]').forEach(r => r.checked = false);
             }
 
-            // Deselect any PA
-            if (window.layerState.showPlantableAreas) {
-                window.layerState.showPlantableAreas = false;
-                document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
-            }
+            // Deselect any PA radio buttons (but don't change visibility)
+            document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
 
             // Show non-plantable areas group and select first polygon in this category
             if (window.superSplatScene && window.superSplatScene.events && window.currentSiteData) {
                 try {
-                    // Show non-plantable areas group
-                    window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', true);
-                    window.layerState.showNonPlantableAreas = true; // Sync layer state
-                    console.log('🔹 Non-plantable areas group shown in SuperSplat');
-
-                    // Update button icon to match
-                    if (window.updateVisibilityButtonIcons) {
-                        setTimeout(window.updateVisibilityButtonIcons, 50);
-                    }
+                    // Note: NPA visibility is controlled by visibility toggle buttons only
+                    // This NPA selection does not change group visibility
+                    console.log('🔹 NPA selection made - visibility controlled by toggle buttons');
 
                     // Find first NPA in this category for selection
                     const npaFeatures = window.currentSiteData.features.filter(f => {
