@@ -474,11 +474,7 @@ class SuperSplatManager {
         }
 
         // Show/hide buttons based on SuperSplat mode state
-        const view2DButton = document.getElementById('viewSwitchButton');
-        if (view2DButton) {
-            // Show 2D button in Lab mode, hide in Cesium mode (opposite of previous logic)
-            view2DButton.style.display = this.isSuperSplatMode ? 'inline-block' : 'none';
-        }
+        // Note: 2D button removed - viewcube now provides orthographic top-down view
 
 
         // Update SuperSplat button visibility

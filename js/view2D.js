@@ -16,13 +16,9 @@ class View2DManager {
      * Initializes the 2D view manager and sets up event listeners
      */
     initialize() {
-        this.viewSwitchButton = document.getElementById('viewSwitchButton');
-        if (this.viewSwitchButton) {
-            // Remove any existing event listeners to avoid conflicts
-            this.viewSwitchButton.replaceWith(this.viewSwitchButton.cloneNode(true));
-            this.viewSwitchButton = document.getElementById('viewSwitchButton');
-            this.viewSwitchButton.addEventListener('click', () => this.toggleView());
-        }
+        // Note: 2D button removed - viewcube now provides orthographic top-down view
+        this.viewSwitchButton = null;
+        console.log('View2DManager: 2D button removed, using viewcube for orthographic view');
     }
 
 

@@ -416,7 +416,13 @@ function selectEnvironmentalMetric(metricName, geoJsonData) {
         try {
             // Show plantable areas group
             window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
+            window.layerState.showPlantableAreas = true; // Sync layer state
             console.log('🔹 Plantable areas group shown for environmental metrics');
+
+            // Update button icon to match
+            if (window.updateVisibilityButtonIcons) {
+                setTimeout(window.updateVisibilityButtonIcons, 50);
+            }
 
             // Group polygons by color to minimize SuperSplat calls
             const colorGroups = {};
@@ -602,7 +608,7 @@ function initializeLayerControls() {
             showPlantableAreas: true,
             showEcologicalMetrics: false,
             selectedMetric: null,
-            showNonPlantableAreas: false,
+            showNonPlantableAreas: true, // Match SuperSplat default: both PA and NPA visible
             selectedPA: null,
             selectedNPA: null,
             npaCategories: new Map(),
@@ -679,7 +685,10 @@ function initializeLayerControls() {
         setupPlantableAreaControls();
         setupNonPlantableAreaControls();
         setupEcologicalMetricsControls();
-        
+
+        // Set up visibility toggle buttons AFTER cloning to ensure handlers aren't lost
+        setupVisibilityToggleButtons();
+
         // Finally, set initial state for plantable areas
         const plantableToggle = document.getElementById('plantableAreasToggle');
         const plantableSubOptions = document.getElementById('plantableSubOptions');
@@ -701,7 +710,112 @@ function initializeLayerControls() {
         if (window.currentSiteData) {
             updateVisualization();
         }
+
+        // Note: Visibility button icons will be updated after GeoJSON polygons load
+        // in SuperSplatBridge.js to match actual polygon visibility state
     }, 100);
+}
+
+/**
+ * Sets up visibility toggle buttons for PA and NPA groups
+ */
+function setupVisibilityToggleButtons() {
+    console.log('🔧 Setting up visibility toggle buttons');
+
+    // PA visibility toggle
+    const paVisibilityToggle = document.getElementById('paVisibilityToggle');
+    console.log('🔧 PA visibility toggle found:', !!paVisibilityToggle, paVisibilityToggle);
+    if (paVisibilityToggle) {
+        paVisibilityToggle.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent dropdown toggle
+            e.stopImmediatePropagation(); // Prevent other handlers on same element
+            console.log('PA visibility toggle clicked');
+
+            // Toggle the state
+            window.layerState.showPlantableAreas = !window.layerState.showPlantableAreas;
+
+            // Update button image
+            const img = paVisibilityToggle.querySelector('img');
+            if (img) {
+                img.src = window.layerState.showPlantableAreas ? '/images/visible.png' : '/images/Invisible.png';
+                img.alt = window.layerState.showPlantableAreas ? 'Visible' : 'Hidden';
+            }
+
+            // Update SuperSplat group visibility directly (no re-rendering needed)
+            if (window.superSplatScene && window.superSplatScene.events) {
+                console.log('🔄 Setting PA group visibility in SuperSplat:', window.layerState.showPlantableAreas);
+                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', window.layerState.showPlantableAreas);
+            } else {
+                updateVisualization(); // Fallback for non-SuperSplat modes
+            }
+            console.log('PA visibility toggled:', window.layerState.showPlantableAreas);
+        });
+
+        // Initial state will be set after polygon loading completes
+    }
+
+    // NPA visibility toggle
+    const npaVisibilityToggle = document.getElementById('npaVisibilityToggle');
+    console.log('🔧 NPA visibility toggle found:', !!npaVisibilityToggle, npaVisibilityToggle);
+    if (npaVisibilityToggle) {
+        npaVisibilityToggle.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent dropdown toggle
+            e.stopImmediatePropagation(); // Prevent other handlers on same element
+            console.log('NPA visibility toggle clicked');
+
+            // Toggle the state
+            window.layerState.showNonPlantableAreas = !window.layerState.showNonPlantableAreas;
+
+            // Update button image
+            const img = npaVisibilityToggle.querySelector('img');
+            if (img) {
+                img.src = window.layerState.showNonPlantableAreas ? '/images/visible.png' : '/images/Invisible.png';
+                img.alt = window.layerState.showNonPlantableAreas ? 'Visible' : 'Hidden';
+            }
+
+            // Update SuperSplat group visibility directly (no re-rendering needed)
+            if (window.superSplatScene && window.superSplatScene.events) {
+                console.log('🔄 Setting NPA group visibility in SuperSplat:', window.layerState.showNonPlantableAreas);
+                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', window.layerState.showNonPlantableAreas);
+            } else {
+                updateVisualization(); // Fallback for non-SuperSplat modes
+            }
+            console.log('NPA visibility toggled:', window.layerState.showNonPlantableAreas);
+        });
+
+        // Initial state will be set after polygon loading completes
+    }
+}
+
+/**
+ * Updates visibility toggle button icons to match current layer state
+ */
+function updateVisibilityButtonIcons() {
+    console.log('🔧 Updating visibility button icons to match current state');
+
+    // Update PA visibility button icon
+    const paVisibilityToggle = document.getElementById('paVisibilityToggle');
+    if (paVisibilityToggle) {
+        const img = paVisibilityToggle.querySelector('img');
+        if (img) {
+            const isVisible = window.layerState.showPlantableAreas;
+            img.src = isVisible ? '/images/visible.png' : '/images/Invisible.png';
+            img.alt = isVisible ? 'Visible' : 'Hidden';
+            console.log('👁️ PA button icon updated:', isVisible ? 'visible' : 'hidden');
+        }
+    }
+
+    // Update NPA visibility button icon
+    const npaVisibilityToggle = document.getElementById('npaVisibilityToggle');
+    if (npaVisibilityToggle) {
+        const img = npaVisibilityToggle.querySelector('img');
+        if (img) {
+            const isVisible = window.layerState.showNonPlantableAreas;
+            img.src = isVisible ? '/images/visible.png' : '/images/Invisible.png';
+            img.alt = isVisible ? 'Visible' : 'Hidden';
+            console.log('👁️ NPA button icon updated:', isVisible ? 'visible' : 'hidden');
+        }
+    }
 }
 
 /**
@@ -1105,7 +1219,13 @@ function populatePACategories(categories, categorizedPAs) {
                     try {
                         // Show plantable areas group
                         window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
+                        window.layerState.showPlantableAreas = true; // Sync layer state
                         console.log('🔹 Plantable areas group shown in SuperSplat');
+
+                        // Update button icon to match
+                        if (window.updateVisibilityButtonIcons) {
+                            setTimeout(window.updateVisibilityButtonIcons, 50);
+                        }
 
                         // Select all polygons for this PA area
                         const selectedPolygons = window.layerState.selectedPAPolygons || [];
@@ -1327,7 +1447,13 @@ function populateNPACategories(categories) {
                 try {
                     // Show non-plantable areas group
                     window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', true);
+                    window.layerState.showNonPlantableAreas = true; // Sync layer state
                     console.log('🔹 Non-plantable areas group shown in SuperSplat');
+
+                    // Update button icon to match
+                    if (window.updateVisibilityButtonIcons) {
+                        setTimeout(window.updateVisibilityButtonIcons, 50);
+                    }
 
                     // Find first NPA in this category for selection
                     const npaFeatures = window.currentSiteData.features.filter(f => {
@@ -2198,4 +2324,5 @@ window.updateSelectedPAHighlight = updateSelectedPAHighlight;
 window.createPAConnection = createPAConnection;
 window.clearPAConnection = clearPAConnection;
 window.orchestrateFocusAnimation = orchestrateFocusAnimation;
+window.updateVisibilityButtonIcons = updateVisibilityButtonIcons;
 
