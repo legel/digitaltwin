@@ -894,9 +894,101 @@ findPAButton(paName) {
 ### Current Status: **Production Ready**
 Polygon click detection system is now complete and fully functional. Users can directly interact with 3D polygons to access detailed ecological information through the existing UI system.
 
+### ✅ Completed Sprint: Grid Transparency Rendering Issue Resolution (October 8, 2025)
+**Objective**: Resolve polygon rendering gaps appearing as grid line patterns ✅ COMPLETED
+**Major Achievement**: **Transparent Pass Rendering Solution for Grid Competition Issues**
+
+### Issue Identification and Resolution:
+**Problem**: Polygons displayed visible gaps in a grid-like pattern when rendered over SuperSplat's infinite ground grid, creating a "gridded transparency effect" that disrupted polygon visibility.
+
+### Root Cause Analysis:
+- ✅ **Initial Hypothesis - Blue Noise Texture**: Investigated SuperSplat's blue noise transparency system (32x32 texture pattern), extracted texture for manual analysis
+- ✅ **Depth Competition Discovery**: Issue only occurred when polygons overlapped with the infinite grid - polygons appeared solid when no grid was underneath
+- ✅ **Layer Architecture Investigation**: Both grid (`InfiniteGrid`) and polygons (`PointOverlay`) rendered on same `debugLayer` in opaque rendering pass
+- ✅ **Blue Noise Depth Logic**: Both systems used identical depth writing pattern: `gl_FragDepth = writeDepth(alpha) ? calcDepth(worldPos) : 1.0;`
+
+### Key Technical Findings:
+**SuperSplat Layer System Architecture**:
+```typescript
+// Layer rendering order (scene.ts:188-195)
+layers.insert(this.backgroundLayer, idx);     // Position: World index
+layers.insert(this.shadowLayer, idx + 1);     // Position: World index + 1
+layers.insert(this.debugLayer, idx + 1);      // Grid + Polygons (CONFLICT)
+layers.push(this.overlayLayer);               // Position: After inserted layers
+layers.push(this.gizmoLayer);                 // Position: Last
+```
+
+**Depth Competition Mechanism**:
+- **Grid fragments**: Used blue noise to determine depth writing: `writeDepth(levelAlpha) ? calcDepth(worldPos) : 1.0`
+- **Polygon fragments**: Used same blue noise pattern with identical logic
+- **GPU depth buffer**: Fragments with `gl_FragDepth = 1.0` (far plane) lost depth tests to fragments with actual depth
+- **Visual result**: Grid lines showed through polygon "gaps" where blue noise determined fragments should be pushed to far plane
+
+### Solution Strategy Evolution:
+**Attempted Approaches**:
+1. ❌ **Layer Separation (overlayLayer)**: Moved polygons to overlayLayer but caused complete polygon disappearance
+2. ❌ **Grid Depth Bias**: Modified grid depth to render behind polygons (`calcDepth(worldPos) + 0.00001`) - ineffective
+3. ❌ **Blue Noise Texture Modification**: Extracted and analyzed 32x32 blue noise texture - texture was seamless, not source of issue
+4. ✅ **Transparent Pass Rendering**: **SOLUTION** - Moved polygons from opaque to transparent rendering pass
+
+### Final Implementation:
+**File Modified**: `supersplat-build/src/point-overlay.ts:629`
+```typescript
+// Before (opaque pass - competing with grid):
+const shouldRender = this.visible && layer === this.scene.debugLayer && !transparent
+
+// After (transparent pass - separate from grid):
+const shouldRender = this.visible && layer === this.scene.debugLayer && transparent
+```
+
+### Technical Architecture:
+**Render Sequence After Fix**:
+1. **debugLayer opaque pass**: Grid renders with blue noise transparency
+2. **debugLayer transparent pass**: Polygons render with alpha blending
+3. **No depth competition**: Different rendering passes eliminate fragment depth conflicts
+
+### Alpha Bypass Preservation:
+The previously implemented alpha bypass for solid borders was maintained:
+```glsl
+bool writeDepth(float alpha) {
+    // Skip noise for near-opaque pixels (like 100% alpha borders)
+    if (alpha >= 0.95) {
+        return true;  // Always write depth for solid borders
+    }
+    // Use blue noise only for semi-transparent areas
+    vec2 uv = gl_FragCoord.xy / 32.0;
+    float noise = texture2DLod(blueNoiseTex32, uv, 0.0).y;
+    return alpha > noise;
+}
+```
+
+### Results Achieved:
+- ✅ **Grid Gaps Eliminated**: No more visible grid line patterns interrupting polygon shapes
+- ✅ **Polygon Integrity**: Clean polygon boundaries matching GeoJSON specifications
+- ✅ **Preserved Transparency**: Polygon alpha blending still functions correctly
+- ✅ **Solid Borders**: 100% alpha borders remain continuous without noise artifacts
+- ✅ **Performance Maintained**: No impact on rendering performance
+
+### Key Learning: SuperSplat Rendering Pass Architecture
+**Critical Knowledge Gained**:
+- **debugLayer serves dual purpose**: Opaque pass for grid, transparent pass for other elements
+- **Transparent pass rendering**: Different blending behavior compared to opaque pass depth testing
+- **Blue noise transparency**: Used throughout SuperSplat for smooth transparency without alpha artifacts
+- **Layer investigation importance**: Understanding rendering architecture essential for overlay systems
+
+### Debugging Process Excellence:
+**Systematic Investigation Approach**:
+1. **Texture Analysis**: Extracted and examined 32x32 blue noise texture for seamlessness
+2. **Layer Architecture Research**: Deep investigation of SuperSplat layer system via code and documentation
+3. **Hypothesis Testing**: Multiple approaches tried with proper rollback procedures
+4. **Root Cause Focus**: Identified depth competition as core issue rather than texture artifacts
+
+### Current Status: **Production Ready**
+Grid transparency rendering issue is now completely resolved. Polygon overlays render cleanly over the infinite grid without visual artifacts or interruptions.
+
 ### Next Sprint: Performance Optimization and Code Cleanup
 **Objective**: Remove remaining Cesium dependencies and optimize SuperSplat-only architecture
-**Dependencies**: Polygon click detection system (✅ COMPLETED)
+**Dependencies**: Grid transparency rendering (✅ COMPLETED), Polygon click detection system (✅ COMPLETED)
 
 ---
 

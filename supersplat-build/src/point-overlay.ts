@@ -626,7 +626,7 @@ class TriangleOverlay extends Element {
             // Combine triangles from direct triangles and polygons
             const allTriangles = this.getAllTriangles();
 
-            const shouldRender = this.visible && layer === this.scene.debugLayer && !transparent &&
+            const shouldRender = this.visible && layer === this.scene.debugLayer && transparent &&
                 this.scene.camera.renderOverlays && allTriangles.length > 0;
 
             if (shouldRender) {
