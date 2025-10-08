@@ -96,7 +96,13 @@ const fragmentShader = /* glsl*/ `
     }
 
     bool writeDepth(float alpha) {
-        vec2 uv = fract(gl_FragCoord.xy / 32.0);
+        // Skip noise for near-opaque pixels (like 100% alpha borders)
+        if (alpha >= 0.95) {
+            return true;  // Always write depth for solid borders
+        }
+
+        // Use blue noise only for semi-transparent areas - remove fract() to fix tile gaps
+        vec2 uv = gl_FragCoord.xy / 32.0;
         float noise = texture2DLod(blueNoiseTex32, uv, 0.0).y;
         return alpha > noise;
     }
@@ -308,7 +314,9 @@ const fragmentShader = /* glsl*/ `
         }
 
         gl_FragColor = vec4(finalColor, alpha);
-        gl_FragDepth = writeDepth(alpha) ? calcDepth(worldPos) : 1.0;
+        // Ensure polygons always render in front of splats with slight depth bias
+        float baseDepth = calcDepth(worldPos);
+        gl_FragDepth = writeDepth(alpha) ? (baseDepth - 0.00001) : 1.0;
     }
 `;
 
