@@ -514,12 +514,12 @@ function closeOtherDropdowns(currentDropdown) {
 }
 
 /**
- * Automatically loads site data for SuperSplat lab mode
+ * Automatically loads site data for the SuperSplat application
  * This bypasses the need for site selection dropdown
  */
-async function autoLoadSiteDataForLabMode() {
+async function autoLoadSiteData() {
     try {
-        console.log('🏠 AUTO-LOAD: Starting site data auto-load for SuperSplat lab mode...');
+        console.log('🏠 AUTO-LOAD: Starting site data auto-load...');
 
         // Check if data is already loaded
         if (window.currentSiteData) {
@@ -611,14 +611,12 @@ function initializeLayerControls() {
 
     // Set up controls and initialize state after a brief delay to ensure DOM is ready
     setTimeout(async () => {
-        // Check if we're in SuperSplat lab mode and need to auto-load data
-        const isLabMode = window.TERRAIN_LOADING_CONFIG?.initialMode === 'lab';
-
-        if (isLabMode && !window.currentSiteData) {
-            console.log('🎨 Lab mode detected - auto-loading site data...');
-            const loadSuccess = await autoLoadSiteDataForLabMode();
+        // Auto-load site data if not available
+        if (!window.currentSiteData) {
+            console.log('🎨 Auto-loading site data...');
+            const loadSuccess = await autoLoadSiteData();
             if (!loadSuccess) {
-                console.error('❌ Failed to auto-load site data in lab mode');
+                console.error('❌ Failed to auto-load site data');
                 return;
             }
         }
@@ -647,10 +645,10 @@ function initializeLayerControls() {
                 retryCount++;
                 console.log(`🔄 Retry ${retryCount}/${maxRetries} - checking for currentSiteData`);
 
-                // If still no data and we're in lab mode, try auto-loading again
-                if (!window.currentSiteData && isLabMode && retryCount <= 3) {
+                // If still no data, try auto-loading again
+                if (!window.currentSiteData && retryCount <= 3) {
                     console.log('🔄 Attempting auto-load on retry...');
-                    await autoLoadSiteDataForLabMode();
+                    await autoLoadSiteData();
                 }
 
                 if (window.currentSiteData) {
@@ -1757,26 +1755,8 @@ function zoomToNPACategory(categoryName) {
 // Override the original toggleParameterFilter
 window.toggleParameterFilter = toggleParameterFilter;
 
-// Initialize when DOM is ready - but delay for Lab mode
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        // Check if we're in Lab mode first - if so, delay initialization
-        if (window.TERRAIN_LOADING_CONFIG?.initialMode === 'lab') {
-            console.log('🎨 Lab mode detected - delaying layerControls initialization');
-            // Don't initialize now - will be called from Lab mode setup
-        } else {
-            initializeLayerControls();
-        }
-    });
-} else {
-    // Check if we're in Lab mode first - if so, delay initialization
-    if (window.TERRAIN_LOADING_CONFIG?.initialMode === 'lab') {
-        console.log('🎨 Lab mode detected - delaying layerControls initialization');
-        // Don't initialize now - will be called from Lab mode setup
-    } else {
-        initializeLayerControls();
-    }
-}
+// Layer controls are initialized from the main SuperSplat initialization
+// No automatic initialization here - controlled by main app flow
 
 /**
  * Updates the selected PA visual highlight
@@ -2283,7 +2263,7 @@ function clearPAConnection() {
 }
 
 // Expose functions globally
-window.autoLoadSiteDataForLabMode = autoLoadSiteDataForLabMode;
+window.autoLoadSiteData = autoLoadSiteData;
 window.initializeLayerControls = initializeLayerControls;
 window.updateVisualization = updateVisualization;
 window.visualizeGeoJsonPolygonsWithLayers = visualizeGeoJsonPolygonsWithLayers;

@@ -1,14 +1,8 @@
-// Global loading mode configuration
+// Global loading configuration
 window.TERRAIN_LOADING_CONFIG = {
-    // Set to 'lab' for SuperSplat Lab mode first, 'cesium' for Cesium 3D mode first
-    initialMode: 'lab',
-    
     // Loading timing configuration
-    expectedLoadTime: {
-        lab: 8,      // 8 seconds expected for Lab mode
-        cesium: 20   // 20 seconds expected for Cesium mode
-    },
-    
+    expectedLoadTime: 8,      // 8 seconds expected for SuperSplat startup
+
     // Progress thresholds
     steadyProgressUntil: 80,  // Progress steadily to 80%
     minTimeBeforeCompletion: 3 // Minimum 3 seconds before allowing completion
@@ -226,8 +220,7 @@ function startIndependentLoadingAnimation() {
     // startFallbackAnimation(); // DISABLED - Web Worker handles all progress
     
     // Web Worker is the single source of progress updates - pass configuration
-    const currentMode = window.TERRAIN_LOADING_CONFIG.initialMode;
-    const expectedTime = window.TERRAIN_LOADING_CONFIG.expectedLoadTime[currentMode];
+    const expectedTime = window.TERRAIN_LOADING_CONFIG.expectedLoadTime;
     const progressUntil = window.TERRAIN_LOADING_CONFIG.steadyProgressUntil;
     
     // Wait for eco loading messages to be available before starting

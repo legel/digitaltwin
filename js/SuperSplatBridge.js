@@ -48,7 +48,7 @@ class SuperSplatBridge {
             const checkSuperSplat = () => {
                 attempts++;
 
-                // First check if SuperSplat is running directly in this window (Lab mode)
+                // First check if SuperSplat is running directly in this window
                 if (window.scene && window.scene.events) {
                     console.log('🎯 SuperSplat scene detected (direct mode)');
                     window.superSplatScene = window.scene; // Store reference for easy access
@@ -166,7 +166,7 @@ class SuperSplatBridge {
                 try {
                     originalVisualize(geoJsonData);
                 } catch (error) {
-                    console.warn('Cesium visualization failed (expected in Lab mode):', error);
+                    console.warn('Cesium visualization failed (expected in SuperSplat-only mode):', error);
                 }
             }
         };
@@ -1421,19 +1421,14 @@ class SuperSplatBridge {
 
 }
 
-// Initialize the bridge when in Lab mode or when SuperSplat is available
+// Initialize the bridge for SuperSplat application
 function initializeSuperSplatBridge() {
-    // Check if we're in Lab mode or if SuperSplat scene is already available
-    const isLabMode = window.TERRAIN_LOADING_CONFIG?.initialMode === 'lab';
+    // Always initialize the SuperSplat bridge
     const hasSuperSplatScene = window.scene && window.scene.events;
+    const mode = hasSuperSplatScene ? 'direct SuperSplat scene' : 'SuperSplat application';
 
-    if (isLabMode || hasSuperSplatScene) {
-        const mode = hasSuperSplatScene ? 'direct SuperSplat' : 'Lab mode';
-        console.log(`🌉 Initializing SuperSplat bridge for ${mode}`);
-        window.superSplatBridge = new SuperSplatBridge();
-    } else {
-        console.log('⚠️ Not in Lab mode and no SuperSplat scene detected, skipping bridge initialization');
-    }
+    console.log(`🌉 Initializing SuperSplat bridge for ${mode}`);
+    window.superSplatBridge = new SuperSplatBridge();
 }
 
 // Export for use in other files

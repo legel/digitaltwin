@@ -16,7 +16,7 @@ let isActive = false;
 let exponentialSlowdownStartTime = null;
 let currentDelayMultiplier = 1;
 let loadingConfig = {
-    expectedTime: 8, // Default 8 seconds for Lab mode
+    expectedTime: 8, // Default 8 seconds for SuperSplat startup
     progressUntil: 80
 };
 let messageIndex = 0;
