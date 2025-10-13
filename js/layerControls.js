@@ -1481,7 +1481,7 @@ function updateVisualization() {
  */
 function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
     if (!window.map3D || !window.map3D.viewer) {
-        console.error('2D mode viewer not available');
+        console.log('⚠️ Cesium not available - running in SuperSplat-only mode (this is expected)');
         return;
     }
     

@@ -8,30 +8,12 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap" rel="stylesheet"> 
 
-    <!-- Cesium libraries (local build) - conditional loading for SuperSplat-only refactor -->
-    <link href="/cesium/Widgets/widgets.css" rel="stylesheet" onerror="this.remove()">
-    <script>
-        // Conditional Cesium loading - fail silently if not available
-        (function() {
-            const cesiumScript = document.createElement('script');
-            cesiumScript.src = '/cesium/Cesium.js';
-            cesiumScript.onerror = function() {
-                console.log('⚠️ Cesium.js not available - running in SuperSplat-only mode');
-                window.CESIUM_UNAVAILABLE = true;
-            };
-            cesiumScript.onload = function() {
-                console.log('✅ Cesium.js loaded successfully');
-                window.CESIUM_AVAILABLE = true;
-            };
-            document.head.appendChild(cesiumScript);
-        })();
-    </script>
+    <!-- Cesium libraries removed - SuperSplat-only mode -->
     
     <!-- Proj4js for proper coordinate conversion -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"></script>
     
-    <!-- Two.js for 2D graphics and canvas manipulation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/two.js/0.8.10/two.min.js"></script>
+    <!-- Two.js removed - SuperSplat-only mode -->
 
     <!-- 3D View CSS library -->
     <link href="/css/styles.css" rel="stylesheet">
@@ -113,8 +95,7 @@
         </div>
     </div>
 
-    <!-- Cesium 3D Container -->
-    <div id="cesiumContainer"></div>
+    <!-- Cesium 3D Container removed - SuperSplat-only mode -->
 
     <!-- SuperSplat Editor Container -->
     <div id="superSplatContainer" style="
@@ -220,11 +201,8 @@
     <script src="/js/main.js"></script>
 
     <!-- Map Managers -->
-    <script src="/js/CesiumManager.js"></script>
-    <!-- GoogleMaps2DManager.js removed to improve performance -->
     <script src="/js/UnifiedLODManager.js"></script>
     <script src="/js/UserManager.js"></script>
-    <script src="/js/GaussianSplatManager.js"></script>
     <script src="/js/SuperSplatManager.js"></script>
     <script src="/js/CoordinateTransform.js"></script>
     <script src="/js/SuperSplatBridge.js"></script>
@@ -234,13 +212,7 @@
     <script src="/js/narratives.js"></script>
 
     <!-- View Controls -->
-    <script src="/js/tilt.js"></script>
-    <script src="/js/orbit.js"></script>
-    <script src="/js/home.js"></script>
-    <script src="/js/viewTransform.js"></script>
-    <script src="/js/view2D.js"></script>
-    <script src="/js/two2D.js"></script>
-    <script src="/js/transitionAnimation.js"></script>
+    <!-- View control files removed - SuperSplat-only mode -->
     
     <!-- Data Visualization -->
     <script src="/js/layerControls.js"></script>

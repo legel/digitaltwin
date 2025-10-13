@@ -2272,19 +2272,13 @@ async function allSystemsGo() {
         // Start with SuperSplat/Lab mode
         await initializeLabModeFirst();
         
-        // Instantiate the CesiumManager in background (but don't show it) - only if Cesium is available
-        if (typeof Cesium !== 'undefined') {
-            window.map3D = new CesiumManager('cesiumContainer');
-        }
+        // CesiumManager removed - SuperSplat-only mode
         
-        // Hide Cesium container initially since we're starting in Lab mode
-        const cesiumContainer = document.getElementById('cesiumContainer');
-        if (cesiumContainer) {
-            cesiumContainer.style.display = 'none';
-        }
+        // Cesium container removed - SuperSplat-only mode
     } else {
-        // Start with Cesium 3D mode (original behavior)
-        await initializeCesiumModeFirst();
+        // Cesium mode removed - SuperSplat-only mode
+        console.warn('⚠️ Cesium mode no longer supported - falling back to Lab mode');
+        await initializeLabModeFirst();
         
         // Set up smart fallback completion timer for Cesium mode
         // Only use fallback timeout if no Gaussian splat is expected
@@ -2412,22 +2406,12 @@ async function allSystemsGo() {
         // Instantiate the UserManager and store it globally
         window.user = new UserManager(window.map3D);
 
-        // Instantiate the GaussianSplatManager with independent loading support
-        window.gaussianSplatManager = new GaussianSplatManager(window.map3D.viewer);
-        await import('./integrate_splat_clipping.js');
+        // GaussianSplatManager removed - SuperSplat-only mode
     } else {
         console.log('⚠️ Skipping Cesium-dependent managers - running in Lab mode');
     }
     
-    // If we started in Cesium mode, now trigger the site visualization (after GaussianSplatManager is ready)
-    if (initialMode === 'cesium' && window.superSplatManager?.initializeCesiumSiteVisualization) {
-        try {
-            console.log('🎯 GaussianSplatManager ready - now triggering Cesium site visualization...');
-            window.superSplatManager.initializeCesiumSiteVisualization();
-        } catch (error) {
-            console.error('❌ Error during Cesium site visualization initialization:', error);
-        }
-    }
+    // Cesium mode removed - SuperSplat-only mode
     
     // Initialize layer state early
     window.layerState = {
