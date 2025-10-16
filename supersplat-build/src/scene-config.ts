@@ -35,7 +35,7 @@ const sceneConfig = {
         initialElev: -10,
         initialZoom: 1.0,
         orbitSensitivity: 0.3,
-        zoomSensitivity: 0.4
+        zoomSensitivity: 0.8
     },
     debug: {
         showBound: false
