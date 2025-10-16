@@ -7,6 +7,11 @@ class SuperSplatBridge {
         this.isInitialized = false;
         this.polygonOverlayReady = false;
         this.pendingUpdates = [];
+        this.polygonClickHandlingSetup = false;
+
+        // Cache for static polygon geometry to avoid re-uploading
+        this.polygonGeometryCache = new Map();
+        this.lastUploadedSiteId = null;
 
         console.log('🌉 SuperSplatBridge initializing...');
         this.initialize();
@@ -43,7 +48,7 @@ class SuperSplatBridge {
     async waitForSuperSplat() {
         return new Promise((resolve, reject) => {
             let attempts = 0;
-            const maxAttempts = 50; // 5 seconds max wait
+            const maxAttempts = 100; // 10 seconds max wait for SuperSplat scene to initialize
 
             const checkSuperSplat = () => {
                 attempts++;
@@ -177,8 +182,7 @@ class SuperSplatBridge {
         // Bridge site data changes
         this.setupSiteDataWatching();
 
-        // Setup polygon click event handling
-        this.setupPolygonClickHandling();
+        // Polygon click event handling will be setup after polygons are rendered
     }
 
     /**
@@ -260,6 +264,9 @@ class SuperSplatBridge {
         const originalNavigateToSite = window.navigateToSite;
         if (originalNavigateToSite) {
             window.navigateToSite = (...args) => {
+                // Clear polygon cache when switching sites for performance
+                this.clearPolygonCache();
+
                 const result = originalNavigateToSite.apply(this, args);
 
                 // After site navigation, render GeoJSON polygons
@@ -323,11 +330,21 @@ class SuperSplatBridge {
 
     /**
      * Render GeoJSON polygons in SuperSplat with coordinate transformation
+     * Uses caching to avoid re-uploading static geometry on repeated calls
      */
     async renderGeoJSONPolygons(geoJsonData) {
         if (!geoJsonData || !geoJsonData.features) {
             console.error('❌ No GeoJSON data provided');
             return;
+        }
+
+        // Generate cache key based on GeoJSON content
+        const cacheKey = this.generateGeoJSONCacheKey(geoJsonData);
+
+        // Check if we already have this geometry uploaded and just need to update visibility/styles
+        if (this.polygonGeometryCache.has(cacheKey) && cacheKey === this.lastUploadedSiteId) {
+            console.log('🚀 Using cached polygon geometry - updating visibility/styles only');
+            return this.updatePolygonVisibilityAndStyles();
         }
 
         try {
@@ -523,10 +540,10 @@ class SuperSplatBridge {
                 }
             }
 
-            // Trigger SuperSplat view update to show newly loaded polygons immediately
+            // Removed forced render to improve camera movement performance
+            // SuperSplat will render polygons automatically as needed
             if (window.superSplatScene && polygonsRendered > 0) {
-                window.superSplatScene.forceRender = true;
-                console.log('🎨 Triggered SuperSplat view update for loaded polygons');
+                console.log('🎨 Polygons loaded - SuperSplat will render automatically');
             }
 
             // Sync window.layerState with actual polygon visibility defaults
@@ -553,6 +570,21 @@ class SuperSplatBridge {
                     window.updateVisibilityButtonIcons();
                 }, 100); // Small delay to ensure SuperSplat rendering is complete
             }
+
+            // Setup polygon click handling now that polygons are rendered
+            setTimeout(() => {
+                console.log('🖱️ Setting up polygon click detection after rendering...');
+                this.setupPolygonClickHandling();
+            }, 200); // Small delay to ensure SuperSplat polygon overlay is fully ready
+
+            // Cache this geometry for future use
+            this.polygonGeometryCache.set(cacheKey, {
+                features: geoJsonData.features.length,
+                polygonsRendered: polygonsRendered,
+                timestamp: Date.now()
+            });
+            this.lastUploadedSiteId = cacheKey;
+            console.log(`💾 Cached polygon geometry with key: ${cacheKey}`);
 
         } catch (error) {
             console.error('❌ Failed to render GeoJSON polygons:', error);
@@ -1151,7 +1183,14 @@ class SuperSplatBridge {
             return;
         }
 
+        // Prevent setting up multiple times
+        if (this.polygonClickHandlingSetup) {
+            console.log('🖱️ Polygon click handling already setup, skipping...');
+            return;
+        }
+
         console.log('🖱️ Setting up polygon click event bridge');
+        this.polygonClickHandlingSetup = true;
 
         // Listen for polygon click events from SuperSplat
         window.superSplatScene.events.on('polygon.clicked', (data) => {
@@ -1195,9 +1234,20 @@ class SuperSplatBridge {
                 const paButton = this.findPAButton(paName);
                 if (paButton) {
                     console.log(`🎯 Triggering PA button click for: ${paName}`);
+                    console.log('🔍 PA button before click:', paButton, 'checked:', paButton.checked);
+
+                    // Set flag to indicate this click is from polygon, not direct UI interaction
+                    window.isPolygonTriggeredClick = true;
                     paButton.click();
+                    // Clear flag after click
+                    window.isPolygonTriggeredClick = false;
+
+                    console.log('🔍 PA button after click:', paButton.checked);
                 } else {
                     console.warn(`⚠️ Could not find PA button for: ${paName}`);
+                    // Debug: List all available PA buttons
+                    const allButtons = document.querySelectorAll('input[type="radio"][name="plantableArea"]');
+                    console.log(`🔍 Available PA buttons (${allButtons.length}):`, Array.from(allButtons).map(b => b.value));
                 }
             } else {
                 console.warn(`⚠️ Could not extract PA name from polygon: ${polygonName}`);
@@ -1224,7 +1274,12 @@ class SuperSplatBridge {
                 const npaButton = this.findNPAButton(npaName);
                 if (npaButton) {
                     console.log(`🎯 Triggering NPA button click for: ${npaName}`);
+
+                    // Set flag to indicate this click is from polygon, not direct UI interaction
+                    window.isPolygonTriggeredClick = true;
                     npaButton.click();
+                    // Clear flag after click
+                    window.isPolygonTriggeredClick = false;
                 } else {
                     console.warn(`⚠️ Could not find NPA button for: ${npaName}`);
                 }
@@ -1419,6 +1474,66 @@ class SuperSplatBridge {
         return null;
     }
 
+    /**
+     * Generate a cache key for GeoJSON data to identify unique polygon sets
+     */
+    generateGeoJSONCacheKey(geoJsonData) {
+        // Use feature count and first few feature names as cache key
+        const featureCount = geoJsonData.features.length;
+        const featureNames = geoJsonData.features
+            .slice(0, 5) // Use first 5 features for key
+            .map(f => f.properties.name || 'unnamed')
+            .join(',');
+
+        return `polygons_${featureCount}_${featureNames.substring(0, 50)}`;
+    }
+
+    /**
+     * Update polygon visibility and styles without re-uploading geometry
+     */
+    updatePolygonVisibilityAndStyles() {
+        try {
+            if (!window.superSplatScene || !window.superSplatScene.events) {
+                console.warn('⚠️ SuperSplat scene not available for visibility update');
+                return;
+            }
+
+            // Get current layer state
+            const layerState = window.layerState || {};
+
+            console.log('🔄 Updating polygon visibility without geometry upload:', {
+                showPlantableAreas: layerState.showPlantableAreas,
+                showNonPlantableAreas: layerState.showNonPlantableAreas
+            });
+
+            // Update group visibility in SuperSplat
+            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility',
+                'plantable-areas', layerState.showPlantableAreas !== false);
+            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility',
+                'non-plantable-areas', layerState.showNonPlantableAreas !== false);
+
+            // Update UI buttons to match visibility state
+            if (window.updateVisibilityButtonIcons) {
+                setTimeout(() => {
+                    window.updateVisibilityButtonIcons();
+                }, 50); // Small delay for SuperSplat to process visibility changes
+            }
+
+            console.log('✅ Polygon visibility updated using cached geometry');
+        } catch (error) {
+            console.error('❌ Failed to update polygon visibility:', error);
+        }
+    }
+
+    /**
+     * Clear polygon geometry cache (useful when switching sites)
+     */
+    clearPolygonCache() {
+        console.log('🧹 Clearing polygon geometry cache');
+        this.polygonGeometryCache.clear();
+        this.lastUploadedSiteId = null;
+    }
+
 }
 
 // Initialize the bridge for SuperSplat application
@@ -1435,13 +1550,8 @@ function initializeSuperSplatBridge() {
 window.SuperSplatBridge = SuperSplatBridge;
 window.initializeSuperSplatBridge = initializeSuperSplatBridge;
 
-// Auto-initialize with multiple triggers for robustness
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeSuperSplatBridge);
-} else {
-    // DOM already loaded, initialize now or wait for SuperSplat
-    initializeSuperSplatBridge();
-}
+// Auto-initialize only when called explicitly or when SuperSplat scene is ready
+// Removed automatic DOM initialization to prevent timing issues
 
 // Also try to initialize when SuperSplat scene becomes available
 const checkForSuperSplatScene = () => {

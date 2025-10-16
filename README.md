@@ -56,26 +56,7 @@ cd terrain-3d
 pip install -r requirements.txt
 ```
 
-### 2. Build Cesium Dependencies
-```bash
-# Clone Cesium repository
-git clone https://github.com/CesiumGS/cesium.git
-cd cesium
-
-# Use tested version (optional - can use latest)
-git checkout 7103190
-
-# Build Cesium
-npm install
-npm run build
-
-# Copy build to terrain-3d (create directory first)
-mkdir -p ../terrain-3d/cesium
-cp -r Build/CesiumUnminified/* ../terrain-3d/cesium/
-cd ../terrain-3d
-```
-
-### 3. Build SuperSplat Dependencies
+### 2. Build SuperSplat Dependencies
 SuperSplat is fully integrated as local files in the `supersplat-build/` directory:
 
 ```bash
@@ -97,7 +78,7 @@ npm run deploy:supersplat
 
 **Fully Decoupled**: All SuperSplat source code is maintained locally in the `supersplat-build/` directory. The SuperSplat application files are built in `supersplat-build/dist/` and copied to `supersplat/` where they are served by the terrain-3d server. No external repositories or complex dependency management required.
 
-### 4. Server File Serving (Already Configured)
+### 3. Server File Serving (Already Configured)
 The terrain-3d `server.py` serves SuperSplat files through its generic static file route:
 
 ```python
@@ -109,7 +90,7 @@ def serve_static(path):
 
 This automatically serves SuperSplat files from the `supersplat/` directory, allowing the terrain-3d interface to load SuperSplat in iframe mode at `/supersplat/index.html`.
 
-### 5. Start Development Server
+### 4. Start Development Server
 ```bash
 python server.py
 # Open http://localhost:5001
@@ -118,12 +99,6 @@ python server.py
 **No build system** - Edit files, refresh browser. API keys hardcoded (security issue for production).
 
 ### Troubleshooting
-
-**Cesium Build Issues:**
-- If `npm install` shows vulnerabilities, they can be ignored for development
-- If `git checkout 7103190` fails, ensure you're in the cesium directory
-- If Cesium files return 404 errors, verify the `cesium/` directory exists and contains `Cesium.js` and `Widgets/widgets.css`
-- Build size warnings (⚠️) are normal and can be ignored
 
 **SuperSplat Build Issues:**
 - Requires Node.js 18+ and npm for building from source
@@ -138,38 +113,36 @@ python server.py
 ## 🏗 Architecture
 
 **Key Files** (see TECHNICAL.md for details):
-- `utilities.js` - Core logic (1700+ lines, handle with care)
+- `utilities.js` - Core logic (1500+ lines, handle with care)
 - `layerControls.js` - Complex UI state management
-- `CesiumManager.js` - 3D rendering + polygon clicks
+- `SuperSplatBridge.js` - SuperSplat polygon rendering + event bridge
+- `SuperSplatManager.js` - SuperSplat iframe lifecycle management
 - `focusPanel.js` - Ecological metrics display
 - Everything on `window` object (no modules)
 
 ## 🔬 Technical Specifications
 
-- **Rendering Engine**: Cesium.js (local build from commit 7103190) with 3D Gaussian Splatting support
-- **Data Sources**: PIX4Dmatic mesh tiles, .spz files, GIS layers
-- **Coordinate System**: WGS84 (EPSG:4326) with RTK precision
-- **Performance**: Optimized for 60+fps with **advanced Gaussian Splat prioritization**
+- **Rendering Engine**: SuperSplat with native 3D Gaussian Splatting support
+- **Data Sources**: .spz files, GIS layers, GeoJSON polygon data
+- **Coordinate System**: WGS84 (EPSG:4326) transformed to SuperSplat world space
+- **Performance**: Optimized SuperSplat rendering with custom polygon overlays
 - **Compatibility**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
 
 ### 🚀 Performance Optimizations
 
-**Gaussian Splat Rendering Performance**: The platform implements advanced performance optimizations specifically targeting smooth 60+fps Gaussian Splat rendering during camera transformations:
+**SuperSplat Integration**: The platform leverages SuperSplat's native performance optimizations with additional enhancements:
 
-- **Adaptive Motion Mode**: Dynamic quality reduction during camera movement with progressive restoration
-- **Resource Prioritization**: Google Photorealistic tiles heavily deprioritized to maximize Gaussian Splat resources
-- **High-Frequency Rendering**: 120fps render pipeline during camera movement
-- **GPU Optimization**: WebGL context optimized for high-performance rendering with dynamic resolution scaling
-- **Zero-Allocation Processing**: Memory-optimized camera movement detection to prevent garbage collection pauses
+- **Polygon Geometry Caching**: Static geometry cached to avoid redundant GPU uploads during camera movement
+- **Shader-Based Overlays**: Polygon rendering uses efficient fragment shaders instead of 3D mesh geometry
+- **Transparent Pass Rendering**: Polygons rendered in transparent pass to avoid depth conflicts with ground grid
+- **Ray Casting**: Efficient polygon click detection using SuperSplat's coordinate system
+- **Event Bridge Optimization**: Minimal overhead bridge between terrain-3d UI and SuperSplat rendering
 
-**Key Performance Results**:
-- **Maximum Gaussian Splat render frequency** during camera transformations
-- **8ms response time** for mouse interactions (improved from 100ms)
-- **16-21 SSE quality maintained** during motion (vs 32-96 SSE before optimization)
-- **Ultra-sensitive motion detection** with 0.5m/0.05 radian thresholds
-- **0.25s quality restoration** when movement stops (4x faster than before)
-
-See `PERFORMANCE.md` for detailed technical implementation of these optimizations.
+**Key Performance Features**:
+- **Native SuperSplat rendering** for optimal Gaussian splat performance
+- **Custom polygon overlay system** with minimal impact on splat rendering
+- **Efficient coordinate transformation** from geographic to SuperSplat world space
+- **Cached polygon geometry** prevents redundant uploads during interaction
 
 ## 🌍 Mission Alignment
 
@@ -193,7 +166,6 @@ Copyright Ecological Intelligence, Inc.
 
 ## 🙏 Acknowledgments
 
-- **[Cesium](https://cesium.com/)**: 3D globe rendering and geospatial accuracy
-- **[Google Maps Platform](https://developers.google.com/maps)**: Satellite imagery and mapping
+- **[SuperSplat](https://github.com/playcanvas/supersplat)**: Advanced 3D Gaussian Splat rendering and visualization
 - **Native Plant Community**: Growers, researchers, and designers preserving genetic heritage
 - **Landscape Professionals**: Practitioners shaping millions of acres annually for ecological function

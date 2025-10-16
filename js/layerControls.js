@@ -1172,11 +1172,17 @@ function populatePACategories(categories, categorizedPAs) {
                 console.log(`🔧 PA CLICK: "${this.value}", currentSelected: "${window.uiToggleState.currentSelectedPA}", checked: ${this.checked}`);
 
                 // Simple toggle logic: if already checked, uncheck and deselect
-                if (window.uiToggleState.currentSelectedPA === this.value) {
+                // BUT: Don't toggle off if this click was triggered by a polygon click
+                if (window.uiToggleState.currentSelectedPA === this.value && !window.isPolygonTriggeredClick) {
                     console.log(`🔧 TOGGLING OFF: "${this.value}"`);
                     this.checked = false;
                     window.uiToggleState.currentSelectedPA = null;
                     clearPASelection();
+                    return;
+                } else if (window.uiToggleState.currentSelectedPA === this.value && window.isPolygonTriggeredClick) {
+                    console.log(`🔵 POLYGON-TRIGGERED CLICK: Keeping "${this.value}" selected, ensuring visual selection`);
+                    // Re-trigger selection to ensure visual state is applied
+                    selectPAArea(name, window.currentSiteData);
                     return;
                 }
 
@@ -1392,10 +1398,16 @@ function populateNPACategories(categories) {
         
         radio.addEventListener('click', function(event) {
             // Simple toggle logic: if already checked, uncheck and deselect
-            if (window.uiToggleState.currentSelectedNPA === this.value) {
+            // BUT: Don't toggle off if this click was triggered by a polygon click
+            if (window.uiToggleState.currentSelectedNPA === this.value && !window.isPolygonTriggeredClick) {
                 this.checked = false;
                 window.uiToggleState.currentSelectedNPA = null;
                 clearNPASelection();
+                return;
+            } else if (window.uiToggleState.currentSelectedNPA === this.value && window.isPolygonTriggeredClick) {
+                console.log(`🔵 POLYGON-TRIGGERED NPA CLICK: Keeping "${this.value}" selected, ensuring visual selection`);
+                // Re-trigger selection to ensure visual state is applied
+                selectNPACategory(category, window.currentSiteData);
                 return;
             }
 

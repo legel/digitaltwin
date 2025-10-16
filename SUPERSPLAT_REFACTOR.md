@@ -986,9 +986,148 @@ bool writeDepth(float alpha) {
 ### Current Status: **Production Ready**
 Grid transparency rendering issue is now completely resolved. Polygon overlays render cleanly over the infinite grid without visual artifacts or interruptions.
 
-### Next Sprint: Performance Optimization and Code Cleanup
-**Objective**: Remove remaining Cesium dependencies and optimize SuperSplat-only architecture
-**Dependencies**: Grid transparency rendering (✅ COMPLETED), Polygon click detection system (✅ COMPLETED)
+### ✅ Critical Fix: Polygon Visual Selection Issue (October 15, 2025)
+**Objective**: Resolve polygon rendering and visual selection breakage introduced during Cesium cleanup ✅ COMPLETED
+**Major Achievement**: **Root Cause Analysis and Prevention Documentation for Future Development**
+
+### Issue Description:
+During Cesium cleanup efforts, polygon visual selection broke causing:
+1. **Border Color Issues**: Selecting polygons didn't update outer border colors, showed inside border colors due to increased thickness
+2. **Environmental Metrics**: Environmental metric selection didn't update polygon border colors
+3. **Incomplete Fill Rendering**: Some polygon areas weren't filled correctly
+
+### Root Cause Analysis:
+
+#### **PRIMARY CAUSE: visualizeGeoJsonPolygonsWithLayers() Function Interference**
+**File**: `js/layerControls.js:1492-1514`
+
+**Problem**: During Cesium cleanup, the `visualizeGeoJsonPolygonsWithLayers()` function was modified to include complex SuperSplatBridge initialization logic. This created **conflicting polygon initialization** between layerControls.js and SuperSplatBridge.js.
+
+**Working Reference Behavior (✅ CORRECT)**:
+```javascript
+function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
+    if (!window.map3D || !window.map3D.viewer) {
+        console.log('⚠️ Cesium not available - running in SuperSplat-only mode (this is expected)');
+        return;  // JUST RETURNS - does nothing else
+    }
+    // ... cesium code continues
+}
+```
+
+**Broken Implementation (❌ CAUSED ISSUES)**:
+```javascript
+function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
+    if (!window.map3D || !window.map3D.viewer) {
+        console.log('⚠️ Cesium not available - using SuperSplat polygon rendering');
+
+        // SuperSplat-only mode: Use SuperSplatBridge for polygon rendering
+        if (window.initializeSuperSplatBridge) {
+            // ... complex initialization logic that conflicted with existing SuperSplatBridge override
+        }
+        return;
+    }
+}
+```
+
+#### **SECONDARY CAUSE: Polygon Click Toggle Logic**
+**File**: `js/layerControls.js:1175-1181`
+
+The existing toggle logic caused polygon clicks to **toggle OFF** selections instead of maintaining them:
+```javascript
+// When button already checked, this toggled it OFF instead of keeping it selected
+if (window.uiToggleState.currentSelectedPA === this.value) {
+    this.checked = false;  // ❌ UNWANTED DESELECTION
+    window.uiToggleState.currentSelectedPA = null;
+    clearPASelection();
+    return;
+}
+```
+
+### Technical Solution Implemented:
+
+#### **1. Restored Clean layerControls.js Function**
+```javascript
+function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
+    if (!window.map3D || !window.map3D.viewer) {
+        console.log('⚠️ Cesium not available - running in SuperSplat-only mode (this is expected)');
+        return;  // ✅ CLEAN DELEGATION TO SUPERSPLATBRIDGE
+    }
+    // ... cesium code continues
+}
+```
+
+#### **2. Added Polygon Click vs UI Click Distinction**
+**Files**: `js/SuperSplatBridge.js` and `js/layerControls.js`
+
+```javascript
+// SuperSplatBridge.js - Set flag for polygon-triggered clicks
+window.isPolygonTriggeredClick = true;
+paButton.click();
+window.isPolygonTriggeredClick = false;
+
+// layerControls.js - Don't toggle off polygon-triggered clicks
+if (window.uiToggleState.currentSelectedPA === this.value && !window.isPolygonTriggeredClick) {
+    // Toggle off only for direct UI clicks
+} else if (window.uiToggleState.currentSelectedPA === this.value && window.isPolygonTriggeredClick) {
+    // Keep selected and re-trigger visual selection for polygon clicks
+}
+```
+
+### Why This Issue Occurred Multiple Times:
+
+#### **Pattern of Failure**: **Dual Initialization Conflict**
+1. **SuperSplatBridge Override**: Line 158 in SuperSplatBridge.js correctly overrides `visualizeGeoJsonPolygonsWithLayers`
+2. **layerControls.js Function**: Also tries to handle SuperSplat polygon rendering when Cesium unavailable
+3. **Timing Conflicts**: Multiple handlers fighting over polygon initialization created broken rendering states
+4. **Cascade Effects**: Initial rendering issues led to selection styling breakage
+
+#### **Prevention Strategy for Future Development**:
+
+**✅ CRITICAL RULES TO FOLLOW**:
+
+1. **Single Responsibility**: Only ONE system should handle polygon rendering in SuperSplat-only mode
+   - ✅ **SuperSplatBridge.js**: Handles ALL polygon rendering through override
+   - ✅ **layerControls.js**: Simply returns early when no Cesium, no additional logic
+
+2. **Reference Version Comparison**: Before modifying core rendering functions during cleanup:
+   - ✅ **Always compare with working reference version**
+   - ✅ **Test visual selection after every change**
+   - ✅ **Never assume "optimizations" are safe without testing**
+
+3. **Avoid Complex Initialization Logic**: Keep SuperSplat-only fallbacks simple
+   - ❌ **DON'T**: Add complex SuperSplat initialization in layerControls.js
+   - ✅ **DO**: Let SuperSplatBridge handle all SuperSplat interactions
+
+4. **Test Selection Styling**: Core functionality to verify after polygon changes
+   - Border color changes on selection
+   - Environmental metric styling updates
+   - Polygon fill rendering consistency
+   - Click visual feedback matching UI buttons
+
+### Architecture Lesson: **Clean Delegation Pattern**
+```
+GeoJSON Request
+     ↓
+layerControls.js::visualizeGeoJsonPolygonsWithLayers()
+     ↓ (if Cesium unavailable)
+     return; // DO NOTHING - let override handle it
+
+SuperSplatBridge.js Override (Line 158)
+     ↓
+this.renderGeoJSONPolygons(geoJsonData) // SINGLE HANDLER
+     ↓
+SuperSplat Polygon System
+```
+
+### Results Achieved:
+- ✅ **Proper polygon border color changes on selection**
+- ✅ **Environmental metric styling updates working**
+- ✅ **Consistent polygon fill rendering**
+- ✅ **Polygon click visual feedback matching UI button clicks**
+- ✅ **Performance improvements preserved**
+
+### Current Status: **Production Ready + Prevention Documented**
+The polygon rendering system is now fully functional with comprehensive documentation to prevent this class of issues in future development cycles.
 
 ---
 

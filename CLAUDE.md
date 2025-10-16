@@ -22,41 +22,43 @@ Support landscape designers in creating ecologically functional and beautiful la
 ## Architecture - AI Agent Guide
 
 ### Critical Understanding
-1. **No build system** - Edit files directly, refresh browser to test
-2. **Global state on window** - All managers and state accessible via `window.X`
-3. **Manager pattern** - Each domain has a dedicated manager class
-4. **Event-driven UI** - Layer controls drive visualization through state changes
+1. **SuperSplat-Only Application** - Uses SuperSplat for all 3D rendering (no Cesium)
+2. **No build system** - Edit files directly, refresh browser to test
+3. **Global state on window** - All managers and state accessible via `window.X`
+4. **Manager pattern** - Each domain has a dedicated manager class
+5. **Event-driven UI** - Layer controls drive visualization through state changes
 
 ### File Hierarchy (by importance)
-1. **utilities.js** (1700+ lines) - Core visualization logic, do NOT refactor without understanding all dependencies
+1. **utilities.js** (1500+ lines) - Core initialization and application logic
 2. **layerControls.js** - UI state management, complex event handling for PA/NPA/metrics
-3. **CesiumManager.js** - 3D rendering, includes polygon click → PA selection logic
-4. **focusPanel.js** + **metricChart.js** - Work together for ecological metrics display
-5. **main.js** - Simple but critical bootstrap sequence
+3. **SuperSplatBridge.js** - SuperSplat polygon rendering and event bridging system
+4. **SuperSplatManager.js** - SuperSplat iframe initialization and management
+5. **focusPanel.js** + **metricChart.js** - Work together for ecological metrics display
+6. **main.js** - Simple but critical bootstrap sequence
 
 ### Common Pitfalls
 - Tour auto-starts and conflicts with user actions
 - Layer controls only show for Boyd format sites
-- Polygon alpha must be ≥ 0.01 for Cesium picking
+- Polygon rendering requires SuperSplat initialization completion
 - Height adjustment system uses global `currentHeightOffset`
-- All visualization re-renders through `visualizeGeoJsonPolygons()`
+- **CRITICAL**: Never modify `visualizeGeoJsonPolygonsWithLayers()` in layerControls.js - it should only return early when no Cesium
 
 ### CSS Gotchas
-- **Z-index hierarchy**: Focus panel (998) < Layer controls (1000) < Connection line (1002)
+- **Z-index hierarchy**: SuperSplat container (1000) < Focus panel (1001) < Connection line (1003)
 - **Glass effect**: Uses `backdrop-filter` - check browser support
 - **Dropdown width**: Should be 170px (3 buttons), not 230px
-- **Unused styles**: styles.css has dead Cesium UI styles
+- **SuperSplat positioning**: UI elements positioned with `top: 120px` to avoid rotation cube
 - **Mobile**: Controls relocate to bottom at 767px breakpoint
 
-### Critical Data Flow
+### Critical Data Flow (SuperSplat-Only)
 ```
-Site Selection (dropdown) 
-→ loadSiteData() 
+Site Selection (dropdown)
+→ loadSiteData()
 → detectGeoJsonFormat() ['boyd'|'legacy']
 → if boyd: toggleParameterFilter() → analyzePA/NPACategories()
-→ visualizeGeoJsonPolygons() [main rendering function]
+→ SuperSplatBridge.renderGeoJSONPolygons() [main rendering function]
 → Layer controls become interactive
-→ User clicks PA/layer → updateVisualization() → visualizeGeoJsonPolygons() again
+→ User clicks PA/layer OR polygon → SuperSplat polygon selection
 ```
 
 ## Development Commands
@@ -69,27 +71,20 @@ Site Selection (dropdown)
 ## Key Implementation Details
 
 ### API Keys and Services
-- Cesium Ion access token is embedded in CesiumManager.js
-- Google Maps API key is loaded dynamically in GoogleMaps2DManager.js
 - IP geolocation service (ipgeolocation.io) requires API key in UserManager.js
+- Google Cloud Storage serves large Gaussian splat files (.glb assets)
 
-### Tour System
-Tours are defined in `narratives.js` as sequences of waypoints with:
-- Camera positions (longitude, latitude, height)
-- View angles (heading, pitch, roll)
-- Duration and messages to display
-
-### Device-Specific Instructions
-The app adapts instructions based on detected device:
-- Smartphone: touch gestures
-- Laptop with trackpad: two-finger gestures
-- Desktop with mouse: click and drag
+### SuperSplat Integration
+- **Gaussian Splat Rendering**: 3D digital twins loaded via SuperSplat (.spz files)
+- **Polygon Overlay System**: Custom shader-based polygon rendering on top of splat data
+- **Event Bridge**: SuperSplatBridge.js connects terrain-3d UI to SuperSplat polygon system
+- **Coordinate Transformation**: Geographic coordinates converted to SuperSplat world space
 
 ### Coordinate System
-All positions use:
-- Longitude/Latitude in degrees
-- Height in meters above ground
-- Heading/Pitch/Roll in radians for camera orientation
+- **Geographic Input**: GeoJSON features use longitude/latitude in degrees
+- **SuperSplat Space**: Converted to SuperSplat 3D world coordinates (x, y, z)
+- **Polygon Positioning**: Y-plane intersection places polygons on landscape surface
+- **Site Configuration**: site-bounds.json defines coordinate transformation parameters
 
 ## Essential Development Principles
 
@@ -129,19 +124,19 @@ All positions use:
 ## Recent Implementations
 
 ### Gaussian Splat Integration (3D Digital Twins)
-A comprehensive system for loading and managing 3D Gaussian Splat digital twins:
+A comprehensive system for loading and managing 3D Gaussian Splat digital twins via SuperSplat:
 
 #### Core Implementation
-- **GaussianSplatManager.js**: Complete management system for loading, displaying, and removing Gaussian splats
-- **Tileset Loading**: Uses `Cesium.Cesium3DTileset.fromUrl()` method with proper error handling
-- **Loading Indicators**: Visual feedback during splat loading with static canvas images
+- **SuperSplatManager.js**: SuperSplat iframe initialization and lifecycle management
+- **GaussianSplatManager.js**: Asset loading and coordinate integration with SuperSplat
+- **Loading Indicators**: Visual feedback during splat loading with progress messaging
 - **Debug Controls**: Development button for removing splats when testing
 
 #### Technical Details
 - **File Structure**: Expects `tileset.json` locally, `content.glb` served via Google Cloud Storage
 - **Performance Optimization**: Large GLB files (44MB+) automatically redirected to GCS CDN for fast delivery
 - **CORS Configuration**: GCS bucket configured with proper Access-Control-Allow-Origin headers
-- **Cesium Version**: Requires Cesium 1.131+ for proper Gaussian splat support
+- **SuperSplat Integration**: Uses SuperSplat's native Gaussian splat rendering system
 - **Extension Support**: Handles `KHR_spz_gaussian_splats_compression` extension
 - **Camera Positioning**: Automatic optimal viewpoint when splat loads
 
@@ -150,11 +145,11 @@ A comprehensive system for loading and managing 3D Gaussian Splat digital twins:
 - **CORS Policy**: Bucket configured to allow GET requests from `https://testing.ecodash.ai`
 - **Fallback Completion**: Smart loading completion handles stuck tile requests gracefully
 
-#### Polygon Visibility Enhancement
-- **Elevation Strategy**: All polygon outlines and fills elevated 3m above original position
-- **Depth Testing**: Disabled depth testing with `disableDepthTestDistance: Number.POSITIVE_INFINITY`
-- **Enhanced Materials**: Added `depthFailMaterial` and shadow disabling for better visibility
-- **Consistent Rendering**: Polygons and outlines at same elevation for uniform appearance
+#### Polygon Overlay System
+- **Shader-Based Rendering**: Custom fragment shaders render polygons above splat data
+- **Coordinate Transformation**: Geographic coordinates converted to SuperSplat world space
+- **Click Detection**: Ray casting system enables direct polygon interaction
+- **Visual Integration**: Polygons render on landscape surface with proper depth handling
 
 ### Advanced Focus Panel Animation System
 A sophisticated animation sequence for the focus panel that provides smooth visual transitions:
@@ -177,12 +172,11 @@ A sophisticated animation sequence for the focus panel that provides smooth visu
 - **DOM lifecycle management** - panels are destroyed and recreated
 - **Smooth transitions** between different PA selections
 
-### Camera Positioning System
-Simplified zoom system for both PA and NPA selections:
-- **Center calculation**: Average of all polygon vertices
-- **Radius determination**: Maximum distance between any two vertices
-- **Height calculation**: Radius fills 50% of screen height
-- **Direct positioning**: Camera centered above polygon/category
+### SuperSplat Camera Integration
+Camera control is handled natively by SuperSplat with terrain-3d providing minimal integration:
+- **Native Controls**: SuperSplat handles all camera movement and positioning
+- **Polygon Focus**: Focus panel integration works independently of camera system
+- **Tour System**: Currently disabled in SuperSplat-only mode
 
 ### UI Interaction Rules
 - **Single dropdown rule**: Only one dropdown open at a time
@@ -191,9 +185,9 @@ Simplified zoom system for both PA and NPA selections:
 - **Multiple close methods**: X button, Escape key, dropdown switching
 
 ### Polygon Click Integration
-- **Direct interaction**: Click polygons in 3D scene to select
-- **Automatic synchronization**: Updates layer controls UI
-- **Alpha transparency**: 0.01 for picking while maintaining visuals
+- **Direct interaction**: Click polygons in SuperSplat 3D scene to trigger UI selections
+- **Automatic synchronization**: SuperSplatBridge updates layer controls UI
+- **Ray Casting**: Uses SuperSplat's coordinate system for accurate polygon detection
 
 ## Recent UI Enhancements
 
