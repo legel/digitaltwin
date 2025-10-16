@@ -211,11 +211,11 @@ class SuperSplatBridge {
      */
     hasLayerStateChanged(previousState) {
         const current = window.layerState || {};
-        const keys = ['showPlantableAreas', 'showNonPlantableAreas', 'showEcologicalMetrics',
-                      'selectedMetric', 'selectedPA', 'selectedNPA'];
+        const keys = ['showPlantableAreas', 'showNonPlantableAreas',
+                      'selectedGroup', 'selectedGroupType'];
 
-        // Also check polygon arrays for changes
-        const arrayKeys = ['selectedPAPolygons', 'selectedNPAPolygons'];
+        // Also check unified polygon array for changes
+        const arrayKeys = ['selectedPolygons'];
 
         // Check basic keys
         const basicChanged = keys.some(key => current[key] !== previousState[key]);

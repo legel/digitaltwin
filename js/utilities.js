@@ -767,11 +767,14 @@ async function initializeSiteSelector() {
             // Initialize layer state with plantable areas checked by default
             window.layerState = {
                 showPlantableAreas: true,
-                showEcologicalMetrics: false,
-                selectedMetric: null,
                 showNonPlantableAreas: false,
-                selectedPA: null,
-                selectedNPA: null,
+
+                // Unified selection structure
+                selectedGroup: null,
+                selectedGroupType: null,
+                selectedPolygons: [],
+
+                // Categorization data
                 npaCategories: new Map(),
                 paCategories: new Map(),
                 categorizedPAs: new Map()
@@ -1322,11 +1325,14 @@ async function initializeSupersplatSiteData() {
     // Initialize layer state with plantable areas checked by default
     window.layerState = {
         showPlantableAreas: true,
-        showEcologicalMetrics: false,
-        selectedMetric: null,
         showNonPlantableAreas: false,
-        selectedPA: null,
-        selectedNPA: null,
+
+        // Unified selection structure
+        selectedGroup: null,
+        selectedGroupType: null,
+        selectedPolygons: [],
+
+        // Categorization data
         npaCategories: new Map(),
         paCategories: new Map(),
         categorizedPAs: new Map()
@@ -1394,11 +1400,14 @@ async function allSystemsGo() {
     // Initialize layer state early
     window.layerState = {
         showPlantableAreas: true,
-        showEcologicalMetrics: false,
-        selectedMetric: null,
         showNonPlantableAreas: false,
-        selectedPA: null,
-        selectedNPA: null,
+
+        // Unified selection structure
+        selectedGroup: null,
+        selectedGroupType: null,
+        selectedPolygons: [],
+
+        // Categorization data
         npaCategories: new Map(),
         paCategories: new Map(),
         categorizedPAs: new Map()
