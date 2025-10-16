@@ -14,18 +14,18 @@
     pointer-events: none; /* Allow click-through except on actual controls */
 }
 
-/* Adjust control panel positioning in SuperSplat mode to avoid view cube */
-.supersplat-mode .control-panel {
+/* Control panel positioning to avoid SuperSplat view cube (SuperSplat-only app) */
+.control-panel {
     top: 115px; /* Additional clearance to fully avoid viewcube overlap */
 }
 
-/* Adjust layer controls max-height in SuperSplat mode */
-.supersplat-mode .layer-controls {
+/* Layer controls max-height adjustment for lower positioning */
+.layer-controls {
     max-height: calc(100vh - 220px); /* Adjust for lower positioning */
 }
 
-/* Adjust focus panel positioning in SuperSplat mode to avoid view cube */
-.supersplat-mode .focus-panel {
+/* Focus panel positioning to avoid SuperSplat view cube */
+.focus-panel {
     top: 115px; /* Match control panel positioning */
     bottom: 115px; /* Adjust bottom to maintain panel height */
 }

@@ -147,18 +147,15 @@ class SuperSplatManager {
     }
 
     /**
-     * Updates button states and visibility - simplified for SuperSplat-only mode
+     * Updates button states - SuperSplat button is always hidden
      */
     updateButtonStates() {
-        // Update SuperSplat button (now purely informational)
+        // Hide SuperSplat button since we're SuperSplat-only
         if (this.superSplatButton) {
-            this.superSplatButton.style.display = 'none'; // Always hidden in SuperSplat-only mode
-            this.superSplatButton.textContent = '';
-            this.superSplatButton.className = 'control-button icon-button supersplat-icon-button';
-            this.superSplatButton.title = 'SuperSplat mode (active)';
+            this.superSplatButton.style.display = 'none';
         }
 
-        console.log('Button states updated - SuperSplat-only mode');
+        console.log('Button states updated');
     }
 
     /**
@@ -178,21 +175,21 @@ class SuperSplatManager {
     }
 
     /**
-     * Updates SuperSplat button visibility - always hidden in SuperSplat-only mode
+     * Updates SuperSplat button visibility - always hidden since we're SuperSplat-only
      */
     async updateSuperSplatAvailability() {
         if (!this.superSplatButton) return;
 
-        // Always hide button in SuperSplat-only mode
+        // Always hide button since we're SuperSplat-only
         this.superSplatButton.style.display = 'none';
-        console.log('SuperSplat button hidden - SuperSplat-only mode');
+        console.log('SuperSplat button hidden');
     }
 
     /**
-     * Configures UI elements for SuperSplat-only mode
+     * Configures UI elements
      */
     configureUI() {
-        console.log('🎨 configureUI() called - configuring UI for SuperSplat-only mode...');
+        console.log('🎨 configureUI() called - configuring UI...');
 
         // Show layer controls for Boyd format sites
         const layerControls = document.getElementById('layerControls');
@@ -264,7 +261,7 @@ class SuperSplatManager {
             superSplatButton.style.display = 'none';
         }
 
-        console.log('🎨 UI configured for SuperSplat-only mode');
+        console.log('🎨 UI configured');
     }
 
     // showUIForCesiumMode method removed - SuperSplat-only mode
