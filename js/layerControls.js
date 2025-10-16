@@ -736,7 +736,7 @@ function setupVisibilityToggleButtons() {
                 console.log('🔄 Setting PA group visibility in SuperSplat:', window.layerState.showPlantableAreas);
                 window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', window.layerState.showPlantableAreas);
             } else {
-                updateVisualization(); // Fallback for non-SuperSplat modes
+                console.warn('⚠️ SuperSplat not available for visibility toggle');
             }
             console.log('PA visibility toggled:', window.layerState.showPlantableAreas);
         });
@@ -768,7 +768,7 @@ function setupVisibilityToggleButtons() {
                 console.log('🔄 Setting NPA group visibility in SuperSplat:', window.layerState.showNonPlantableAreas);
                 window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', window.layerState.showNonPlantableAreas);
             } else {
-                updateVisualization(); // Fallback for non-SuperSplat modes
+                console.warn('⚠️ SuperSplat not available for visibility toggle');
             }
             console.log('NPA visibility toggled:', window.layerState.showNonPlantableAreas);
         });
@@ -1481,52 +1481,11 @@ function updateVisualization() {
     }
     
     // Re-visualize with current settings
-    if (window.currentSiteData) {
-        visualizeGeoJsonPolygonsWithLayers(window.currentSiteData);
+    if (window.currentSiteData && window.superSplatBridge) {
+        window.superSplatBridge.renderGeoJSONPolygons(window.currentSiteData);
     }
 }
 
-/**
- * Custom visualization function that respects layer settings
- */
-function visualizeGeoJsonPolygonsWithLayers(geoJsonData) {
-    if (!window.map3D || !window.map3D.viewer) {
-        console.log('⚠️ Cesium not available - running in SuperSplat-only mode (this is expected)');
-        return;
-    }
-    
-    const viewer = window.map3D.viewer;
-    
-    // Clear existing entities
-    const entitiesToRemove = [];
-    viewer.entities.values.forEach(entity => {
-        if (entity.name && (entity.name.startsWith('Site_') || 
-            entity.name.includes('PA') || 
-            entity.name.includes('NPA') ||
-            entity.polygon || 
-            entity.point)) {
-            entitiesToRemove.push(entity);
-        }
-    });
-    
-    entitiesToRemove.forEach(entity => {
-        try {
-            if (entity && !entity.isDestroyed && viewer.entities.contains(entity)) {
-                viewer.entities.remove(entity);
-            }
-        } catch (error) {
-            console.warn('Error removing entity:', error);
-        }
-    });
-    
-    // Call the original visualization function
-    window.visualizeGeoJsonPolygons(geoJsonData);
-    
-    // Update 2D canvas if in 2D mode
-    if (window.two2DManager && window.two2DManager.isActive) {
-        window.two2DManager.updatePolygonVisibility();
-    }
-}
 
 /**
  * Updates the old parameter filter system to work with new layer controls
@@ -2278,7 +2237,6 @@ function clearPAConnection() {
 window.autoLoadSiteData = autoLoadSiteData;
 window.initializeLayerControls = initializeLayerControls;
 window.updateVisualization = updateVisualization;
-window.visualizeGeoJsonPolygonsWithLayers = visualizeGeoJsonPolygonsWithLayers;
 window.layerSettings = layerSettings;
 window.parseBoydName = parseBoydName;
 window.extractNPACategory = extractNPACategory;

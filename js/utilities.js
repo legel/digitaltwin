@@ -798,8 +798,8 @@ async function initializeSiteSelector() {
             }
             
             // Trigger initial visualization with plantable areas
-            if (window.visualizeGeoJsonPolygonsWithLayers) {
-                window.visualizeGeoJsonPolygonsWithLayers(winterGardenSite.geoJson);
+            if (window.superSplatBridge) {
+                window.superSplatBridge.renderGeoJSONPolygons(winterGardenSite.geoJson);
             }
             
             // Auto-load Gaussian Splat for Winter Garden site (with small delay to ensure camera is positioned)
@@ -1163,7 +1163,7 @@ function adjustHeightOffset(adjustment) {
     console.log(`Height offset adjusted to: ${window.currentHeightOffset.toFixed(2)}m`);
 
     // Re-visualize with new offset - handled by SuperSplat in SuperSplat-only mode
-    console.log('⚠️ Height adjustment in SuperSplat-only mode - polygon visualization handled by SuperSplatBridge');
+    console.log('⚠️ Height adjustment with SuperSplat - polygon visualization handled by SuperSplatBridge');
 }
 
 /**
@@ -1186,7 +1186,7 @@ function stopActiveTutorial() {
         learnMoreButton.style.display = 'none';
     }
 
-    // Clear any active camera animations - handled by SuperSplat in SuperSplat-only mode
+    // Clear any active camera animations - handled by SuperSplat
 
     // Tutorial/flythrough stopped by site selection
 }
@@ -1216,7 +1216,7 @@ function extractNPACategory(name) {
  * @param {boolean} visualize - Whether to visualize the site data (default true)
  */
 function navigateToSite(bounds, visualize = true) {
-    console.log('🗺️ SuperSplat-only mode: Site navigation handled by SuperSplat camera system');
+    console.log('🗺️ SuperSplat: Site navigation handled by SuperSplat camera system');
 
     // Stop any active tutorial first
     stopActiveTutorial();
@@ -1276,13 +1276,9 @@ async function initializeSupersplat() {
 
             // Load SuperSplat editor with default site (scott-boyd-residence has splat file)
             window.superSplatManager.loadSuperSplatEditor('scott-boyd-residence');
-            window.superSplatManager.isSuperSplatMode = true;
             window.superSplatManager.updateButtonStates();
 
-            // Add CSS class to body for SuperSplat mode styling
-            document.body.classList.add('supersplat-mode');
-
-            console.log('🎨 SuperSplat mode activated with editor loaded');
+            console.log('🎨 SuperSplat editor loaded');
         } else {
             console.error('❌ SuperSplat container not found');
         }
@@ -1295,7 +1291,7 @@ async function initializeSupersplat() {
  * Initialize site data for SuperSplat-only mode (no dropdown UI needed)
  */
 async function initializeSupersplatSiteData() {
-    console.log('🏠 Loading site data for SuperSplat-only mode...');
+    console.log('🏠 Loading site data for SuperSplat...');
 
     // Load site data
     const sites = await loadSiteData();
@@ -1361,11 +1357,11 @@ async function initializeSupersplatSiteData() {
     }
 
     // Trigger initial visualization with plantable areas
-    if (window.visualizeGeoJsonPolygonsWithLayers) {
+    if (window.superSplatBridge) {
         console.log('🎨 Triggering polygon visualization...');
-        window.visualizeGeoJsonPolygonsWithLayers(defaultSite.geoJson);
+        window.superSplatBridge.renderGeoJSONPolygons(defaultSite.geoJson);
     } else {
-        console.warn('⚠️ visualizeGeoJsonPolygonsWithLayers not available');
+        console.warn('⚠️ SuperSplatBridge not available');
     }
 
     console.log('✅ SuperSplat site data initialization complete');
@@ -1387,12 +1383,12 @@ async function allSystemsGo() {
     await initializeSupersplat();
 
     // SuperSplat initialization complete - no Cesium render management needed in SuperSplat-only mode
-    console.log('✅ SuperSplat-only mode initialized');
+    console.log('✅ SuperSplat initialized');
 
     // GoogleMaps2D removed to improve performance
 
     // SuperSplat-only mode - Cesium-dependent managers removed
-    console.log('✅ SuperSplat-only mode - managers initialized as needed');
+    console.log('✅ SuperSplat - managers initialized as needed');
 
 
     // Initialize layer state early
@@ -1413,13 +1409,8 @@ async function allSystemsGo() {
 
     // Handle final initialization checks
     // Initialize site data for SuperSplat-only mode
-    if (window.superSplatManager && window.superSplatManager.isSuperSplatMode) {
-        console.log('🎯 SuperSplat initialized - loading site data and UI...');
-        await initializeSupersplatSiteData();
-    } else {
-        console.log('⚠️ SuperSplat not properly initialized, initializing site selector as fallback');
-        await initializeSiteSelector();
-    }
+    console.log('🎯 Loading SuperSplat site data and UI...');
+    await initializeSupersplatSiteData();
 
     console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - SuperSplat application ready`);
 }

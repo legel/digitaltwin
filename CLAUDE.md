@@ -41,7 +41,7 @@ Support landscape designers in creating ecologically functional and beautiful la
 - Layer controls only show for Boyd format sites
 - Polygon rendering requires SuperSplat initialization completion
 - Height adjustment system uses global `currentHeightOffset`
-- **CRITICAL**: Never modify `visualizeGeoJsonPolygonsWithLayers()` in layerControls.js - it should only return early when no Cesium
+- **Direct Calls**: Polygon rendering uses direct `window.superSplatBridge.renderGeoJSONPolygons()` calls
 
 ### CSS Gotchas
 - **Z-index hierarchy**: SuperSplat container (1000) < Focus panel (1001) < Connection line (1003)
@@ -176,7 +176,7 @@ A sophisticated animation sequence for the focus panel that provides smooth visu
 Camera control is handled natively by SuperSplat with terrain-3d providing minimal integration:
 - **Native Controls**: SuperSplat handles all camera movement and positioning
 - **Polygon Focus**: Focus panel integration works independently of camera system
-- **Tour System**: Currently disabled in SuperSplat-only mode
+- **Tour System**: Currently disabled with SuperSplat
 
 ### UI Interaction Rules
 - **Single dropdown rule**: Only one dropdown open at a time

@@ -151,30 +151,7 @@ class SuperSplatBridge {
      * Set up event bridging between terrain-3d and SuperSplat
      */
     setupEventBridging() {
-        // Override the existing visualizeGeoJsonPolygonsWithLayers function
-        // to send data to SuperSplat instead of (or in addition to) Cesium
-        const originalVisualize = window.visualizeGeoJsonPolygonsWithLayers;
-
-        window.visualizeGeoJsonPolygonsWithLayers = (geoJsonData) => {
-            console.log('🌉 GeoJSON visualization call intercepted - rendering SuperSplat polygons');
-
-            // Render polygons in SuperSplat
-            try {
-                this.renderGeoJSONPolygons(geoJsonData);
-                console.log('✅ SuperSplat polygon rendering initiated');
-            } catch (error) {
-                console.error('❌ SuperSplat polygon rendering failed:', error);
-            }
-
-            // Still call original function for Cesium compatibility
-            if (originalVisualize && typeof Cesium !== 'undefined') {
-                try {
-                    originalVisualize(geoJsonData);
-                } catch (error) {
-                    console.warn('Cesium visualization failed (expected in SuperSplat-only mode):', error);
-                }
-            }
-        };
+        console.log('🌉 Setting up SuperSplat event bridging');
 
         // Bridge layer state changes
         this.setupLayerStateWatching();
