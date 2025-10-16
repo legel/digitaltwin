@@ -44,10 +44,9 @@ interface GeoJSONData {
 interface LayerState {
     showPlantableAreas?: boolean;
     showNonPlantableAreas?: boolean;
-    showEcologicalMetrics?: boolean;
-    selectedMetric?: string;
-    selectedPA?: string;
-    selectedNPA?: string;
+    selectedGroup?: string;
+    selectedGroupType?: 'PA' | 'NPA' | 'METRIC';
+    selectedPolygons?: string[];
 }
 
 /**
@@ -717,7 +716,7 @@ class PolygonOverlay extends Element {
      */
     private shouldRenderFeature(feature: GeoJSONFeature, layerState: LayerState, isPlantable: boolean): boolean {
         if (isPlantable) {
-            return layerState.showPlantableAreas || layerState.showEcologicalMetrics;
+            return layerState.showPlantableAreas || layerState.selectedGroupType === 'METRIC';
         } else {
             return layerState.showNonPlantableAreas;
         }
