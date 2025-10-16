@@ -5,19 +5,19 @@
 - **Global state**: Everything on `window` object (e.g., `window.map3D`, `window.layerState`)
 - **Key entry point**: `main.js` → `allSystemsGo()` → manager initialization
 - **Data flow**: Site selection → GeoJSON load → Format detection → Layer controls → Visualization
-- **Critical files**: `utilities.js` (1700+ lines core logic), `layerControls.js` (UI state), `focusPanel.js` (metrics)
+- **Critical files**: `utilities.js` (1500+ lines core logic), `layerControls.js` (UI state), `SuperSplatBridge.js` (polygon rendering)
 
 ## Project Overview
 
-Terrain 3D is a web-based 3D ecological visualization platform that transforms landscape survey data into interactive digital twins. Built with vanilla JavaScript and a manager-based architecture, it visualizes plantable/non-plantable areas with scientific parameters (M1-M10) for landscape designers.
+Terrain 3D is a web-based SuperSplat-only 3D ecological visualization platform that transforms landscape survey data into interactive digital twins. Built with vanilla JavaScript and a manager-based architecture, it visualizes plantable/non-plantable areas with scientific parameters (M1-M10) for landscape designers using SuperSplat's advanced 3D Gaussian Splat rendering.
 
 ## Technology Stack
 
 ### Frontend
 - **Core**: Vanilla JavaScript (ES6+), no framework or build process
-- **3D Engine**: Cesium (local build from commit 7103190) with Google Photorealistic 3D Tiles and Gaussian Splat support
-- **2D Maps**: Google Maps JavaScript API v3 (satellite view)
-- **Coordinates**: Proj4js 2.9.0 for UTM→WGS84 conversion
+- **3D Engine**: SuperSplat with native 3D Gaussian Splat rendering
+- **Polygon Overlays**: Custom shader-based polygon rendering system
+- **Coordinates**: Geographic to SuperSplat world space transformation
 - **Styling**: Plain CSS with Oxygen font family
 - **3D Content**: Gaussian Splat digital twins (.spz compression)
 
@@ -80,7 +80,8 @@ Window Object (Global State)
 |------|---------|---------------|-------------|
 | `utilities.js` | Core logic, GeoJSON viz | `visualizeGeoJsonPolygons()`, `initializeSiteSelector()` | `currentSiteData`, `currentHeightOffset` |
 | `layerControls.js` | Layer UI & state | `initializeLayerControls()`, `updateVisualization()` | `layerState` |
-| `CesiumManager.js` | 3D rendering | Cesium setup, polygon click handling | `map3D` |
+| `SuperSplatBridge.js` | Polygon rendering | SuperSplat polygon system, event bridge | `superSplatBridge` |
+| `SuperSplatManager.js` | SuperSplat lifecycle | SuperSplat iframe initialization | `superSplatManager` |
 | `GaussianSplatManager.js` | 3D digital twins | `loadGaussianSplat()`, `removeAllSplats()` | `gaussianSplatManager` |
 | `focusPanel.js` | Metrics display | `show()`, creates DOM dynamically | `focusPanel` |
 | `main.js` | Bootstrap | `allSystemsGo()` | - |

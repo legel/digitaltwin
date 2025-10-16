@@ -100,6 +100,14 @@ class SuperSplatManager {
                 this.setInitialSuperSplatView();
             }, 2000); // Allow time for SuperSplat to fully initialize
             
+            // Initialize SuperSplat Bridge after iframe loads
+            setTimeout(() => {
+                if (window.initializeSuperSplatBridge) {
+                    console.log('🌉 Initializing SuperSplat Bridge after iframe load');
+                    window.initializeSuperSplatBridge();
+                }
+            }, 2500); // Allow time for SuperSplat scene to initialize
+
             // Notify loading system that SuperSplat is ready
             if (window.independentLoadingState?.isActive) {
                 // Add small delay to ensure PLY file starts loading inside iframe

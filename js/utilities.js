@@ -248,49 +248,11 @@ function displayMessage(text, fadeInTime = 0.5, displayTime = 3, fadeOutTime = 0
 }
 
 
-/**
- * Creates and appends the "Save View" button to the DOM if it doesn't already exist.
- * The button will call printViewConfiguration on click.
- */
-function addSaveViewButton() {
-    createReusableButton("Save 6D Camera View", () => {
-        printViewConfiguration(window.map3D.viewer);
-    }, {
-        id: "saveViewButton",
-        bottom: "50px",
-        left: "50%",
-        transform: "translateX(-50%)"
-    });
-}
 
 
 
-/**
- * Function to print the current view configuration to the console.
- * @param {object} viewer - The Cesium viewer object.
- */
-function printViewConfiguration(viewer) {
-    const camera = viewer.scene.camera;
-    const cartographic = Cesium.Cartographic.fromCartesian(camera.position);
-
-    const latitude = Cesium.Math.toDegrees(cartographic.latitude);
-    const longitude = Cesium.Math.toDegrees(cartographic.longitude);
-    const height = cartographic.height;
-
-    const heading = camera.heading;
-    const pitch = camera.pitch;
-    const roll = camera.roll;
-
-    console.log(`${longitude.toFixed(8)}, ${latitude.toFixed(8)}, ${height.toFixed(2)}, ${heading.toFixed(8)}, ${pitch.toFixed(8)}, ${roll.toFixed(8)}, 0,`);
-}
 
 
-/**
- * Calls the addSaveViewButton function to add the debug button.
- */
-function debug() {
-    addSaveViewButton();
-}
 
 /**
  * Loads and parses GeoJSON files from the data directory
@@ -545,19 +507,14 @@ function viridisColormap(t) {
 }
 
 /**
- * Maps parameter value to color using Viridis colormap
+ * Maps parameter value to color using Viridis colormap (SuperSplat-only mode returns RGB array)
  * @param {number} value - Numeric parameter value
  * @param {number} minVal - Minimum value in dataset
  * @param {number} maxVal - Maximum value in dataset
  * @param {string} paramType - Type of parameter for color scheme selection
- * @returns {Cesium.Color} - Color representing the value
+ * @returns {Array} - RGB array [r, g, b] with values 0-1
  */
 function getParameterColor(value, minVal, maxVal, paramType) {
-    // Skip if Cesium not available (SuperSplat-only mode)
-    if (typeof Cesium === 'undefined') {
-        return null;
-    }
-
     // Normalize value to 0-1 range
     const normalized = maxVal > minVal ? (value - minVal) / (maxVal - minVal) : 0.5;
 
@@ -571,13 +528,11 @@ function getParameterColor(value, minVal, maxVal, paramType) {
             viridisColormap(0.9)   // wet
         ];
         const colorIndex = Math.round(normalized * 4);
-        const rgb = moistureColors[Math.min(colorIndex, 4)];
-        return new Cesium.Color(rgb[0], rgb[1], rgb[2], 0.7);
+        return moistureColors[Math.min(colorIndex, 4)];
     }
 
     // For continuous parameters, use Viridis colormap
-    const rgb = viridisColormap(normalized);
-    return new Cesium.Color(rgb[0], rgb[1], rgb[2], 0.7);
+    return viridisColormap(normalized);
 }
 
 /**
@@ -935,38 +890,29 @@ function extractLightLevel(name) {
 }
 
 /**
- * Gets green color based on light level
+ * Gets green color based on light level (SuperSplat-only mode returns RGBA array)
  * @param {number} lightLevel - Light level from 0-10
- * @returns {Cesium.Color} - Color object with alpha
+ * @returns {Array} - RGBA array [r, g, b, a] with values 0-1
  */
 function getGreenShadeByLight(lightLevel) {
-    // Skip if Cesium not available (SuperSplat-only mode)
-    if (typeof Cesium === 'undefined') {
-        return null;
-    }
-
     // Map light levels to different shades of green
     // Higher light = brighter/lighter green, Lower light = darker green
-    if (lightLevel >= 8) return Cesium.Color.LIGHTGREEN.withAlpha(0.7);      // 8-10: Light green
-    if (lightLevel >= 6) return Cesium.Color.LIME.withAlpha(0.7);            // 6-8: Lime green
-    if (lightLevel >= 4) return Cesium.Color.GREEN.withAlpha(0.7);           // 4-6: Medium green
-    if (lightLevel >= 2) return Cesium.Color.FORESTGREEN.withAlpha(0.7);     // 2-4: Forest green
-    return Cesium.Color.DARKGREEN.withAlpha(0.7);                            // 0-2: Dark green
+    if (lightLevel >= 8) return [0.5, 1, 0.5, 0.7];      // Light green
+    if (lightLevel >= 6) return [0.2, 1, 0.2, 0.7];      // Lime green
+    if (lightLevel >= 4) return [0, 0.8, 0, 0.7];        // Medium green
+    if (lightLevel >= 2) return [0.1, 0.5, 0.1, 0.7];    // Forest green
+    return [0, 0.3, 0, 0.7];                              // Dark green
 }
 
 /**
- * Gets outline color based on light level
+ * Gets outline color based on light level (SuperSplat-only mode returns RGB array)
  * @param {number} lightLevel - Light level from 0-10
- * @returns {Cesium.Color} - Outline color
+ * @returns {Array} - RGB array [r, g, b] with values 0-1
  */
 function getOutlineColorByLight(lightLevel) {
-    // Skip if Cesium not available (SuperSplat-only mode)
-    if (typeof Cesium === 'undefined') {
-        return null;
-    }
-
-    if (lightLevel >= 6) return Cesium.Color.DARKGREEN;
-    return Cesium.Color.BLACK;
+    // Higher light = dark green outline, lower light = black outline
+    if (lightLevel >= 6) return [0, 0.3, 0];  // Dark green
+    return [0, 0, 0];                          // Black
 }
 
 /**
@@ -1097,24 +1043,6 @@ function isPlantableFeature(feature, format) {
     }
 }
 
-/**
- * Converts normalized RGBA array to Cesium Color
- * @param {Array} colorArray - [r, g, b, a] with values 0-1
- * @returns {Cesium.Color} - Cesium color object
- */
-function normalizedArrayToCesiumColor(colorArray) {
-    // Skip if Cesium not available (SuperSplat-only mode)
-    if (typeof Cesium === 'undefined') {
-        return null;
-    }
-
-    if (!colorArray || colorArray.length < 3) {
-        return Cesium.Color.WHITE; // Default fallback
-    }
-
-    const [r, g, b, a = 1] = colorArray;
-    return new Cesium.Color(r, g, b, a);
-}
 
 /**
  * Gets feature category for Boyd format
@@ -1221,683 +1149,46 @@ function getBoydLightLevel(boydData) {
 }
 
 
+
 /**
- * Visualizes GeoJSON polygons on the Cesium viewer
- * @param {Object} geoJsonData - The GeoJSON data to visualize
+ * Manually adjust the height offset for debugging
+ * @param {number} adjustment - Amount to adjust the height offset by
  */
-function visualizeGeoJsonPolygons(geoJsonData) {
-    // Skip visualization if Cesium not available (SuperSplat-only mode)
-    if (typeof Cesium === 'undefined' || !window.map3D || !window.map3D.viewer) {
-        console.log('⚠️ Skipping polygon visualization - Cesium not available or viewer not initialized (SuperSplat-only mode)');
-        return;
-    }
-    
-    const viewer = window.map3D.viewer;
-    
-    // Clear any existing site entities (polygons and points)
-    // Use a more robust clearing method
-    const entitiesToRemove = [];
-    viewer.entities.values.forEach(entity => {
-        if (entity.name && (entity.name.startsWith('Site_') || 
-            entity.name.includes('PA') || 
-            entity.name.includes('NPA') ||
-            entity.polygon || 
-            entity.point)) {
-            entitiesToRemove.push(entity);
-        }
-    });
-    
-    // Remove entities after collecting them to avoid modification during iteration
-    entitiesToRemove.forEach(entity => {
-        viewer.entities.remove(entity);
-    });
-    
-    // Cleared existing entities
-    
-    // Detect format from first feature
-    const format = geoJsonData.features.length > 0 ? detectGeoJsonFormat(geoJsonData.features[0]) : 'legacy';
-    
-    // Detect coordinate system
-    let isGeographic = false;
-    if (geoJsonData.features.length > 0) {
-        const firstFeature = geoJsonData.features[0];
-        if (firstFeature.geometry.type === 'Point') {
-            isGeographic = detectCoordinateFormat(firstFeature.geometry.coordinates) === 'geographic';
-        } else if (firstFeature.geometry.type === 'Polygon') {
-            isGeographic = detectCoordinateFormat(firstFeature.geometry.coordinates[0][0]) === 'geographic';
-        }
-    }
-    
-    // Visualizing GeoJSON format
-    
-    // Find the vertex with maximum altitude from the GeoJSON data
-    let maxAltitude = -Infinity;
-    let maxAltitudeCoord = null;
-    let minAltitude = Infinity;
-    let allAltitudes = [];
-    
-    geoJsonData.features.forEach(feature => {
-        if (feature.geometry.type === 'Polygon') {
-            feature.geometry.coordinates[0].forEach(coord => {
-                // Check if altitude (z) is provided
-                if (coord.length >= 3) {
-                    const altitude = coord[2];
-                    allAltitudes.push(altitude);
-                    if (altitude > maxAltitude) {
-                        maxAltitude = altitude;
-                        maxAltitudeCoord = coord;
-                    }
-                    if (altitude < minAltitude) {
-                        minAltitude = altitude;
-                    }
-                }
-            });
-        } else if (feature.geometry.type === 'Point' && feature.geometry.coordinates.length >= 3) {
-            const altitude = feature.geometry.coordinates[2];
-            allAltitudes.push(altitude);
-            if (altitude > maxAltitude) {
-                maxAltitude = altitude;
-                maxAltitudeCoord = feature.geometry.coordinates;
-            }
-            if (altitude < minAltitude) {
-                minAltitude = altitude;
-            }
-        }
-    });
-    
-    const avgAltitude = allAltitudes.length > 0 ? allAltitudes.reduce((a, b) => a + b, 0) / allAltitudes.length : 0;
-    // GeoJSON altitude analysis completed
-    
-    // If we found a max altitude coordinate, sample the Google 3D Tiles height at that location
-    let fixedHeight = maxAltitude + 0.1; // Default to GeoJSON altitude + 0.1m
-    
-    if (maxAltitudeCoord && window.currentHeightOffset === undefined) {
-        const [x, y] = maxAltitudeCoord;
-        let latLng;
-        
-        if (isGeographic) {
-            latLng = { lat: y, lng: x };
-        } else {
-            latLng = utmToLatLng(x, y);
-        }
-        
-        // Create multiple sample points around the max altitude location
-        const samplePoints = [];
-        const cartographic = Cesium.Cartographic.fromDegrees(latLng.lng, latLng.lat);
-        samplePoints.push(cartographic);
-        
-        // Add 4 more sample points in a small radius (about 5 meters)
-        const offsetDegrees = 0.00005; // Roughly 5 meters
-        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng + offsetDegrees, latLng.lat));
-        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng - offsetDegrees, latLng.lat));
-        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng, latLng.lat + offsetDegrees));
-        samplePoints.push(Cesium.Cartographic.fromDegrees(latLng.lng, latLng.lat - offsetDegrees));
-        
-        // Wait a frame to ensure scene is ready, then sample height
-        requestAnimationFrame(() => {
-            // Sample height from the scene (includes 3D tiles)
-            viewer.scene.sampleHeightMostDetailed(samplePoints).then(function(updatedPositions) {
-                if (updatedPositions && updatedPositions.length > 0) {
-                    // Get the median height from all samples
-                    const sampledHeights = updatedPositions
-                        .filter(pos => pos && pos.height !== undefined)
-                        .map(pos => pos.height);
-                    
-                    if (sampledHeights.length > 0) {
-                        sampledHeights.sort((a, b) => a - b);
-                        const medianHeight = sampledHeights[Math.floor(sampledHeights.length / 2)];
-                        
-                        // Calculate the offset between GeoJSON altitude and Google Earth height
-                        // Add a small additional offset to ensure polygons float above surface
-                        const heightOffset = medianHeight - maxAltitude + 0.5;
-                        // Height sampling results logging removed for cleaner console output
-                        
-                        // Store the offset to apply to all vertices
-                        window.currentHeightOffset = heightOffset;
-                        
-                        // Trigger re-visualization with the new offset
-                        if (!window.lastHeightOffset || Math.abs(window.lastHeightOffset - heightOffset) > 0.01) {
-                            window.lastHeightOffset = heightOffset;
-                            visualizeGeoJsonPolygons(geoJsonData);
-                        }
-                    } else {
-                        console.warn('No valid heights sampled, using fallback');
-                        window.currentHeightOffset = 0;
-                    }
-                } else {
-                    // Fallback: no offset
-                    window.currentHeightOffset = 0;
-                    console.log(`Could not sample Google Earth height, using no offset`);
-                }
-            }).catch(function(error) {
-                console.error('Height sampling failed:', error);
-                // Fallback: use a reasonable offset based on typical Google Earth elevations
-                // For the sites in the data, ground level is typically around 5-15m
-                const estimatedGroundHeight = 10; // Reasonable estimate
-                window.currentHeightOffset = estimatedGroundHeight - maxAltitude + 0.5;
-                console.log(`Height sampling failed, using estimated offset: ${window.currentHeightOffset.toFixed(2)}m`);
-                
-                // Trigger re-visualization with fallback offset
-                if (!window.lastHeightOffset || Math.abs(window.lastHeightOffset - window.currentHeightOffset) > 0.01) {
-                    window.lastHeightOffset = window.currentHeightOffset;
-                    visualizeGeoJsonPolygons(geoJsonData);
-                }
-            });
-        });
-    } else if (window.currentHeightOffset !== undefined) {
-        console.log(`Using existing height offset: ${window.currentHeightOffset.toFixed(2)}m`);
-    } else {
-        // No altitude data available, use zero offset
+function adjustHeightOffset(adjustment) {
+    if (window.currentHeightOffset === undefined) {
         window.currentHeightOffset = 0;
-        console.log('No altitude data available, using zero offset');
     }
-    
-    // Check if we should show anything at all
-    if (!window.currentParameterFilter && !window.layerState?.showPlantableAreas && 
-        !window.layerState?.showNonPlantableAreas && !window.layerState?.showEcologicalMetrics) {
-        // No layers selected, don't show anything
-        console.log('No layers selected, skipping visualization');
-        return;
-    }
-    
-    // Collect parameter values for color mapping when filter is active
-    let parameterValues = [];
-    let minParamValue = 0, maxParamValue = 1;
-    
-    if (window.currentParameterFilter && format === 'boyd') {
-        console.log(`Applying parameter filter: ${window.currentParameterFilter}`);
-        
-        // Collect all parameter values from plantable features
-        geoJsonData.features.forEach(feature => {
-            const category = getBoydFeatureCategory(feature);
-            if (category === 'plantable') {
-                const boydData = parseBoydEcologicalData(feature.properties.description || '');
-                const paramValue = boydData[window.currentParameterFilter];
-                if (paramValue) {
-                    const numericValue = parseParameterValue(paramValue, window.currentParameterFilter);
-                    parameterValues.push(numericValue);
-                }
-            }
-        });
-        
-        // Calculate min/max for color scaling
-        if (parameterValues.length > 0) {
-            minParamValue = Math.min(...parameterValues);
-            maxParamValue = Math.max(...parameterValues);
-        }
-        
-        console.log(`Parameter range: ${minParamValue} - ${maxParamValue}`);
-        
-        // Create color legend for the current parameter
-        createColorLegend(window.currentParameterFilter, minParamValue, maxParamValue);
-    } else {
-        // Remove legend when no filter is active
-        createColorLegend(null, 0, 0);
-    }
-    
-    geoJsonData.features.forEach((feature, index) => {
-        // For Boyd format, filter out non PA/NPA features (numeric names and test features)
-        if (format === 'boyd') {
-            const name = feature.properties.name;
-            const category = getBoydFeatureCategory(feature);
-            if (category === 'data-point') {
-                return; // Skip data points/reference features
-            }
-            
-            // Apply layer filtering for Boyd format
-            const isPlantable = category === 'plantable';
-            const isNonPlantable = category === 'non-plantable';
-            
-            // Check if we should show this feature based on layer settings
-            if (isPlantable && !window.layerState?.showPlantableAreas && !window.layerState?.temporaryShowPlantable) {
-                return; // Skip plantable areas if not showing them
-            }
-            
-            if (isNonPlantable && !window.layerState?.showNonPlantableAreas) {
-                return; // Skip non-plantable areas if not showing them
-            }
-        }
-        
-        if (feature.geometry.type === 'Polygon') {
-        
-        // Flatten coordinates for Cesium (lng, lat, lng, lat, ...)
-        const flatCoords = [];
-        for (let i = 0; i < feature.geometry.coordinates[0].length; i++) {
-            const [x, y, z] = feature.geometry.coordinates[0][i];
-            let latLng;
-            
-            if (isGeographic) {
-                // Already in geographic coordinates [lng, lat]
-                latLng = { lat: y, lng: x };
-            } else {
-                // UTM coordinates - need conversion
-                latLng = utmToLatLng(x, y);
-            }
-            
-            flatCoords.push(latLng.lng, latLng.lat);
-        }
-            
-            // Determine colors based on layer type and light level
-            const isPlantable = isPlantableFeature(feature, format);
-            let polygonColor, outlineColor;
-            
-            let descriptionContent = '';
-            
-            let entityName = `Site_Polygon_${index}`;  // Default name
-            
-            // Apply layer-specific settings
-            let polygonAlpha = window.debugSettings?.polygonAlpha || 0.1;
-            let outlineWidth = window.debugSettings?.outlineWidth || 2;
-            
-            if (isPlantable) {
-                // Apply plantable area settings when showing plantable layer
-                if (window.layerState?.showPlantableAreas && !window.currentParameterFilter) {
-                    polygonAlpha = window.layerSettings?.plantableAreas.polygonAlpha || 0.01; // Minimum alpha for pickability
-                    outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
-                    outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
-                }
-                let lightLevel, measurements;
-                
-                if (format === 'boyd') {
-                    // Parse Boyd format data
-                    const parsed = parseBoydName(feature.properties.name);
-                    const boydData = parseBoydEcologicalData(feature.properties.description || '');
-                    lightLevel = getBoydLightLevel(boydData);
-                    
-                    // Use the description as the entity name
-                    entityName = parsed.description || parsed.id;
-                    
-                    descriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${parsed.id}</h3>
-                            <p><strong>Type:</strong> Plantable Area</p>
-                            <p><strong>Description:</strong> ${parsed.description}</p>
-                            <p><strong>Moisture:</strong> ${boydData.moisture}</p>
-                            <p><strong>Light Hours:</strong> ${boydData.lightHours}</p>
-                            <p><strong>pH:</strong> ${boydData.pH}</p>
-                            <p><strong>Nitrogen (N):</strong> ${boydData.nitrogen}</p>
-                            <p><strong>Phosphorus (P):</strong> ${boydData.phosphorus}</p>
-                            <p><strong>Potassium (K):</strong> ${boydData.potassium}</p>
-                            <p><strong>Organic Matter:</strong> ${boydData.organic}</p>
-                            <p><strong>Drought Risk:</strong> ${boydData.drought}</p>
-                            <p><strong>Flood Risk:</strong> ${boydData.flood}</p>
-                            <p><strong>Wind Exposure:</strong> ${boydData.wind}</p>
-                        </div>
-                    `;
-                    
-                    // Use parameter-based coloring if filter is active
-                    if (window.currentParameterFilter) {
-                        const paramValue = boydData[window.currentParameterFilter];
-                        if (paramValue) {
-                            const numericValue = parseParameterValue(paramValue, window.currentParameterFilter);
-                            polygonColor = getParameterColor(numericValue, minParamValue, maxParamValue, window.currentParameterFilter);
-                            outlineColor = polygonColor.darken(0.3, new Cesium.Color());
-                            polygonAlpha = window.layerSettings?.ecologicalMetrics.polygonAlpha || 0.7;
-                            outlineWidth = window.layerSettings?.ecologicalMetrics.outlineWidth || 2;
-                        } else {
-                            // No data for this parameter - don't show polygon
-                            return; // Skip this polygon
-                        }
-                    } else if (window.layerState?.showPlantableAreas) {
-                        // Check if this polygon is in the selected PA's polygon list
-                        const polygonName = feature.properties.name;
-                        const isSelected = window.layerState?.selectedPAPolygons?.includes(polygonName);
 
-                        if (isSelected) {
-                            // Use thicker outline for selected PA polygons
-                            outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
-                            outlineWidth = window.layerSettings?.plantableAreas.selectedOutlineWidth || 10;
-                        } else if (window.layerState?.selectedPA === null) {
-                            // "All" selected - use thin outline for all
-                            outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
-                            outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
-                        } else {
-                            // Use thin white outline for unselected areas
-                            outlineColor = window.layerSettings?.plantableAreas.outlineColor || Cesium.Color.WHITE;
-                            outlineWidth = window.layerSettings?.plantableAreas.outlineWidth || 2;
-                        }
-                        polygonColor = Cesium.Color.TRANSPARENT;
-                        polygonAlpha = 0.01; // Minimum alpha for pickability
-                    } else {
-                        // Don't show if no layer is active
-                        return;
-                    }
-                } else {
-                    // Parse legacy format data
-                    lightLevel = extractLightLevel(feature.properties.name);
-                    measurements = parsePlantableMeasurements(feature.properties.name);
-                    
-                    // Use the PA ID as the entity name for legacy format
-                    entityName = measurements.id;
-                    
-                    descriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${measurements.id}</h3>
-                            <p><strong>Type:</strong> Plantable Area</p>
-                            <p><strong>Soil Moisture:</strong> ${measurements.soilMoisture}</p>
-                            <p><strong>Light Level:</strong> ${measurements.lightLevel || 'Unknown'}</p>
-                            <p><strong>pH:</strong> ${measurements.pH}</p>
-                            <p><strong>Nitrogen (N):</strong> ${measurements.nitrogen}</p>
-                            <p><strong>Phosphorus (P):</strong> ${measurements.phosphorus}</p>
-                            <p><strong>Potassium (K):</strong> ${measurements.potassium}</p>
-                            <p><strong>Drought Risk:</strong> ${measurements.drought}</p>
-                            <p><strong>Flood Risk:</strong> ${measurements.flood}</p>
-                            <p><strong>Wind Exposure:</strong> ${measurements.wind}</p>
-                        </div>
-                    `;
-                    
-                    polygonColor = getGreenShadeByLight(lightLevel);
-                    outlineColor = getOutlineColorByLight(lightLevel);
-                }
-                
-            } else {
-                // Non-plantable area or data point
-                if (format === 'boyd') {
-                    const category = getBoydFeatureCategory(feature);
-                    const parsed = parseBoydName(feature.properties.name);
-                    
-                    // Use the description as the entity name for non-plantable Boyd format
-                    entityName = parsed.description || parsed.id;
-                    
-                    // Apply NPA layer settings
-                    if (window.layerState?.showNonPlantableAreas) {
-                        // Check if this polygon is in the selected NPA's polygon list
-                        const polygonName = feature.properties.name;
-                        const isSelected = window.layerState?.selectedNPAPolygons?.includes(polygonName);
+    window.currentHeightOffset += adjustment;
+    console.log(`Height offset adjusted to: ${window.currentHeightOffset.toFixed(2)}m`);
 
-                        if (isSelected) {
-                            // Use thicker outline for selected NPA polygons
-                            outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
-                            outlineWidth = window.layerSettings?.nonPlantableAreas.selectedOutlineWidth || 10;
-                        } else if (window.layerState?.selectedNPA === null) {
-                            // "All" selected - use thin outline for all
-                            outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
-                            outlineWidth = window.layerSettings?.nonPlantableAreas.outlineWidth || 2;
-                        } else {
-                            // Use thin red outline for unselected NPAs
-                            outlineColor = window.layerSettings?.nonPlantableAreas.outlineColor || Cesium.Color.RED;
-                            outlineWidth = window.layerSettings?.nonPlantableAreas.outlineWidth || 2;
-                        }
-                        polygonColor = Cesium.Color.TRANSPARENT;
-                        polygonAlpha = 0.01; // Minimum alpha for pickability
-                    } else {
-                        // Don't show if NPA layer is not active
-                        return;
-                    }
-                    
-                    const typeLabel = category === 'data-point' ? 'Reference/Data Point' : 'Non-Plantable Area';
-                    descriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${parsed.id}</h3>
-                            <p><strong>Type:</strong> ${typeLabel}</p>
-                            <p><strong>Description:</strong> ${parsed.description}</p>
-                        </div>
-                    `;
-                } else {
-                    // Legacy format
-                    polygonColor = Cesium.Color.RED.withAlpha(0.6);
-                    outlineColor = Cesium.Color.DARKRED;
-                    
-                    const parsed = parseNonPlantableName(feature.properties.name);
-                    
-                    // Use the description as the entity name for legacy non-plantable
-                    entityName = parsed.description || parsed.id;
-                    descriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${parsed.id}</h3>
-                            <p><strong>Type:</strong> Non-Plantable Area</p>
-                            <p><strong>Feature:</strong> ${parsed.description}</p>
-                        </div>
-                    `;
-                }
-            }
-            
-        // Set appearance based on polygon type if not already set
-        if (!outlineWidth) {
-            if (isPlantable) {
-                // Plantable areas
-                outlineWidth = 2;
-            } else {
-                // Non-plantable areas
-                outlineWidth = 3;
-            }
-        }
-        
-        // Create polygon with vertices at their relative heights
-        // First, create an array of positions with individual heights
-        const positions = [];
-        const heightOffset = window.currentHeightOffset || 0;
-        
-        for (let i = 0; i < feature.geometry.coordinates[0].length - 1; i++) { // Skip last point (duplicate of first)
-            const coord = feature.geometry.coordinates[0][i];
-            const [x, y, z] = coord;
-            let latLng;
-            
-            if (isGeographic) {
-                latLng = { lat: y, lng: x };
-            } else {
-                latLng = utmToLatLng(x, y);
-            }
-            
-            // Calculate this vertex's height
-            let vertexHeight;
-            if (coord.length >= 3 && z !== undefined && maxAltitude !== -Infinity) {
-                // Preserve the relative height differences from the GeoJSON
-                // The height offset aligns the max altitude point with Google Earth
-                vertexHeight = z + heightOffset;
-                
-                // Ensure minimum height above ground
-                const minHeightAboveGround = 0.1;
-                if (vertexHeight < minHeightAboveGround) {
-                    console.warn(`Vertex height ${vertexHeight.toFixed(2)}m adjusted to minimum ${minHeightAboveGround}m`);
-                    vertexHeight = minHeightAboveGround;
-                }
-            } else {
-                // No altitude data, use the base height
-                vertexHeight = maxAltitude + heightOffset;
-            }
-            
-            // Elevate polygons by 0.5m to match outline elevation and render above splat
-            positions.push(Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat, vertexHeight + 0.5));
-        }
-        
-        // Create polygon with individual vertex heights
-        const polygonEntity = viewer.entities.add({
-            name: entityName,
-            polygon: {
-                hierarchy: new Cesium.PolygonHierarchy(positions),
-                material: (window.debugSettings?.showFill !== false) ? 
-                    polygonColor.withAlpha(Math.max(0.01, polygonAlpha)) : // Ensure minimum alpha
-                    Cesium.Color.WHITE.withAlpha(0.01), // Nearly transparent but still pickable
-                outline: false, // Disable polygon outline, we'll use separate polylines
-                perPositionHeight: true, // Use individual heights for each vertex
-                disableDepthTestDistance: Number.POSITIVE_INFINITY, // Always visible
-                // Remove heightReference when using perPositionHeight (incompatible)
-                extrudedHeight: 0.5 // Slightly extrude to ensure visibility through splat
-            },
-            description: descriptionContent
-        });
-        
-        // Create separate polyline for outline that renders better through splats
-        if (window.debugSettings?.showOutline !== false) {
-            // Close the loop by adding first position at the end
-            const outlinePositions = [...positions, positions[0]];
-            
-            // Elevate the polyline positions slightly to render above the splat
-            const elevatedPositions = outlinePositions.map(pos => {
-                const cartographic = Cesium.Cartographic.fromCartesian(pos);
-                return Cesium.Cartesian3.fromRadians(
-                    cartographic.longitude,
-                    cartographic.latitude,
-                    cartographic.height + 0.5 // Elevate by 0.5 meters
-                );
-            });
-            
-            viewer.entities.add({
-                name: `${entityName}_Outline`,
-                polyline: {
-                    positions: elevatedPositions,
-                    width: outlineWidth || 2,
-                    material: outlineColor,
-                    clampToGround: false, // Keep unclamped for elevation above splat
-                    disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                    heightReference: Cesium.HeightReference.NONE, // Use absolute height
-                    // Additional properties to ensure visibility through splats
-                    classificationType: Cesium.ClassificationType.BOTH,
-                    // Remove zIndex since it conflicts with clampToGround: false
-                    // Enhanced visibility settings for splat rendering
-                    depthFailMaterial: outlineColor, // Show same color even when depth test fails
-                    show: true, // Explicitly set to visible
-                    distanceDisplayCondition: undefined, // Always show regardless of distance
-                    // Force bright rendering
-                    shadows: Cesium.ShadowMode.DISABLED // Disable shadows to ensure visibility
-                }
-            });
-        }
-        }
-        
-        // Handle Point features
-        if (feature.geometry.type === 'Point') {
-            // For Boyd format, filter out non PA/NPA point features as well
-            if (format === 'boyd') {
-                const category = getBoydFeatureCategory(feature);
-                if (category === 'data-point') {
-                    return; // Skip data points/reference features
-                }
-            }
-            
-            const [x, y, z] = feature.geometry.coordinates;
-            let latLng;
-            
-            if (isGeographic) {
-                // Already in geographic coordinates [lng, lat]
-                latLng = { lat: y, lng: x };
-            } else {
-                // UTM coordinates - need conversion
-                latLng = utmToLatLng(x, y);
-            }
-            
-            const isPlantable = isPlantableFeature(feature, format);
-            
-            let pointDescriptionContent = '';
-            
-            if (isPlantable) {
-                // Plantable points are soil markers - keep as points
-                if (format === 'boyd') {
-                    const parsed = parseBoydName(feature.properties.name);
-                    pointDescriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${parsed.id}</h3>
-                            <p><strong>Type:</strong> Survey Point</p>
-                            <p><strong>Description:</strong> ${parsed.description}</p>
-                            <p><strong>Coordinates:</strong> ${latLng.lat.toFixed(6)}, ${latLng.lng.toFixed(6)}</p>
-                            <p><strong>Elevation:</strong> ${z.toFixed(2)}m</p>
-                        </div>
-                    `;
-                } else {
-                    const measurements = parsePlantableMeasurements(feature.properties.name);
-                    pointDescriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${measurements.id}</h3>
-                            <p><strong>Type:</strong> Soil Sample Point</p>
-                            <p><strong>Coordinates:</strong> ${latLng.lat.toFixed(6)}, ${latLng.lng.toFixed(6)}</p>
-                            <p><strong>Original Height:</strong> ${z.toFixed(2)}m</p>
-                        </div>
-                    `;
-                }
-                
-                // Determine point color
-                let pointColor = Cesium.Color.LIGHTGREEN;
-                if (format === 'boyd') {
-                    if (window.currentParameterFilter) {
-                        // Use parameter-based coloring for plantable points when filter is active
-                        const boydData = parseBoydEcologicalData(feature.properties.description || '');
-                        const paramValue = boydData[window.currentParameterFilter];
-                        if (paramValue) {
-                            const numericValue = parseParameterValue(paramValue, window.currentParameterFilter);
-                            pointColor = getParameterColor(numericValue, minParamValue, maxParamValue, window.currentParameterFilter);
-                        } else {
-                            pointColor = Cesium.Color.LIGHTGRAY;
-                        }
-                    } else if (feature.properties.color) {
-                        pointColor = normalizedArrayToCesiumColor(feature.properties.color);
-                    }
-                }
-                
-                viewer.entities.add({
-                    name: `Site_Point_${index}`,
-                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat),
-                    point: {
-                        pixelSize: 15,
-                        color: pointColor,
-                        outlineColor: Cesium.Color.BLACK,
-                        outlineWidth: 3,
-                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                        disableDepthTestDistance: 2000
-                    },
-                    description: pointDescriptionContent
-                });
-            } else {
-                // Non-plantable points as small red cylinders
-                if (format === 'boyd') {
-                    const parsed = parseBoydName(feature.properties.name);
-                    pointDescriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${parsed.id}</h3>
-                            <p><strong>Type:</strong> Non-Plantable Feature</p>
-                            <p><strong>Description:</strong> ${parsed.description}</p>
-                            <p><strong>Coordinates:</strong> ${latLng.lat.toFixed(6)}, ${latLng.lng.toFixed(6)}</p>
-                            <p><strong>Elevation:</strong> ${z.toFixed(2)}m</p>
-                        </div>
-                    `;
-                } else {
-                    const parsed = parseNonPlantableName(feature.properties.name);
-                    pointDescriptionContent = `
-                        <div style="font-family: 'Oxygen', sans-serif;">
-                            <h3>${parsed.id}</h3>
-                            <p><strong>Type:</strong> Non-Plantable Feature</p>
-                            <p><strong>Feature:</strong> ${parsed.description}</p>
-                            <p><strong>Coordinates:</strong> ${latLng.lat.toFixed(6)}, ${latLng.lng.toFixed(6)}</p>
-                            <p><strong>Original Height:</strong> ${z.toFixed(2)}m</p>
-                        </div>
-                    `;
-                }
-                
-                // Determine cylinder color
-                let cylinderColor = Cesium.Color.RED.withAlpha(0.9);
-                let cylinderOutlineColor = Cesium.Color.DARKRED;
-                
-                if (format === 'boyd') {
-                    if (window.currentParameterFilter) {
-                        // Use grayscale for non-plantable points when filter is active
-                        cylinderColor = Cesium.Color.GRAY.withAlpha(0.9);
-                        cylinderOutlineColor = Cesium.Color.DARKGRAY;
-                    } else if (feature.properties.color) {
-                        cylinderColor = normalizedArrayToCesiumColor(feature.properties.color);
-                        cylinderOutlineColor = cylinderColor.darken(0.3, new Cesium.Color());
-                    }
-                }
-                
-                viewer.entities.add({
-                    name: `Site_Point_${index}`,
-                    position: Cesium.Cartesian3.fromDegrees(latLng.lng, latLng.lat),
-                    cylinder: {
-                        length: 2.0,
-                        topRadius: 0.3,
-                        bottomRadius: 0.3,
-                        material: cylinderColor,
-                        outline: true,
-                        outlineColor: cylinderOutlineColor,
-                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                        disableDepthTestDistance: 2000
-                    },
-                    description: pointDescriptionContent
-                });
-            }
-        }
-    });
-    
-    // GeoJSON visualization completed
+    // Re-visualize with new offset - handled by SuperSplat in SuperSplat-only mode
+    console.log('⚠️ Height adjustment in SuperSplat-only mode - polygon visualization handled by SuperSplatBridge');
+}
+
+/**
+ * Stops any active tutorial/flythrough sequence
+ */
+function stopActiveTutorial() {
+    // Set global flag to stop flythrough
+    window.stopFlyThrough = true;
+    window.currentFlyThroughActive = false;
+
+    // Hide any continue buttons
+    const continueButton = document.getElementById('continueFlythroughButton');
+    if (continueButton) {
+        continueButton.style.display = 'none';
+    }
+
+    // Hide any learn more buttons
+    const learnMoreButton = document.getElementById('learnMoreButton');
+    if (learnMoreButton) {
+        learnMoreButton.style.display = 'none';
+    }
+
+    // Clear any active camera animations - handled by SuperSplat in SuperSplat-only mode
+
+    // Tutorial/flythrough stopped by site selection
 }
 
 /**
@@ -1920,101 +1211,38 @@ function extractNPACategory(name) {
 }
 
 /**
- * Manually adjust the height offset for debugging
- * @param {number} adjustment - Amount to adjust the height offset by
- */
-function adjustHeightOffset(adjustment) {
-    if (window.currentHeightOffset === undefined) {
-        window.currentHeightOffset = 0;
-    }
-    
-    window.currentHeightOffset += adjustment;
-    console.log(`Height offset adjusted to: ${window.currentHeightOffset.toFixed(2)}m`);
-    
-    // Re-visualize with new offset
-    if (window.currentSiteData) {
-        visualizeGeoJsonPolygons(window.currentSiteData);
-    }
-}
-
-/**
- * Stops any active tutorial/flythrough sequence
- */
-function stopActiveTutorial() {
-    // Set global flag to stop flythrough
-    window.stopFlyThrough = true;
-    window.currentFlyThroughActive = false;
-    
-    // Hide any continue buttons
-    const continueButton = document.getElementById('continueFlythroughButton');
-    if (continueButton) {
-        continueButton.style.display = 'none';
-    }
-    
-    // Hide any learn more buttons
-    const learnMoreButton = document.getElementById('learnMoreButton');
-    if (learnMoreButton) {
-        learnMoreButton.style.display = 'none';
-    }
-    
-    // Clear any active camera animations
-    if (window.map3D && window.map3D.viewer) {
-        window.map3D.viewer.scene.camera.cancelFlight();
-    }
-    
-    // Tutorial/flythrough stopped by site selection
-}
-
-/**
- * Navigates the camera to the selected site bounds
+ * Navigates to a site (SuperSplat-only mode)
  * @param {Object} bounds - Site bounds {minLat, maxLat, minLng, maxLng}
  * @param {boolean} visualize - Whether to visualize the site data (default true)
  */
 function navigateToSite(bounds, visualize = true) {
-    if (!window.map3D || !window.map3D.viewer) {
-        console.error('Cesium viewer not available');
-        return;
-    }
-    
+    console.log('🗺️ SuperSplat-only mode: Site navigation handled by SuperSplat camera system');
+
     // Stop any active tutorial first
     stopActiveTutorial();
-    
-    const viewer = window.map3D.viewer;
-    
-    // Calculate center point and appropriate height
+
+    // Calculate center point for messaging
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
     const centerLng = (bounds.minLng + bounds.maxLng) / 2;
-    
-    // Calculate appropriate viewing height based on bounds (3x closer than before)
-    const latSpan = bounds.maxLat - bounds.minLat;
-    const lngSpan = bounds.maxLng - bounds.minLng;
-    const maxSpan = Math.max(latSpan, lngSpan);
-    const height = Math.max(67, maxSpan * 111320 * 0.67); // 3x closer: was *2, now *0.67
-    
-    // Fly to the site
-    viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, height),
-        duration: 2.0
-    });
-    
+
     // Load the corresponding site data and visualize it
     loadSiteData().then(sites => {
         // Find the selected site by bounds (match the bounds passed to this function)
-        const selectedSite = sites.find(site => 
+        const selectedSite = sites.find(site =>
             Math.abs(site.bounds.minLat - bounds.minLat) < 0.001 &&
             Math.abs(site.bounds.maxLat - bounds.maxLat) < 0.001 &&
             Math.abs(site.bounds.minLng - bounds.minLng) < 0.001 &&
             Math.abs(site.bounds.maxLng - bounds.maxLng) < 0.001
         );
-        
+
         if (selectedSite && selectedSite.geoJson && visualize) {
             // Store the site data globally so parameter filter changes work
             window.currentSiteData = selectedSite.geoJson;
-            visualizeGeoJsonPolygons(selectedSite.geoJson);
+            // Polygon visualization now handled by SuperSplatBridge
         }
     });
-    
-    displayMessage(`Flying to site: ${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`, 0.5, 2, 0.5);
+
+    displayMessage(`Navigating to site: ${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`, 0.5, 2, 0.5);
 }
 
 /**
@@ -2022,10 +1250,7 @@ function navigateToSite(bounds, visualize = true) {
  */
 async function initializeSupersplat() {
     console.log('🎨 Initializing SuperSplat application...');
-    
-    // Load minimal site data (needed for SuperSplat)
-    await initializeSiteData();
-    
+
     // Wait for SuperSplat manager to be available
     let attempts = 0;
     const maxAttempts = 20; // 2 seconds max wait
@@ -2033,16 +1258,22 @@ async function initializeSupersplat() {
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
     }
-    
+
     // Initialize SuperSplat manager
     if (window.superSplatManager) {
         console.log('✅ SuperSplat manager found, activating SuperSplat mode...');
-        
+
+        // Ensure SuperSplat manager is initialized first
+        if (!window.superSplatManager.superSplatContainer) {
+            console.log('🔄 Initializing SuperSplat manager...');
+            window.superSplatManager.initialize();
+        }
+
         // Show SuperSplat container
         const superSplatContainer = document.getElementById('superSplatContainer');
         if (superSplatContainer) {
             superSplatContainer.style.display = 'block';
-            
+
             // Load SuperSplat editor with default site (scott-boyd-residence has splat file)
             window.superSplatManager.loadSuperSplatEditor('scott-boyd-residence');
             window.superSplatManager.isSuperSplatMode = true;
@@ -2051,260 +1282,119 @@ async function initializeSupersplat() {
             // Add CSS class to body for SuperSplat mode styling
             document.body.classList.add('supersplat-mode');
 
-            // Configure UI elements for SuperSplat mode
-            window.superSplatManager.configureUI();
-            
-            // Loading completion will be triggered by SuperSplat iframe onload event
-            console.log('🎨 SuperSplat mode initialized - waiting for SuperSplat iframe to load');
-            
-            // Fallback timeout in case SuperSplat iframe fails to load
-            const supersplatTimeout = (window.TERRAIN_LOADING_CONFIG.expectedLoadTime + 2) * 1000; // +2s buffer for SuperSplat
-            setTimeout(() => {
-                if (window.independentLoadingState?.isActive) {
-                    console.log('⏰ SuperSplat timeout - completing loading without SuperSplat iframe');
-                    window.independentLoadingState.complete();
-                }
-            }, supersplatTimeout);
+            console.log('🎨 SuperSplat mode activated with editor loaded');
+        } else {
+            console.error('❌ SuperSplat container not found');
         }
     } else {
-        console.error('⚠️ SuperSplat manager not available after waiting');
-        // Complete loading anyway to prevent stuck screen
-        if (window.independentLoadingState) {
-            window.independentLoadingState.complete();
-        }
+        console.error('❌ SuperSplat manager not available after timeout');
     }
-    
-    console.log('✅ SuperSplat initialization complete');
 }
 
-// initializeCesiumModeFirst function removed - SuperSplat-only mode
-
 /**
- * Initializes site data for SuperSplat application
+ * Initialize site data for SuperSplat-only mode (no dropdown UI needed)
  */
-async function initializeSiteData() {
-    try {
-        const siteDropdown = document.getElementById('siteDropdown');
-        if (!siteDropdown) {
-            console.error('Site dropdown not found');
-            return null;
-        }
-        
-        const sites = await loadSiteData();
-        
-        // Populate dropdown UI (same as initializeSiteSelector)
-        sites.forEach(site => {
-            const option = document.createElement('option');
-            option.value = site.filename;
-            option.textContent = site.name;
-            option.dataset.bounds = JSON.stringify(site.bounds);
-            siteDropdown.appendChild(option);
-        });
-        
-        // Set default selection to Winter Garden Residence
-        const winterGardenOption = Array.from(siteDropdown.options).find(option => 
-            option.textContent === 'Winter Garden Residence'
-        );
-        if (winterGardenOption) {
-            siteDropdown.value = winterGardenOption.value;
-            
-            const winterGardenSite = sites.find(site => site.filename === winterGardenOption.value);
-            if (winterGardenSite) {
-                // Store the site data globally
-                window.currentSiteData = winterGardenSite.geoJson;
-                
-                // Initialize layer state
-                window.layerState = {
-                    showPlantableAreas: true,
-                    showEcologicalMetrics: false,
-                    selectedMetric: null,
-                    showNonPlantableAreas: false,
-                    selectedPA: null,
-                    selectedNPA: null,
-                    npaCategories: new Map(),
-                    paCategories: new Map(),
-                    categorizedPAs: new Map()
-                };
-                
-                console.log('✅ Site data and UI loaded');
+async function initializeSupersplatSiteData() {
+    console.log('🏠 Loading site data for SuperSplat-only mode...');
 
-                // Initialize layer controls
-                console.log('🎯 Calling initializeLayerControls from initializeSiteData...');
-                if (window.initializeLayerControls) {
-                    // Small delay to ensure DOM is ready
-                    setTimeout(() => {
-                        window.initializeLayerControls();
-                    }, 100);
-                } else {
-                    console.warn('❌ initializeLayerControls function not available yet');
-                }
-            }
-        }
-        
-        // Add event listener for site selection (needed for proper site switching)
-        siteDropdown.addEventListener('change', function() {
-            if (this.value) {
-                const selectedOption = this.options[this.selectedIndex];
-                const bounds = JSON.parse(selectedOption.dataset.bounds);
-                
-                // Reset height offset for new site
-                window.currentHeightOffset = undefined;
-                window.lastHeightOffset = undefined;
-                console.log('Height offset reset for new site selection');
-                
-                // Find the selected site and load it
-                loadSiteData().then(sites => {
-                    const selectedSite = sites.find(site => site.filename === this.value);
-                    if (selectedSite) {
-                        window.currentSiteData = selectedSite.geoJson;
-                        console.log(`Site switched to: ${selectedSite.name}`);
-                        
-                        // Trigger full site loading
-                        if (window.map3D && (!window.superSplatManager || !window.superSplatManager.isSuperSplatMode)) {
-                            // Navigate to site and trigger visualization
-                            navigateToSite(bounds, false);
-                            
-                            // Initialize layer controls
-                            if (window.initializeLayerControls) {
-                                window.initializeLayerControls();
-                            }
-                            
-                            // Trigger visualization
-                            if (window.visualizeGeoJsonPolygonsWithLayers) {
-                                window.visualizeGeoJsonPolygonsWithLayers(selectedSite.geoJson);
-                            }
-                            
-                            // Auto-load Gaussian Splat if available
-                            if (window.gaussianSplatManager && this.value === 'Boyd_Residence_Aerial_and_Ground.geojson') {
-                                setTimeout(() => {
-                                    window.gaussianSplatManager.loadGaussianSplat('scott-boyd-residence', bounds);
-                                }, 100);
-                            }
-                        }
-                    }
-                });
-            }
-        });
-        
-        return sites;
-    } catch (error) {
-        console.error('Error loading site data:', error);
-        return null;
+    // Load site data
+    const sites = await loadSiteData();
+
+    // Find the default site (Winter Garden Residence / scott-boyd-residence)
+    const defaultSite = sites.find(site =>
+        site.name === 'Winter Garden Residence' ||
+        site.filename.includes('scott-boyd-residence')
+    );
+
+    if (!defaultSite) {
+        console.error('❌ Default site (Winter Garden Residence) not found');
+        return;
     }
+
+    console.log('✅ Default site found:', defaultSite.name);
+
+    // Show layer controls for Boyd format
+    const layerControls = document.getElementById('layerControls');
+    if (layerControls) {
+        layerControls.style.display = 'block';
+        console.log('✅ Layer controls shown');
+    }
+
+    // Store the site data globally
+    window.currentSiteData = defaultSite.geoJson;
+
+    // Initialize layer state with plantable areas checked by default
+    window.layerState = {
+        showPlantableAreas: true,
+        showEcologicalMetrics: false,
+        selectedMetric: null,
+        showNonPlantableAreas: false,
+        selectedPA: null,
+        selectedNPA: null,
+        npaCategories: new Map(),
+        paCategories: new Map(),
+        categorizedPAs: new Map()
+    };
+
+    console.log('✅ Layer state initialized');
+
+    // Detect format and initialize parameter filter
+    const format = defaultSite.geoJson.features.length > 0 ?
+        detectGeoJsonFormat(defaultSite.geoJson.features[0]) : 'legacy';
+
+    console.log('📊 Detected GeoJSON format:', format);
+
+    // Initialize layer controls after site is loaded
+    if (window.initializeLayerControls) {
+        console.log('🔧 Initializing layer controls...');
+        window.initializeLayerControls();
+    } else {
+        console.warn('⚠️ initializeLayerControls not available');
+    }
+
+    // Toggle parameter filter to analyze PA/NPA categories
+    if (window.toggleParameterFilter) {
+        console.log('📈 Analyzing PA/NPA categories...');
+        window.toggleParameterFilter(format);
+    } else {
+        console.warn('⚠️ toggleParameterFilter not available');
+    }
+
+    // Trigger initial visualization with plantable areas
+    if (window.visualizeGeoJsonPolygonsWithLayers) {
+        console.log('🎨 Triggering polygon visualization...');
+        window.visualizeGeoJsonPolygonsWithLayers(defaultSite.geoJson);
+    } else {
+        console.warn('⚠️ visualizeGeoJsonPolygonsWithLayers not available');
+    }
+
+    console.log('✅ SuperSplat site data initialization complete');
 }
 
+// Syntax error should now be fixed - properly closed functions above
+
 /**
- * Initializes all the required systems and sets them on the window object.
- * This includes the CesiumManager and UserManager.
+ * Main initialization function for the application
  */
 async function allSystemsGo() {
     // Update loading message for initialization
     if (window.independentLoadingState) {
         // window.independentLoadingState.updateMessage('Initializing ecosystem simulation...', 3000);
     }
-    
+
     // Check loading mode configuration
     // Initialize SuperSplat application
     await initializeSupersplat();
 
-    // SuperSplat initialization complete
-    if (window.map3D && window.map3D.viewer) {
-        // Force initial render to prevent glitchy transition
-        window.map3D.viewer.scene.requestRender();
-        
-        // CRITICAL FIX: Enhanced render management for smooth camera movement
-        window.renderManager = {
-            lastRenderTime: 0,
-            minRenderInterval: 8, // 120fps maximum for smoother camera movement  
-            renderPending: false,
-            renderTimeout: null,
-            highFrequencyMode: false, // Flag for camera movement periods
-            
-            // Enable high frequency rendering during camera movement
-            enableHighFrequency: function() {
-                this.highFrequencyMode = true;
-                
-                // CRITICAL: Dynamic resolution scaling for GPU bandwidth optimization
-                if (window.map3D && window.map3D.viewer) {
-                    // Reduce resolution during movement for 60+fps performance
-                    window.map3D.viewer.resolutionScale = 0.75; // 75% resolution during movement
-                }
-            },
-            
-            // Return to normal frequency after movement
-            disableHighFrequency: function() {
-                this.highFrequencyMode = false;
-                
-                // Restore full resolution when movement stops
-                if (window.map3D && window.map3D.viewer) {
-                    window.map3D.viewer.resolutionScale = 1.0; // Full resolution when idle
-                }
-            },
-            
-            requestRender: function() {
-                const now = performance.now();
-                
-                // During high frequency mode (camera movement), render immediately
-                if (this.highFrequencyMode) {
-                    window.map3D.viewer.scene.requestRender();
-                    this.lastRenderTime = now;
-                    
-                    // Clear any pending render
-                    if (this.renderPending) {
-                        clearTimeout(this.renderTimeout);
-                        this.renderPending = false;
-                    }
-                    return;
-                }
-                
-                // Normal mode: throttle to prevent render spam
-                if (now - this.lastRenderTime < this.minRenderInterval) {
-                    if (!this.renderPending) {
-                        this.renderPending = true;
-                        const delay = this.minRenderInterval - (now - this.lastRenderTime);
-                        this.renderTimeout = setTimeout(() => {
-                            window.map3D.viewer.scene.requestRender();
-                            this.lastRenderTime = performance.now();
-                            this.renderPending = false;
-                        }, delay);
-                    }
-                    return;
-                }
-                
-                // Safe to render immediately
-                window.map3D.viewer.scene.requestRender();
-                this.lastRenderTime = now;
-                
-                // Clear any pending render
-                if (this.renderPending) {
-                    clearTimeout(this.renderTimeout);
-                    this.renderPending = false;
-                }
-            }
-        };
-        
-        // Set up camera movement handlers with intelligent render management
-        const camera = window.map3D.viewer.scene.camera;
-        camera.moveStart.addEventListener(() => {
-            window.renderManager.enableHighFrequency();
-            window.renderManager.requestRender();
-        });
-        
-        camera.moveEnd.addEventListener(() => {
-            window.renderManager.disableHighFrequency();
-            window.renderManager.requestRender();
-        });
-        
-        // REMOVED: Individual mouse event render triggers (handled by unified camera handler)
-        // This eliminates render request spam during mouse interaction
-    }
+    // SuperSplat initialization complete - no Cesium render management needed in SuperSplat-only mode
+    console.log('✅ SuperSplat-only mode initialized');
 
     // GoogleMaps2D removed to improve performance
 
     // SuperSplat-only mode - Cesium-dependent managers removed
     console.log('✅ SuperSplat-only mode - managers initialized as needed');
-    
-    
+
+
     // Initialize layer state early
     window.layerState = {
         showPlantableAreas: true,
@@ -2317,24 +1407,16 @@ async function allSystemsGo() {
         paCategories: new Map(),
         categorizedPAs: new Map()
     };
-    
+
     // Initialize the parameter filter (now does nothing but kept for compatibility)
     initializeParameterFilter();
-    
-    // Initialize terrain toggle button event listener with delay to ensure splatManager is ready
-    setTimeout(() => {
-        initializeTerrainToggle();
-    }, 100);
-    
-    
-    // Update loading message for site data loading
-    if (window.independentLoadingState) {
-        // window.independentLoadingState.updateMessage('Simulating hummingbird flight paths...', 4000);
-    }
-    
+
     // Handle final initialization checks
-    // SuperSplat application initialized - site selector already handled
-    if (!window.superSplatManager || !window.superSplatManager.isSuperSplatMode) {
+    // Initialize site data for SuperSplat-only mode
+    if (window.superSplatManager && window.superSplatManager.isSuperSplatMode) {
+        console.log('🎯 SuperSplat initialized - loading site data and UI...');
+        await initializeSupersplatSiteData();
+    } else {
         console.log('⚠️ SuperSplat not properly initialized, initializing site selector as fallback');
         await initializeSiteSelector();
     }
@@ -2345,18 +1427,15 @@ async function allSystemsGo() {
 // Expose the functions globally
 window.parseMarkdown = parseMarkdown;
 window.displayMessage = displayMessage;
-window.addSaveViewButton = addSaveViewButton;
-window.printViewConfiguration = printViewConfiguration;
 window.allSystemsGo = allSystemsGo;
-window.debug = debug;
 window.createReusableButton = createReusableButton;
 window.testClippingVisualization = testClippingVisualization;
 window.loadSiteData = loadSiteData;
 window.calculateBounds = calculateBounds;
 window.utmToLatLng = utmToLatLng;
 window.initializeSiteSelector = initializeSiteSelector;
+window.initializeSupersplatSiteData = initializeSupersplatSiteData;
 window.navigateToSite = navigateToSite;
-window.visualizeGeoJsonPolygons = visualizeGeoJsonPolygons;
 window.extractLightLevel = extractLightLevel;
 window.getGreenShadeByLight = getGreenShadeByLight;
 window.getOutlineColorByLight = getOutlineColorByLight;
@@ -2369,7 +1448,6 @@ window.isPlantableFeature = isPlantableFeature;
 window.parseBoydEcologicalData = parseBoydEcologicalData;
 window.parseBoydName = parseBoydName;
 window.getBoydLightLevel = getBoydLightLevel;
-window.normalizedArrayToCesiumColor = normalizedArrayToCesiumColor;
 window.getBoydFeatureCategory = getBoydFeatureCategory;
 window.parseParameterValue = parseParameterValue;
 window.getParameterColor = getParameterColor;
@@ -2378,49 +1456,3 @@ window.initializeParameterFilter = initializeParameterFilter;
 window.adjustHeightOffset = adjustHeightOffset;
 window.viridisColormap = viridisColormap;
 window.createColorLegend = createColorLegend;
-
-/**
- * Initialize terrain toggle button functionality
- */
-function initializeTerrainToggle() {
-    const terrainToggleButton = document.getElementById('terrainToggleButton');
-    if (!terrainToggleButton) {
-        // Terrain toggle button not found - this is expected when button is not in DOM
-        return;
-    }
-    
-    // Hide button if debug mode is disabled
-    if (window.gaussianSplatManager && !window.gaussianSplatManager.debugMode) {
-        terrainToggleButton.style.display = 'none';
-        return;
-    }
-    
-    terrainToggleButton.addEventListener('click', async function() {
-        if (window.map3D && window.map3D.toggleBaseTerrain) {
-            try {
-                // Disable button during transition
-                terrainToggleButton.disabled = true;
-                terrainToggleButton.textContent = '...';
-                
-                const isUsingTerrain = await window.map3D.toggleBaseTerrain();
-                
-                // Update button text based on current mode
-                terrainToggleButton.textContent = isUsingTerrain ? 'PERF' : 'HQ';
-                terrainToggleButton.title = isUsingTerrain ? 
-                    'Switch to high quality mode (photorealistic 3D tiles)' : 
-                    'Switch to performance mode (basic terrain)';
-            } catch (error) {
-                console.error('Error toggling terrain mode:', error);
-                // Reset button to previous state
-                terrainToggleButton.textContent = 'HQ';
-            } finally {
-                terrainToggleButton.disabled = false;
-            }
-        }
-    });
-}
-
-window.initializeTerrainToggle = initializeTerrainToggle;
-window.getParameterDisplayName = getParameterDisplayName;
-window.extractNPACategory = extractNPACategory;
-window.allSystemsGo = allSystemsGo;
