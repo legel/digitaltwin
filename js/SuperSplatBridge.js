@@ -318,10 +318,10 @@ class SuperSplatBridge {
         // Generate cache key based on GeoJSON content
         const cacheKey = this.generateGeoJSONCacheKey(geoJsonData);
 
-        // Check if we already have this geometry uploaded and just need to update visibility/styles
+        // Check if we already have this geometry uploaded and just need to update visibility
         if (this.polygonGeometryCache.has(cacheKey) && cacheKey === this.lastUploadedSiteId) {
-            console.log('🚀 Using cached polygon geometry - updating visibility/styles only');
-            return this.updatePolygonVisibilityAndStyles();
+            console.log('🚀 Using cached polygon geometry - updating visibility only');
+            return this.updatePolygonVisibility();
         }
 
         try {
@@ -1466,9 +1466,9 @@ class SuperSplatBridge {
     }
 
     /**
-     * Update polygon visibility and styles without re-uploading geometry
+     * Update polygon visibility without re-uploading geometry
      */
-    updatePolygonVisibilityAndStyles() {
+    updatePolygonVisibility() {
         try {
             if (!window.superSplatScene || !window.superSplatScene.events) {
                 console.warn('⚠️ SuperSplat scene not available for visibility update');

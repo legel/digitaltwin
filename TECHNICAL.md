@@ -253,9 +253,9 @@ window.layerState = {
 
 #### Key Functions
 - `initializeLayerControls()`: Sets up all event handlers, analyzes categories
-- `updateVisualization()`: Re-renders based on layerState
-- `zoomToFeature()`: Positions polygon at 25% from left screen edge
-- `createPAConnection()`: Visual line between PA and focus panel
+- `reRenderPolygons()`: Re-renders polygons based on current layer state
+- `zoomToFeature()`: Geographic coordinate calculations for camera positioning (SuperSplat integration pending)
+- `orchestrateFocusAnimation()`: Animated visual connection between PA selection and focus panel
 
 ### GeoJSON Data Formats
 

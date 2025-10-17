@@ -55,7 +55,7 @@ Support landscape designers in creating ecologically functional and beautiful la
 Site Selection (dropdown)
 → loadSiteData()
 → detectGeoJsonFormat() ['boyd'|'legacy']
-→ if boyd: toggleParameterFilter() → analyzePA/NPACategories()
+→ if boyd: initializeLayerControlsForSite() → analyzePA/NPACategories()
 → SuperSplatBridge.renderGeoJSONPolygons() [main rendering function]
 → Layer controls become interactive
 → User clicks PA/layer OR polygon → SuperSplat polygon selection

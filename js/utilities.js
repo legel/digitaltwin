@@ -535,28 +535,6 @@ function getParameterColor(value, minVal, maxVal, paramType) {
     return viridisColormap(normalized);
 }
 
-/**
- * Shows or hides the parameter filter based on site format
- * @param {string} format - 'boyd' or 'legacy'
- */
-function toggleParameterFilter(format) {
-    const parameterFilter = document.getElementById('parameterFilter');
-    const parameterDropdown = document.getElementById('parameterDropdown');
-    
-    // Skip if elements don't exist
-    if (!parameterFilter || !parameterDropdown) {
-        return;
-    }
-    
-    if (format === 'boyd') {
-        parameterFilter.style.display = 'block';
-    } else {
-        parameterFilter.style.display = 'none';
-        // Reset filter when hiding
-        parameterDropdown.value = '';
-        window.currentParameterFilter = null;
-    }
-}
 
 /**
  * Creates a color legend for the current parameter
@@ -795,9 +773,9 @@ async function initializeSiteSelector() {
                 window.initializeLayerControls();
             }
             
-            // Toggle parameter filter to analyze PA/NPA categories
-            if (window.toggleParameterFilter) {
-                window.toggleParameterFilter(format);
+            // Initialize layer controls to analyze PA/NPA categories
+            if (window.initializeLayerControlsForSite) {
+                window.initializeLayerControlsForSite(format);
             }
             
             // Trigger initial visualization with plantable areas
@@ -835,8 +813,10 @@ async function initializeSiteSelector() {
                     const format = selectedSite.geoJson.features.length > 0 ? 
                         detectGeoJsonFormat(selectedSite.geoJson.features[0]) : 'legacy';
                     
-                    // Show/hide parameter filter based on format (now with data available)
-                    toggleParameterFilter(format);
+                    // Initialize layer controls based on format (now with data available)
+                    if (window.initializeLayerControlsForSite) {
+                        window.initializeLayerControlsForSite(format);
+                    }
                     
                     // Load Gaussian Splat if available for this site
                     if (window.gaussianSplatManager) {
@@ -858,8 +838,10 @@ async function initializeSiteSelector() {
                 detail: { siteId: this.value } 
             }));
         } else {
-            // Hide parameter filter when no site selected
-            toggleParameterFilter('legacy');
+            // Hide layer controls when no site selected
+            if (window.initializeLayerControlsForSite) {
+                window.initializeLayerControlsForSite('legacy');
+            }
             window.currentSiteData = null;
             window.currentHeightOffset = undefined;
             window.lastHeightOffset = undefined;
@@ -1354,12 +1336,12 @@ async function initializeSupersplatSiteData() {
         console.warn('⚠️ initializeLayerControls not available');
     }
 
-    // Toggle parameter filter to analyze PA/NPA categories
-    if (window.toggleParameterFilter) {
+    // Initialize layer controls to analyze PA/NPA categories
+    if (window.initializeLayerControlsForSite) {
         console.log('📈 Analyzing PA/NPA categories...');
-        window.toggleParameterFilter(format);
+        window.initializeLayerControlsForSite(format);
     } else {
-        console.warn('⚠️ toggleParameterFilter not available');
+        console.warn('⚠️ initializeLayerControlsForSite not available');
     }
 
     // Trigger initial visualization with plantable areas
@@ -1451,7 +1433,6 @@ window.getBoydLightLevel = getBoydLightLevel;
 window.getBoydFeatureCategory = getBoydFeatureCategory;
 window.parseParameterValue = parseParameterValue;
 window.getParameterColor = getParameterColor;
-window.toggleParameterFilter = toggleParameterFilter;
 window.initializeParameterFilter = initializeParameterFilter;
 window.adjustHeightOffset = adjustHeightOffset;
 window.viridisColormap = viridisColormap;

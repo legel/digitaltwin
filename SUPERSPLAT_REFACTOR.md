@@ -1129,6 +1129,104 @@ SuperSplat Polygon System
 ### Current Status: **Production Ready + Prevention Documented**
 The polygon rendering system is now fully functional with comprehensive documentation to prevent this class of issues in future development cycles.
 
+## Camera Positioning System Migration (October 2025)
+
+### Cesium Functions Removed and SuperSplat-Ready Coordinate Functions Extracted
+
+**Obsolete Functions Removed:**
+- `zoomToFeature(featureName, featureType)` - Cesium camera control
+- `zoomToNPACategory(categoryName)` - Cesium multi-polygon camera control
+
+**New Coordinate Calculation Functions Created:**
+- `calculatePolygonBounds(featureName, featureType)` - Feature lookup and bounds calculation
+- `calculateNPACategoryBounds(categoryName)` - Multi-polygon bounds calculation
+- `calculatePolygonCenterAndRadius(coords)` - Geographic center and radius calculation
+- `calculateHaversineDistance(coord1, coord2)` - Great circle distance calculation
+
+### Geographic Coordinate Logic Preserved
+
+**Center Point Calculation:**
+```javascript
+// Calculate polygon centroid (arithmetic mean of all vertices)
+let sumLat = 0, sumLng = 0;
+coords.forEach(coord => {
+    const [lng, lat] = coord;
+    sumLat += lat;
+    sumLng += lng;
+});
+const centerLat = sumLat / coords.length;
+const centerLng = sumLng / coords.length;
+```
+
+**Radius Calculation Using Haversine Formula:**
+```javascript
+// Find maximum distance between any two vertices using great circle distance
+let maxDistance = 0;
+for (let i = 0; i < coords.length; i++) {
+    for (let j = i + 1; j < coords.length; j++) {
+        const distance = calculateHaversineDistance(coords[i], coords[j]);
+        maxDistance = Math.max(maxDistance, distance);
+    }
+}
+const radius = maxDistance / 2;
+```
+
+**Haversine Distance Formula (Earth Curvature Accurate):**
+```javascript
+const R = 6371000; // Earth's radius in meters
+const φ1 = lat1 * Math.PI / 180;
+const φ2 = lat2 * Math.PI / 180;
+const Δφ = (lat2 - lat1) * Math.PI / 180;
+const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ/2) * Math.sin(Δλ/2);
+const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+return R * c; // Distance in meters
+```
+
+### SuperSplat Implementation TODO
+
+**Current Status:**
+- ✅ **Cesium dependencies removed** from zoom functions
+- ✅ **Geographic calculations extracted** and working
+- ✅ **Function calls preserved** with TODO logging for future implementation
+- [ ] **SuperSplat camera integration** - needs SuperSplat camera API research
+
+**Integration Requirements for SuperSplat:**
+1. **Camera API Access**: Research SuperSplat's camera control system
+2. **Coordinate Transformation**: Convert lat/lng to SuperSplat world coordinates
+3. **Camera Positioning**: Implement equivalent of Cesium's `camera.flyTo()`
+4. **Viewing Distance**: Calculate appropriate camera distance from radius
+5. **Animation System**: Smooth camera transitions (1.5s duration equivalent)
+
+**Expected SuperSplat Integration Pattern:**
+```javascript
+function zoomToFeature(featureName, featureType) {
+    const bounds = calculatePolygonBounds(featureName, featureType);
+    if (!bounds) return;
+
+    // TODO: Convert lat/lng to SuperSplat world coordinates
+    const worldPos = latLngToSupersplatWorld(bounds.centerLat, bounds.centerLng);
+
+    // TODO: Calculate camera distance based on radius
+    const cameraDistance = calculateCameraDistance(bounds.radius);
+
+    // TODO: SuperSplat camera control
+    window.superSplatScene.camera.flyTo({
+        position: worldPos,
+        distance: cameraDistance,
+        duration: 1.5
+    });
+}
+```
+
+**File Locations:**
+- **Coordinate Functions**: `js/layerControls.js` lines 1524-1683
+- **Function Calls**: Lines 1225 (PA zoom), 1447 (NPA zoom)
+- **Expected Output**: Console logs with `[TODO] SuperSplat zoom to...` for testing
+
 ---
 
 *This document will be updated as the refactor progresses. Each completed item should be checked off and notes added as needed.*
