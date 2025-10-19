@@ -5,7 +5,7 @@
 - **Global state**: Everything on `window` object (e.g., `window.map3D`, `window.layerState`)
 - **Key entry point**: `main.js` → `allSystemsGo()` → manager initialization
 - **Data flow**: Site selection → GeoJSON load → Format detection → Layer controls → Visualization
-- **Critical files**: `utilities.js` (1500+ lines core logic), `layerControls.js` (UI state), `SuperSplatBridge.js` (polygon rendering)
+- **Critical files**: `utilities.js` (core logic), `layerControls.js` (UI state), `SuperSplatBridge.js` (polygon rendering), `ecologicalMetrics.js` (color mapping & metrics)
 
 ## Project Overview
 
@@ -57,7 +57,6 @@ PORT=8000 python server.py
 ### External APIs
 - **Cesium Ion**: 3D terrain and imagery tiles (token hardcoded)
 - **Google Maps**: 2D satellite imagery (key in code)
-- **ipgeolocation.io**: User location by IP (key exposed)
 
 ## Architecture
 
@@ -78,12 +77,14 @@ Window Object (Global State)
 ### Key Files & Responsibilities
 | File | Purpose | Key Functions | Global Vars |
 |------|---------|---------------|-------------|
-| `utilities.js` | Core logic, GeoJSON viz | `visualizeGeoJsonPolygons()`, `initializeSiteSelector()` | `currentSiteData`, `currentHeightOffset` |
+| `utilities.js` | Core logic, GeoJSON viz | `visualizeGeoJsonPolygons()`, `initializeSiteSelector()` | `currentSiteData` |
 | `layerControls.js` | Layer UI & state | `initializeLayerControls()`, `updateVisualization()` | `layerState` |
+| `ecologicalMetrics.js` | Color mapping & metrics | `parseParameterValue()`, `viridisColormap()`, `createColorLegend()` | `currentParameterFilter` |
 | `SuperSplatBridge.js` | Polygon rendering | SuperSplat polygon system, event bridge | `superSplatBridge` |
 | `SuperSplatManager.js` | SuperSplat lifecycle | SuperSplat iframe initialization | `superSplatManager` |
 | `GaussianSplatManager.js` | 3D digital twins | `loadGaussianSplat()`, `removeAllSplats()` | `gaussianSplatManager` |
 | `focusPanel.js` | Metrics display | `show()`, creates DOM dynamically | `focusPanel` |
+| `metricChart.js` | Gaussian curve rendering | `drawGaussian()`, uses `ecologicalMetrics.js` | - |
 | `main.js` | Bootstrap | `allSystemsGo()` | - |
 
 ### Critical Flows
@@ -159,11 +160,11 @@ Layer Selection → {
 ```
 
 ### Script Loading Order
-1. External libraries (Cesium, Proj4js)
-2. Core managers and utilities
-3. Additional managers
-4. Tour content
-5. UI interaction handlers
+1. External libraries (Proj4js)
+2. Configuration (config.js)
+3. Core utilities (utilities.js, main.js)
+4. Managers (UserManager.js, SuperSplatManager.js, etc.)
+5. Data visualization (ecologicalMetrics.js, layerControls.js, metricChart.js, focusPanel.js)
 
 ### Key Elements and IDs
 - **Containers**: cesiumContainer, map2D, messageBox, controlPanel, focusPanel
@@ -242,7 +243,7 @@ window.layerState = {
   showPlantableAreas: boolean,     // PA visibility
   showNonPlantableAreas: boolean,  // NPA visibility
   showEcologicalMetrics: boolean,  // M1-M10 metrics active
-  selectedMetric: string|null,     // 'moisture', 'pH', etc.
+  selectedMetric: string|null,     // 'soilMoisture', 'pH', etc.
   selectedPA: string|null,         // Selected PA name
   selectedNPA: string|null,        // Selected NPA category
   paCategories: Map,               // PA name → {number, category}
@@ -281,7 +282,6 @@ window.map2D                  // GoogleMaps2DManager instance
 window.user                   // UserManager instance
 window.currentLayerSelection  // Active layer
 window.currentSiteData        // Loaded GeoJSON
-window.currentHeightOffset    // Polygon height adjustment
 // Removed: window.stopFlyThrough - Legacy tour system removed
 ```
 
@@ -329,15 +329,6 @@ class UserManager {
 - Smart axis labels with project-wide ranges
 - Simplified interpretations for landscape architects
 
-#### Height Adjustment System
-```javascript
-// Manual height adjustment
-adjustHeightOffset(5);   // Raise by 5m
-adjustHeightOffset(-3);  // Lower by 3m
-
-// Check current offset
-console.log(window.currentHeightOffset);
-```
 
 ## Data System
 
@@ -382,7 +373,6 @@ terrain-3d/
 - Console logging throughout
 - Global state accessible via window object
 - Camera position: `debug()` function
-- Height adjustment: `adjustHeightOffset()`
 
 ## Performance Considerations
 

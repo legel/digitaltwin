@@ -176,16 +176,16 @@
                         <div class="layer-toggle-arrow"></div>
                     </div>
                     <div id="metricsOptions" class="metrics-options" style="display: none;">
-                        <label class="metric-radio"><input type="radio" name="metric" value="moisture"> Moisture Level</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="lightHours"> Light Hours</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="soilMoisture"> Moisture Level</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="sunlight"> Light Hours</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="pH"> Soil pH</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="nitrogen"> Nitrogen (N)</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="phosphorus"> Phosphorus (P)</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="potassium"> Potassium (K)</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="organic"> Organic Matter</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="drought"> Drought Risk</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="flood"> Flood Risk</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="wind"> Wind Exposure</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="organicMatter"> Organic Matter</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="droughtRisk"> Drought Risk</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="floodRisk"> Flood Risk</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="windExposure"> Wind Exposure</label>
                     </div>
                 </div>
             </div>
@@ -201,7 +201,6 @@
     <script src="/js/main.js"></script>
 
     <!-- Map Managers -->
-    <script src="/js/UnifiedLODManager.js"></script>
     <script src="/js/UserManager.js"></script>
     <script src="/js/SuperSplatManager.js"></script>
     <script src="/js/CoordinateTransform.js"></script>
@@ -213,6 +212,7 @@
     <!-- View control files removed - SuperSplat-only mode -->
     
     <!-- Data Visualization -->
+    <script src="/js/ecologicalMetrics.js"></script>
     <script src="/js/layerControls.js"></script>
     <script src="/js/metricChart.js"></script>
     <script src="/js/focusPanel.js"></script>

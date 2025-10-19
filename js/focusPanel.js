@@ -262,12 +262,6 @@ class FocusPanel {
     parseEcologicalData(paData) {
         const metrics = {};
         
-        // Map old names to new names
-        const nameMapping = {
-            'lightHours': 'sunlight',
-            'moisture': 'soilMoisture'
-        };
-        
         // Extract metrics from PA data
         if (paData.properties && paData.properties.description) {
             const description = paData.properties.description;

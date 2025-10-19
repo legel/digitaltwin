@@ -5,20 +5,7 @@
 
 class MetricChart {
     constructor() {
-        // Viridis colormap for consistent visualization
-        this.viridisColors = [
-            [68, 1, 84],    // 0.0 - dark purple
-            [72, 35, 116],  // 0.1
-            [64, 67, 135],  // 0.2
-            [52, 94, 141],  // 0.3
-            [41, 120, 142], // 0.4
-            [32, 144, 140], // 0.5
-            [34, 167, 132], // 0.6
-            [68, 190, 112], // 0.7
-            [121, 209, 81], // 0.8
-            [189, 222, 38], // 0.9
-            [253, 231, 36]  // 1.0 - bright yellow
-        ];
+        // Uses centralized viridisColormap from ecologicalMetrics.js
     }
     
     /**
@@ -296,24 +283,11 @@ class MetricChart {
      * @returns {string} - RGB color string
      */
     getViridisColor(value) {
-        // Clamp value between 0 and 1
-        value = Math.max(0, Math.min(1, value));
-        
-        // Find interpolation position
-        const scaledValue = value * (this.viridisColors.length - 1);
-        const lowerIndex = Math.floor(scaledValue);
-        const upperIndex = Math.ceil(scaledValue);
-        const fraction = scaledValue - lowerIndex;
-        
-        // Get colors to interpolate between
-        const lowerColor = this.viridisColors[lowerIndex];
-        const upperColor = this.viridisColors[upperIndex];
-        
-        // Interpolate RGB values
-        const r = Math.round(lowerColor[0] + (upperColor[0] - lowerColor[0]) * fraction);
-        const g = Math.round(lowerColor[1] + (upperColor[1] - lowerColor[1]) * fraction);
-        const b = Math.round(lowerColor[2] + (upperColor[2] - lowerColor[2]) * fraction);
-        
+        // Use centralized viridis colormap from ecologicalMetrics.js
+        const rgb = window.viridisColormap(value);
+        const r = Math.round(rgb[0] * 255);
+        const g = Math.round(rgb[1] * 255);
+        const b = Math.round(rgb[2] * 255);
         return `rgb(${r}, ${g}, ${b})`;
     }
     

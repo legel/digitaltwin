@@ -29,18 +29,20 @@ Support landscape designers in creating ecologically functional and beautiful la
 5. **Event-driven UI** - Layer controls drive visualization through state changes
 
 ### File Hierarchy (by importance)
-1. **utilities.js** (1500+ lines) - Core initialization and application logic
+1. **utilities.js** - Core initialization and application logic
 2. **layerControls.js** - UI state management, complex event handling for PA/NPA/metrics
-3. **SuperSplatBridge.js** - SuperSplat polygon rendering and event bridging system
-4. **SuperSplatManager.js** - SuperSplat iframe initialization and management
-5. **focusPanel.js** + **metricChart.js** - Work together for ecological metrics display
-6. **main.js** - Simple but critical bootstrap sequence
+3. **ecologicalMetrics.js** - Centralized ecological data processing, Viridis color mapping, parameter parsing
+4. **SuperSplatBridge.js** - SuperSplat polygon rendering and event bridging system
+5. **SuperSplatManager.js** - SuperSplat iframe initialization and management
+6. **focusPanel.js** + **metricChart.js** - Work together for ecological metrics display (use ecologicalMetrics.js)
+7. **main.js** - Simple but critical bootstrap sequence
 
 ### Common Pitfalls
 - Layer controls only show for Boyd format sites
 - Polygon rendering requires SuperSplat initialization completion
 - Height adjustment system uses global `currentHeightOffset`
 - **Direct Calls**: Polygon rendering uses direct `window.superSplatBridge.renderGeoJSONPolygons()` calls
+- **Centralized Functions**: Ecological metrics functions are centralized in `ecologicalMetrics.js`, accessed via `window.viridisColormap()`, etc.
 
 ### CSS Gotchas
 - **Z-index hierarchy**: SuperSplat container (1000) < Focus panel (1001) < Connection line (1003)
@@ -70,7 +72,6 @@ Site Selection (dropdown)
 ## Key Implementation Details
 
 ### API Keys and Services
-- IP geolocation service (ipgeolocation.io) requires API key in UserManager.js
 - Google Cloud Storage serves large Gaussian splat files (.glb assets)
 
 ### SuperSplat Integration
