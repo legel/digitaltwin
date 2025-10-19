@@ -153,6 +153,9 @@ class SuperSplatBridge {
     setupEventBridging() {
         console.log('🌉 Setting up SuperSplat event bridging');
 
+        // Set up splat loading detection for loading screen acceleration
+        this.setupSplatLoadingDetection();
+
         // Bridge layer state changes
         this.setupLayerStateWatching();
 
@@ -160,6 +163,35 @@ class SuperSplatBridge {
         this.setupSiteDataWatching();
 
         // Polygon click event handling will be setup after polygons are rendered
+    }
+
+    /**
+     * Set up splat loading detection to accelerate loading screen when splat is actually loaded
+     */
+    setupSplatLoadingDetection() {
+        // Access SuperSplat scene events
+        const scene = window.superSplatScene;
+        if (!scene || !scene.events) {
+            console.warn('⚠️ SuperSplat scene events not available for splat loading detection');
+            return;
+        }
+
+        console.log('🔺 Setting up splat loading detection for loading screen acceleration');
+
+        // Listen for splat elements being added to the scene
+        scene.events.on('scene.elementAdded', (element) => {
+            // Check if a splat was added (using ElementType.splat constant)
+            // ElementType.splat corresponds to the splat element type from SuperSplat
+            if (element.type === 'splat' || element.type === 2) { // 2 is ElementType.splat value
+                console.log(`🔺 Splat "${element.name || 'unnamed'}" loaded - accelerating loading screen`);
+
+                // Trigger loading screen acceleration if loading is still active
+                if (window.independentLoadingState?.isActive) {
+                    console.log('🚀 Accelerating loading screen due to splat load completion');
+                    window.independentLoadingState.complete();
+                }
+            }
+        });
     }
 
     /**
@@ -730,55 +762,7 @@ class SuperSplatBridge {
         }
     }
 
-    /**
-     * Render a triangle at the specified XZ coordinates with given color
-     */
-    renderTriangle(v0, v1, v2, color = { x: 0, y: 1, z: 0 }, name = 'Triangle') {
-        if (!this.polygonOverlayReady) {
-            console.warn('⚠️ SuperSplat not ready, cannot render triangle');
-            return false;
-        }
 
-        try {
-            console.log(`🔺 Rendering triangle: ${name}`);
-
-            const events = window.superSplatScene.events;
-
-            // Add triangle to overlay system
-            events.invoke('triangleOverlay.addTriangle', v0, v1, v2, color, name);
-
-            console.log('📡 Triangle render call sent to SuperSplat');
-            return true;
-
-        } catch (error) {
-            console.error('❌ Failed to render triangle in SuperSplat:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Simple fan triangulation for convex polygons
-     */
-    triangulatePolygon(vertices) {
-        if (vertices.length < 3) return [];
-        if (vertices.length === 3) return [vertices]; // Already a triangle
-
-        // Fan triangulation from first vertex
-        const triangles = [];
-        const firstVertex = vertices[0];
-
-        for (let i = 1; i < vertices.length - 1; i++) {
-            const triangle = [
-                firstVertex,
-                vertices[i],
-                vertices[i + 1]
-            ];
-            triangles.push(triangle);
-        }
-
-        console.log(`🔺 Triangulated ${vertices.length}-sided polygon into ${triangles.length} triangles`);
-        return triangles;
-    }
 
     /**
      * Generate edge triangles for hollow polygon outlines
@@ -1027,25 +1011,9 @@ class SuperSplatBridge {
         return this.isInitialized && this.polygonOverlayReady;
     }
 
-    /**
-     * Get debug information about the bridge
-     */
-    getDebugInfo() {
-        return {
-            isInitialized: this.isInitialized,
-            polygonOverlayReady: this.polygonOverlayReady,
-            pendingUpdates: this.pendingUpdates.length,
-            superSplatScene: !!window.superSplatScene,
-            currentSiteData: !!window.currentSiteData,
-            layerState: window.layerState
-        };
-    }
 
-    /**
-     * Create and render a test rectangle showing the outer bounds of GeoJSON data
-     * Waits for splat bounds and uses dynamic coordinate scaling
-     */
-    async renderGeoJSONBoundsRectangle(geoJsonData) {
+    // Removed: renderGeoJSONBoundsRectangle() debug function
+    /*
         if (!this.polygonOverlayReady) {
             console.warn('⚠️ SuperSplat not ready for bounds rectangle test');
             return false;
@@ -1148,7 +1116,7 @@ class SuperSplatBridge {
             console.error('❌ Failed to render GeoJSON bounds rectangle:', error);
             return false;
         }
-    }
+    */
 
     /**
      * Setup polygon click event handling
@@ -1552,24 +1520,5 @@ setTimeout(() => {
     clearInterval(sceneCheckInterval);
 }, 30000);
 
-/**
- * Test function to manually trigger GeoJSON bounds rectangle rendering
- * Can be called from browser console for testing
- */
-window.testGeoJSONBoundsRectangle = async function() {
-    console.log('🧪 Manual test: GeoJSON bounds rectangle');
 
-    if (!window.superSplatBridge) {
-        console.error('❌ SuperSplat bridge not initialized');
-        return false;
-    }
-
-    if (!window.currentSiteData) {
-        console.error('❌ No site data loaded. Please load a site first.');
-        return false;
-    }
-
-    return await window.superSplatBridge.renderGeoJSONBoundsRectangle(window.currentSiteData);
-};
-
-console.log('🌉 SuperSplat Bridge loaded. Use testGeoJSONBoundsRectangle() to test coordinate transformation.');
+console.log('🌉 SuperSplat Bridge loaded.');

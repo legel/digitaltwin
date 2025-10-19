@@ -31,15 +31,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
     await allSystemsGo();
 
-    // Comment out old narratives
-    // introductionTutorialToVizcaya();
-    // introductionTutorialToDixHite();
-    
-    // DISABLED: Auto flythrough - camera now starts directly at site
-    // Start the Scott Boyd site introduction after 2 seconds
-    // if (window.map3D && window.map3D.viewer) {
-    //     window.setTimeout(() => introductionToScottBoydSite(), 2000);
-    // }
 
 });
 
@@ -55,10 +46,9 @@ function startIndependentLoadingAnimation() {
         isActive: true,
         currentProgress: 0,
         currentMessage: '',
-        messageQueue: [],
-        messageTimer: null,
         startTime: Date.now(),
         worker: loadingWorker,
+        timeoutId: null,
         complete: () => {
             // Smart completion logic - accelerate or complete based on timing and progress
             const elapsedTime = (Date.now() - (window.independentLoadingState?.startTime || Date.now())) / 1000;
@@ -83,28 +73,8 @@ function startIndependentLoadingAnimation() {
                 }, remainingTime);
             }
         },
-        updateMessage: (message, minDisplayTime = 3750) => {
-            // Queue message with minimum display time
-            window.independentLoadingState.messageQueue.push({ message, minDisplayTime });
-            processMessageQueue();
-        }
     };
     
-    // Process message queue with proper timing
-    const processMessageQueue = () => {
-        if (window.independentLoadingState.messageQueue.length === 0) return;
-        if (window.independentLoadingState.messageTimer) return; // Already processing
-        
-        const { message, minDisplayTime } = window.independentLoadingState.messageQueue.shift();
-        window.independentLoadingState.currentMessage = message;
-        updateLoadingText();
-        
-        // Set timer for minimum display time
-        window.independentLoadingState.messageTimer = setTimeout(() => {
-            window.independentLoadingState.messageTimer = null;
-            processMessageQueue(); // Process next message
-        }, minDisplayTime);
-    };
     
     const updateLoadingProgress = (percentage) => {
         const progressBar = document.getElementById('loadingProgress');
@@ -112,18 +82,12 @@ function startIndependentLoadingAnimation() {
         if (progressBar) {
             // Use transform for hardware-accelerated animation
             const cleanPercentage = Math.max(0, Math.min(100, percentage));
-            // Ensure progress never goes backwards
-            const currentProgress = window.independentLoadingState?.currentProgress || 0;
-            const newPercentage = Math.max(currentProgress, cleanPercentage);
-            
-            progressBar.style.transform = `scaleX(${newPercentage / 100})`;
+
+            progressBar.style.transform = `scaleX(${cleanPercentage / 100})`;
             if (window.independentLoadingState) {
-                window.independentLoadingState.currentProgress = newPercentage;
-                window.independentLoadingState.lastProgressTime = Date.now(); // Track last progress update
+                window.independentLoadingState.currentProgress = cleanPercentage;
             }
             updateLoadingText();
-            
-            // Progress logging removed for cleaner console output
         }
     };
     
@@ -145,16 +109,15 @@ function startIndependentLoadingAnimation() {
         
         switch (type) {
             case 'ready':
-                workerResponded = true;
+                // Worker is ready
                 break;
                 
             case 'started':
-                workerResponded = true;
+                // Worker has started
                 break;
                 
             case 'progress':
                 updateLoadingProgress(progress);
-                workerResponded = true;
                 break;
                 
             case 'message':
@@ -182,11 +145,27 @@ function startIndependentLoadingAnimation() {
     loadingWorker.onmessageerror = function(error) {
         console.error('CRITICAL: Web Worker message error:', error);
     };
+
+    // Set up 60-second timeout fallback in case worker fails
+    window.independentLoadingState.timeoutId = setTimeout(() => {
+        console.warn('⚠️ Loading worker timeout after 60 seconds - forcing completion');
+        if (window.independentLoadingState?.isActive) {
+            window.independentLoadingState.currentMessage = 'Loading complete';
+            updateLoadingProgress(100);
+            completeIndependentLoading();
+        }
+    }, 60000); // 60 seconds
     
     const completeIndependentLoading = () => {
         // Double-check we should actually complete
         if (!window.independentLoadingState.isActive) {
             return;
+        }
+
+        // Clear timeout since we're completing normally
+        if (window.independentLoadingState.timeoutId) {
+            clearTimeout(window.independentLoadingState.timeoutId);
+            window.independentLoadingState.timeoutId = null;
         }
         
         // Hide loading screen with smooth fade
@@ -244,25 +223,9 @@ function startIndependentLoadingAnimation() {
     
     startWorkerWithMessages();
     
-    // Start the message queue processing
-    processMessageQueue();
     
     // DISABLED: setupSimpleMessageCycling() - Web Worker now handles all message cycling
     // setupSimpleMessageCycling();
     
-    // DISABLED: Main thread fallback animation - Web Worker handles all progress
-    // This function is disabled to prevent main thread blocking from interfering
-    // with the completely asynchronous Web Worker progress system
-    function startFallbackAnimation() {
-        console.log('⚠️ startFallbackAnimation() called but disabled - Web Worker handles all progress');
-        // Function body removed to eliminate main thread interference
-    }
-    
-    // DISABLED: Simple message cycling - Web Worker handles all message cycling
-    // This function is disabled to prevent main thread setInterval from getting blocked
-    function setupSimpleMessageCycling() {
-        console.log('⚠️ setupSimpleMessageCycling() called but disabled - Web Worker handles all messages');
-        // Function body removed to eliminate main thread interference
-    }
 }
 

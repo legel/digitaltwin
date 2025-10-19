@@ -108,14 +108,8 @@ class SuperSplatManager {
                 }
             }, 2500); // Allow time for SuperSplat scene to initialize
 
-            // Notify loading system that SuperSplat is ready
-            if (window.independentLoadingState?.isActive) {
-                // Add small delay to ensure PLY file starts loading inside iframe
-                setTimeout(() => {
-                    console.log('🎬 SuperSplat iframe ready - completing loading screen');
-                    window.independentLoadingState.complete();
-                }, 1500); // 1.5 second delay for PLY to start loading
-            }
+            // Loading acceleration now handled by SuperSplatBridge when splat is actually loaded
+            // No longer triggering on iframe ready - wait for actual splat loading
         };
 
         this.superSplatIframe.onerror = (error) => {
