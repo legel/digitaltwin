@@ -110,21 +110,7 @@ class UserManager {
         });
     }
 
-    /**
-     * Flies to the user's geolocation based on the IP address.
-     */
-    async flyToUser() {
-        await this.waitForGeoData();
-
-        if (this.geoData.latitude && this.geoData.longitude) {
-            const flyToLocation = [
-                [this.geoData.longitude, this.geoData.latitude, 1250, 0.0, -0.5, 0.0, 5, "Flying to your approximate location based on your IP address", 0.0, 0.5, 3, 1]
-            ];
-            flyToSequence(this.map3D, flyToLocation); // Use the map3D instance
-        } else {
-            console.error("Geolocation data is not available.");
-        }
-    }
+    // Removed: flyToUser() - Cesium-dependent navigation system incompatible with SuperSplat
 }
 
 // Expose UserManager to the global scope

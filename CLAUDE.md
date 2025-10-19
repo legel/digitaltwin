@@ -37,7 +37,6 @@ Support landscape designers in creating ecologically functional and beautiful la
 6. **main.js** - Simple but critical bootstrap sequence
 
 ### Common Pitfalls
-- Tour auto-starts and conflicts with user actions
 - Layer controls only show for Boyd format sites
 - Polygon rendering requires SuperSplat initialization completion
 - Height adjustment system uses global `currentHeightOffset`

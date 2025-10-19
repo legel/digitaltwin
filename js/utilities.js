@@ -1151,30 +1151,6 @@ function adjustHeightOffset(adjustment) {
     console.log('⚠️ Height adjustment with SuperSplat - polygon visualization handled by SuperSplatBridge');
 }
 
-/**
- * Stops any active tutorial/flythrough sequence
- */
-function stopActiveTutorial() {
-    // Set global flag to stop flythrough
-    window.stopFlyThrough = true;
-    window.currentFlyThroughActive = false;
-
-    // Hide any continue buttons
-    const continueButton = document.getElementById('continueFlythroughButton');
-    if (continueButton) {
-        continueButton.style.display = 'none';
-    }
-
-    // Hide any learn more buttons
-    const learnMoreButton = document.getElementById('learnMoreButton');
-    if (learnMoreButton) {
-        learnMoreButton.style.display = 'none';
-    }
-
-    // Clear any active camera animations - handled by SuperSplat
-
-    // Tutorial/flythrough stopped by site selection
-}
 
 /**
  * Extracts NPA category from name
@@ -1203,8 +1179,7 @@ function extractNPACategory(name) {
 function navigateToSite(bounds, visualize = true) {
     console.log('🗺️ SuperSplat: Site navigation handled by SuperSplat camera system');
 
-    // Stop any active tutorial first
-    stopActiveTutorial();
+    // No active tutorials to stop in SuperSplat-only mode
 
     // Calculate center point for messaging
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
@@ -1423,7 +1398,6 @@ window.getGreenShadeByLight = getGreenShadeByLight;
 window.getOutlineColorByLight = getOutlineColorByLight;
 window.parseNonPlantableName = parseNonPlantableName;
 window.parsePlantableMeasurements = parsePlantableMeasurements;
-window.stopActiveTutorial = stopActiveTutorial;
 window.detectCoordinateFormat = detectCoordinateFormat;
 window.detectGeoJsonFormat = detectGeoJsonFormat;
 window.isPlantableFeature = isPlantableFeature;

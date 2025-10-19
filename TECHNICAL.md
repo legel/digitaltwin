@@ -72,7 +72,7 @@ Window Object (Global State)
 ├── gaussianSplatManager         → Gaussian splat loading/management
 ├── currentLayerSelection        → Active layer (PA/NPA/M1-M10)
 ├── currentSiteData              → Loaded GeoJSON
-└── Tour flags                   → stopFlyThrough, etc.
+└── Removed legacy tour system   → Previously stopFlyThrough, etc.
 ```
 
 ### Key Files & Responsibilities
@@ -282,7 +282,7 @@ window.user                   // UserManager instance
 window.currentLayerSelection  // Active layer
 window.currentSiteData        // Loaded GeoJSON
 window.currentHeightOffset    // Polygon height adjustment
-window.stopFlyThrough         // Tour interruption flag
+// Removed: window.stopFlyThrough - Legacy tour system removed
 ```
 
 ### Manager Classes

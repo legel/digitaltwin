@@ -1,6 +1,7 @@
 /**
  * Web Worker for completely decoupled loading animation
  * Runs independently of main thread and Cesium processes
+ * May freeze temporarily while Supersplat main thread is using compute
  */
 
 // Immediately send ready signal to main thread
