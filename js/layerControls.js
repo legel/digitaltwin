@@ -8,7 +8,7 @@ window.layerState = {
     showNonPlantableAreas: false,
 
     // Unified selection structure
-    selectedGroup: null,        // PA name, NPA category, or metric name ('moisture', 'pH', etc.)
+    selectedGroup: null,        // PA name, NPA category, or metric name ('soilMoisture', 'pH', etc.)
     selectedGroupType: null,    // 'PA', 'NPA', or 'METRIC'
     selectedPolygons: [],       // Array of polygon names for current selection
 
@@ -323,7 +323,7 @@ function processEnvironmentalMetricColors(metricName, geoJsonData) {
         const normalized = maxValue > minValue ? (data.value - minValue) / (maxValue - minValue) : 0.5;
 
         let colorInfo;
-        if (metricName === 'moisture') {
+        if (metricName === 'soilMoisture') {
             // Use discrete moisture colors
             const moistureColors = [
                 { r: 68, g: 1, b: 84 },    // viridis(0.1) - dry

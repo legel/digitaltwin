@@ -1,11 +1,10 @@
 /**
- * SuperSplat View Manager - Handles SuperSplat interface and button positioning
+ * SuperSplat View Manager - Handles SuperSplat interface integration
  * Integrates SuperSplat editor for advanced Gaussian splat editing
  */
 
 class SuperSplatManager {
     constructor() {
-        this.superSplatButton = null;
         this.superSplatContainer = null;
         this.superSplatIframe = null;
         this.currentSiteId = null;
@@ -15,15 +14,7 @@ class SuperSplatManager {
      * Initializes the SuperSplat manager and sets up event listeners
      */
     initialize() {
-        this.superSplatButton = document.getElementById('superSplatButton');
         this.superSplatContainer = document.getElementById('superSplatContainer');
-
-        if (this.superSplatButton) {
-            // SuperSplat button is now purely cosmetic/informational
-            // Remove any existing event listeners to avoid conflicts
-            this.superSplatButton.replaceWith(this.superSplatButton.cloneNode(true));
-            this.superSplatButton = document.getElementById('superSplatButton');
-        }
 
         console.log('✅ SuperSplatManager initialized');
     }
@@ -140,17 +131,6 @@ class SuperSplatManager {
         return 'scott-boyd-residence';
     }
 
-    /**
-     * Updates button states - SuperSplat button is always hidden
-     */
-    updateButtonStates() {
-        // Hide SuperSplat button since we're SuperSplat-only
-        if (this.superSplatButton) {
-            this.superSplatButton.style.display = 'none';
-        }
-
-        console.log('Button states updated');
-    }
 
     /**
      * Checks if a splat file exists for the given site
@@ -168,16 +148,6 @@ class SuperSplatManager {
         }
     }
 
-    /**
-     * Updates SuperSplat button visibility - always hidden since we're SuperSplat-only
-     */
-    async updateSuperSplatAvailability() {
-        if (!this.superSplatButton) return;
-
-        // Always hide button since we're SuperSplat-only
-        this.superSplatButton.style.display = 'none';
-        console.log('SuperSplat button hidden');
-    }
 
     /**
      * Configures UI elements
@@ -249,11 +219,6 @@ class SuperSplatManager {
             logo.style.zIndex = '1000'; // Ensure it's on top
         }
 
-        // Hide SuperSplat button (no longer needed)
-        const superSplatButton = document.getElementById('superSplatButton');
-        if (superSplatButton) {
-            superSplatButton.style.display = 'none';
-        }
 
         console.log('🎨 UI configured');
     }
@@ -470,20 +435,7 @@ window.superSplatManager = new SuperSplatManager();
 document.addEventListener('DOMContentLoaded', () => {
     window.superSplatManager.initialize();
     
-    // Check SuperSplat availability multiple times to catch when site selector is ready
-    setTimeout(() => window.superSplatManager.updateSuperSplatAvailability(), 500);
-    setTimeout(() => window.superSplatManager.updateSuperSplatAvailability(), 2000);
-    setTimeout(() => window.superSplatManager.updateSuperSplatAvailability(), 5000);
 });
 
-// Listen for site changes to update SuperSplat availability
-document.addEventListener('siteChanged', (event) => {
-    if (window.superSplatManager) {
-        // Update availability for new site
-        setTimeout(() => {
-            window.superSplatManager.updateSuperSplatAvailability();
-        }, 500);
-    }
-});
 
 // Resize listener removed - SuperSplat button positioning no longer needed

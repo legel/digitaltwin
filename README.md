@@ -113,11 +113,12 @@ python server.py
 ## 🏗 Architecture
 
 **Key Files** (see TECHNICAL.md for details):
-- `utilities.js` - Core logic (1500+ lines, handle with care)
+- `utilities.js` - Core logic and application initialization
 - `layerControls.js` - Complex UI state management
+- `ecologicalMetrics.js` - Ecological data processing, Viridis color mapping
 - `SuperSplatBridge.js` - SuperSplat polygon rendering + event bridge
 - `SuperSplatManager.js` - SuperSplat iframe lifecycle management
-- `focusPanel.js` - Ecological metrics display
+- `focusPanel.js` + `metricChart.js` - Ecological metrics display
 - Everything on `window` object (no modules)
 
 ## 🔬 Technical Specifications
