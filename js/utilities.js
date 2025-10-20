@@ -523,7 +523,6 @@ function extractNPACategory(name) {
  * @param {boolean} visualize - Whether to visualize the site data (default true)
  */
 function navigateToSite(bounds, visualize = true) {
-    console.log('🗺️ SuperSplat: Site navigation handled by SuperSplat camera system');
 
     // No active tutorials to stop in SuperSplat-only mode
 
@@ -555,7 +554,6 @@ function navigateToSite(bounds, visualize = true) {
  * Initializes the SuperSplat application
  */
 async function initializeSupersplat() {
-    console.log('🎨 Initializing SuperSplat application...');
 
     // Wait for SuperSplat manager to be available
     let attempts = 0;
@@ -567,11 +565,9 @@ async function initializeSupersplat() {
 
     // Initialize SuperSplat manager
     if (window.superSplatManager) {
-        console.log('✅ SuperSplat manager found, activating SuperSplat mode...');
 
         // Ensure SuperSplat manager is initialized first
         if (!window.superSplatManager.superSplatContainer) {
-            console.log('🔄 Initializing SuperSplat manager...');
             window.superSplatManager.initialize();
         }
 
@@ -583,7 +579,6 @@ async function initializeSupersplat() {
             // Load SuperSplat editor with default site (scott-boyd-residence has splat file)
             window.superSplatManager.loadSuperSplatEditor('scott-boyd-residence');
 
-            console.log('🎨 SuperSplat editor loaded');
         } else {
             console.error('❌ SuperSplat container not found');
         }
@@ -596,7 +591,6 @@ async function initializeSupersplat() {
  * Initialize site data for SuperSplat-only mode (no dropdown UI needed)
  */
 async function initializeSupersplatSiteData() {
-    console.log('🏠 Loading site data for SuperSplat...');
 
     // Load site data
     const sites = await loadSiteData();
@@ -612,13 +606,11 @@ async function initializeSupersplatSiteData() {
         return;
     }
 
-    console.log('✅ Default site found:', defaultSite.name);
 
     // Show layer controls for Boyd format
     const layerControls = document.getElementById('layerControls');
     if (layerControls) {
         layerControls.style.display = 'block';
-        console.log('✅ Layer controls shown');
     }
 
     // Store the site data globally
@@ -640,17 +632,14 @@ async function initializeSupersplatSiteData() {
         categorizedPAs: new Map()
     };
 
-    console.log('✅ Layer state initialized');
 
     // Detect format and initialize parameter filter
     const format = defaultSite.geoJson.features.length > 0 ?
         detectGeoJsonFormat(defaultSite.geoJson.features[0]) : 'legacy';
 
-    console.log('📊 Detected GeoJSON format:', format);
 
     // Initialize layer controls after site is loaded
     if (window.initializeLayerControls) {
-        console.log('🔧 Initializing layer controls...');
         window.initializeLayerControls();
     } else {
         console.warn('⚠️ initializeLayerControls not available');
@@ -658,7 +647,6 @@ async function initializeSupersplatSiteData() {
 
     // Initialize layer controls to analyze PA/NPA categories
     if (window.initializeLayerControlsForSite) {
-        console.log('📈 Analyzing PA/NPA categories...');
         window.initializeLayerControlsForSite(format);
     } else {
         console.warn('⚠️ initializeLayerControlsForSite not available');
@@ -666,13 +654,11 @@ async function initializeSupersplatSiteData() {
 
     // Trigger initial visualization with plantable areas
     if (window.superSplatBridge) {
-        console.log('🎨 Triggering polygon visualization...');
         window.superSplatBridge.renderGeoJSONPolygons(defaultSite.geoJson);
     } else {
         console.warn('⚠️ SuperSplatBridge not available');
     }
 
-    console.log('✅ SuperSplat site data initialization complete');
 }
 
 // Syntax error should now be fixed - properly closed functions above
@@ -691,12 +677,10 @@ async function allSystemsGo() {
     await initializeSupersplat();
 
     // SuperSplat initialization complete - no Cesium render management needed in SuperSplat-only mode
-    console.log('✅ SuperSplat initialized');
 
     // GoogleMaps2D removed to improve performance
 
     // SuperSplat-only mode - Cesium-dependent managers removed
-    console.log('✅ SuperSplat - managers initialized as needed');
 
 
     // Initialize layer state early
@@ -718,10 +702,8 @@ async function allSystemsGo() {
 
     // Handle final initialization checks
     // Initialize site data for SuperSplat-only mode
-    console.log('🎯 Loading SuperSplat site data and UI...');
     await initializeSupersplatSiteData();
 
-    console.log(`[${new Date().toISOString()}] 🎯 ALL SYSTEMS GO COMPLETE - SuperSplat application ready`);
 }
 
 // Expose the functions globally

@@ -22,11 +22,6 @@ class CoordinateTransform {
             this.siteBounds = await response.json();
             this.isLoaded = true;
 
-            console.log('🗺️ Site bounds loaded:', {
-                site: this.siteBounds.site,
-                center: this.siteBounds.center,
-                scale_correction_factor: this.siteBounds.scale_correction_factor
-            });
 
             return this.siteBounds;
         } catch (error) {
@@ -374,4 +369,3 @@ class CoordinateTransform {
 // Create global instance
 window.coordinateTransform = new CoordinateTransform();
 
-console.log('🗺️ CoordinateTransform module loaded');

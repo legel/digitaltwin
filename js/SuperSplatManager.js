@@ -16,7 +16,6 @@ class SuperSplatManager {
     initialize() {
         this.superSplatContainer = document.getElementById('superSplatContainer');
 
-        console.log('✅ SuperSplatManager initialized');
     }
 
     // Toggle logic removed - SuperSplat-only mode
@@ -45,14 +44,11 @@ class SuperSplatManager {
         // Use the built SuperSplat editor
         const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
 
-        console.log('Loading SuperSplat editor:', editorUrl);
-        console.log('PLY URL to load:', splatUrl);
         
         // Test if PLY is accessible
         fetch(splatUrl, { method: 'HEAD' })
             .then(response => {
                 if (response.ok) {
-                    console.log('✅ PLY file is accessible from:', splatUrl);
                 } else {
                     console.error('❌ PLY file not accessible:', response.status, response.statusText);
                 }
@@ -78,9 +74,6 @@ class SuperSplatManager {
         
         // Add loading handler
         this.superSplatIframe.onload = () => {
-            console.log('✅ SuperSplat editor loaded successfully');
-            console.log('SuperSplat should now load PLY from:', splatUrl);
-            console.log('If PLY is not loading, check browser console for CORS or network errors');
             
             // Check if we're in a cross-origin situation
             const isCrossOrigin = editorUrl.includes('testing.ecodash.ai');
@@ -94,7 +87,6 @@ class SuperSplatManager {
             // Initialize SuperSplat Bridge after iframe loads
             setTimeout(() => {
                 if (window.initializeSuperSplatBridge) {
-                    console.log('🌉 Initializing SuperSplat Bridge after iframe load');
                     window.initializeSuperSplatBridge();
                 }
             }, 2500); // Allow time for SuperSplat scene to initialize
@@ -153,7 +145,6 @@ class SuperSplatManager {
      * Configures UI elements
      */
     configureUI() {
-        console.log('🎨 configureUI() called - configuring UI...');
 
         // Show layer controls for Boyd format sites
         const layerControls = document.getElementById('layerControls');
@@ -162,47 +153,37 @@ class SuperSplatManager {
             const format = window.detectGeoJsonFormat ?
                 window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
 
-            console.log('🔍 Site data format detected:', format);
-            console.log('🔍 Site data features count:', window.currentSiteData.features?.length || 0);
 
             if (format === 'boyd') {
                 layerControls.style.display = 'block';
-                console.log('✅ Layer controls shown for Boyd format site');
 
                 // Initialize layer controls with current site data
                 if (window.initializeLayerControls) {
-                    console.log('🎯 Initializing layer controls...');
                     window.initializeLayerControls();
                 } else {
                     console.warn('❌ initializeLayerControls function not available');
                 }
             } else {
-                console.log('⚠️ Non-Boyd format site - layer controls remain hidden');
             }
         } else if (!window.currentSiteData) {
             console.warn('⚠️ No currentSiteData available');
 
             // Auto-load site data if not already loaded
             if (window.autoLoadSiteData) {
-                console.log('🏠 Attempting to auto-load site data...');
                 window.autoLoadSiteData().then(success => {
                     if (success) {
-                        console.log('✅ Site data auto-loaded, re-checking layer controls...');
                         // Retry showing layer controls now that data is loaded
                         const format = window.detectGeoJsonFormat ?
                             window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
 
                         if (format === 'boyd') {
                             layerControls.style.display = 'block';
-                            console.log('✅ Layer controls shown after auto-load');
 
                             if (window.initializeLayerControls) {
-                                console.log('🎯 Initializing layer controls after auto-load...');
                                 window.initializeLayerControls();
                             }
                         }
                     } else {
-                        console.log('❌ Failed to auto-load site data');
                     }
                 });
             }
@@ -220,7 +201,6 @@ class SuperSplatManager {
         }
 
 
-        console.log('🎨 UI configured');
     }
 
     // showUIForCesiumMode method removed - SuperSplat-only mode
@@ -248,7 +228,6 @@ class SuperSplatManager {
             const maxPollAttempts = 50; // 25 seconds max
             let cameraViewApplied = false;
             
-            console.log('🎬 Starting immediate polling for SuperSplat scene readiness...');
             
             const checkScene = () => {
                 pollAttempts++;
@@ -264,8 +243,6 @@ class SuperSplatManager {
                             
                             if (!cameraViewApplied) {
                                 cameraViewApplied = true;
-                                console.log(`✅ SuperSplat scene ready after ${pollAttempts} polls (${pollAttempts * 0.5}s)!`);
-                                console.log('🚀 Applying camera view IMMEDIATELY...');
                                 
                                 // Apply camera view with no delay
                                 this.applyCameraView();
@@ -312,21 +289,16 @@ class SuperSplatManager {
         const iframe = this.superSplatIframe;
         if (!iframe || !iframe.contentWindow) return;
         
-        console.log('🎯 Starting camera view application...');
         
         try {
             const iframeWindow = iframe.contentWindow;
             
             // Debug: log available global objects
-            console.log('Available iframe globals:', Object.keys(iframeWindow).filter(key => 
-                typeof iframeWindow[key] === 'object' && iframeWindow[key] !== null
-            ));
             
             // Method 1: Direct scene.camera access - IMMEDIATE execution
             const scene = iframeWindow.scene;
             if (scene && scene.camera && scene.camera.setAzimElev) {
-                console.log('🎯 IMMEDIATE camera view change - setAzimElev(0, -90) + 3x zoom out');
-                
+                    
                 // Current camera state for debugging
                 const beforeAzim = scene.camera.azim;
                 const beforeElev = scene.camera.elevation; 
@@ -339,13 +311,11 @@ class SuperSplatManager {
                 if (beforeDist && scene.camera.setDistance) {
                     const newDistance = beforeDist * 3.0; // 3x zoom out for aerial view
                     scene.camera.setDistance(newDistance);
-                    console.log(`📏 Distance: ${beforeDist} → ${newDistance} (3x zoom out)`);
                 }
                 
                 // Step 3: Enable orthographic mode if available
                 if (scene.camera.hasOwnProperty('ortho')) {
                     scene.camera.ortho = true;
-                    console.log('📐 Orthographic projection enabled');
                 }
                 
                 // Verify the changes took effect
@@ -353,10 +323,6 @@ class SuperSplatManager {
                 const afterElev = scene.camera.elevation;
                 const afterDist = scene.camera.distance;
                 
-                console.log(`✅ IMMEDIATE camera transformation complete:`);
-                console.log(`   Azimuth:   ${beforeAzim}° → ${afterAzim}°`);
-                console.log(`   Elevation: ${beforeElev}° → ${afterElev}°`); 
-                console.log(`   Distance:  ${beforeDist} → ${afterDist} (3x zoom)`);
                 
                 // Force a render update if available
                 if (scene.update) {
@@ -369,11 +335,9 @@ class SuperSplatManager {
             // Method 2: Try events system to fire camera.align
             const events = iframeWindow.events || iframeWindow.app?.events || iframeWindow.scene?.events;
             if (events && events.fire) {
-                console.log('🎯 Using SuperSplat events system to fire camera.align + zoom out...');
                 
                 // Fire the +Y axis alignment event
                 events.fire('camera.align', 'py'); // +Y axis alignment
-                console.log('✅ Fired camera.align event for +Y view');
                 
                 // Try to zoom out 3x after a short delay to let the view change settle
                 setTimeout(() => {
@@ -383,7 +347,6 @@ class SuperSplatManager {
                         if (currentDist) {
                             const newDistance = currentDist * 3.0;
                             scene.camera.setDistance(newDistance);
-                            console.log(`📏 Event-based zoom: ${currentDist} → ${newDistance} (3x zoom out)`);
                         }
                     }
                 }, 100); // Brief delay to let view change settle
@@ -394,7 +357,6 @@ class SuperSplatManager {
                     const orthoElements = iframeWindow.document.querySelectorAll('[title*="ortho"], [title*="Ortho"], .ortho, #ortho');
                     if (orthoElements.length > 0) {
                         orthoElements[0].click();
-                        console.log('✅ Clicked potential orthographic mode button');
                     }
                 }
                 
@@ -411,9 +373,7 @@ class SuperSplatManager {
                                      Array.from(viewCubeContainer.querySelectorAll('text')).find(el => el.textContent === 'Y');
                     
                     if (yElement && yElement.parentElement) {
-                        console.log('🎯 Found Y element in view-cube, simulating click...');
                         yElement.parentElement.click();
-                        console.log('✅ Clicked +Y face in view-cube');
                         return;
                     }
                 }

@@ -13,7 +13,6 @@ class SuperSplatBridge {
         this.polygonGeometryCache = new Map();
         this.lastUploadedSiteId = null;
 
-        console.log('🌉 SuperSplatBridge initializing...');
         this.initialize();
     }
 
@@ -35,7 +34,6 @@ class SuperSplatBridge {
             this.performInitialSync();
 
             this.isInitialized = true;
-            console.log('✅ SuperSplatBridge initialized successfully');
 
         } catch (error) {
             console.error('❌ SuperSplatBridge initialization failed:', error);
@@ -55,7 +53,6 @@ class SuperSplatBridge {
 
                 // First check if SuperSplat is running directly in this window
                 if (window.scene && window.scene.events) {
-                    console.log('🎯 SuperSplat scene detected (direct mode)');
                     window.superSplatScene = window.scene; // Store reference for easy access
                     resolve();
                     return;
@@ -68,7 +65,6 @@ class SuperSplatBridge {
                         // Try to access SuperSplat's scene
                         const scene = iframe.contentWindow.scene;
                         if (scene && scene.events) {
-                            console.log('🎯 SuperSplat scene detected (iframe mode)');
                             window.superSplatScene = scene; // Store reference for easy access
                             resolve();
                             return;
@@ -86,7 +82,6 @@ class SuperSplatBridge {
                         try {
                             const scene = iframe.contentWindow?.scene;
                             if (scene && scene.events) {
-                                console.log('🎯 SuperSplat scene detected (container iframe mode)');
                                 window.superSplatScene = scene;
                                 resolve();
                                 return;
@@ -125,7 +120,6 @@ class SuperSplatBridge {
                         // Test if PolygonOverlay functions are registered
                         const events = window.superSplatScene.events;
                         if (events.functions.has('polygonOverlay.updateFromTerrain')) {
-                            console.log('🎯 PolygonOverlay functions detected');
                             this.polygonOverlayReady = true;
                             resolve();
                             return;
@@ -151,7 +145,6 @@ class SuperSplatBridge {
      * Set up event bridging between terrain-3d and SuperSplat
      */
     setupEventBridging() {
-        console.log('🌉 Setting up SuperSplat event bridging');
 
         // Set up splat loading detection for loading screen acceleration
         this.setupSplatLoadingDetection();
@@ -176,18 +169,15 @@ class SuperSplatBridge {
             return;
         }
 
-        console.log('🔺 Setting up splat loading detection for loading screen acceleration');
 
         // Listen for splat elements being added to the scene
         scene.events.on('scene.elementAdded', (element) => {
             // Check if a splat was added (using ElementType.splat constant)
             // ElementType.splat corresponds to the splat element type from SuperSplat
             if (element.type === 'splat' || element.type === 2) { // 2 is ElementType.splat value
-                console.log(`🔺 Splat "${element.name || 'unnamed'}" loaded - accelerating loading screen`);
 
                 // Trigger loading screen acceleration if loading is still active
                 if (window.independentLoadingState?.isActive) {
-                    console.log('🚀 Accelerating loading screen due to splat load completion');
                     window.independentLoadingState.complete();
                 }
             }
@@ -281,7 +271,6 @@ class SuperSplatBridge {
                 // After site navigation, render GeoJSON polygons
                 setTimeout(() => {
                     if (window.currentSiteData && this.isInitialized) {
-                        console.log('🗺️ New site data loaded - rendering GeoJSON polygons');
                         this.renderGeoJSONPolygons(window.currentSiteData);
                     }
                 }, 1000);
@@ -298,10 +287,8 @@ class SuperSplatBridge {
         // Wait for loading screen to complete before rendering GeoJSON polygons
         this.waitForLoadingCompletion().then(() => {
             if (window.currentSiteData) {
-                console.log('🎯 Loading complete - rendering GeoJSON polygons');
                 this.renderGeoJSONPolygons(window.currentSiteData);
             } else {
-                console.log('🎯 Loading complete but no site data - polygon rendering will run when site loads');
             }
         });
     }
@@ -313,16 +300,13 @@ class SuperSplatBridge {
         return new Promise((resolve) => {
             // Check if loading is already complete
             if (!window.independentLoadingState?.isActive) {
-                console.log('🎯 Loading already complete');
                 resolve();
                 return;
             }
 
             // Wait for loading completion
-            console.log('⏳ Waiting for loading screen to complete...');
             const checkLoading = () => {
                 if (!window.independentLoadingState?.isActive) {
-                    console.log('✅ Loading screen complete - splat should be accessible');
 
                     // Add extra delay for splat data to be fully processed
                     setTimeout(() => {
@@ -352,7 +336,6 @@ class SuperSplatBridge {
 
         // Check if we already have this geometry uploaded and just need to update visibility
         if (this.polygonGeometryCache.has(cacheKey) && cacheKey === this.lastUploadedSiteId) {
-            console.log('🚀 Using cached polygon geometry - updating visibility only');
             return this.updatePolygonVisibility();
         }
 
@@ -366,13 +349,6 @@ class SuperSplatBridge {
                 return;
             }
 
-            console.log('🗺️ Starting GeoJSON polygon rendering:', {
-                features: geoJsonData.features.length,
-                splatBounds: {
-                    width: splatBounds.width.toFixed(3),
-                    height: splatBounds.height.toFixed(3)
-                }
-            });
 
             const geoBounds = window.coordinateTransform.calculateGeoJSONBounds(geoJsonData);
             const format = window.detectGeoJsonFormat ? window.detectGeoJsonFormat(geoJsonData.features[0]) : 'boyd';
@@ -423,20 +399,7 @@ class SuperSplatBridge {
 
                     // Debug: Log coordinate transformation and polygon complexity
                     if (polygonsRendered < 3) { // Only log first 3 for readability
-                        console.log(`🗺️ COORDINATE DEBUG for "${name}" (${isPlantable ? 'PLANTABLE' : 'NON-PLANTABLE'}):`, {
-                            totalOriginalCoords: feature.geometry.coordinates[0].length,
-                            totalTransformedVertices: vertices.length,
-                            firstOriginalCoords: feature.geometry.coordinates[0].slice(0, 3), // First 3 points for reference
-                            firstTransformedVertices: vertices.slice(0, 3), // First 3 points for reference
-                            lastTransformedVertices: vertices.slice(-3), // Last 3 points for verification
-                            splatBounds: { width: splatBounds.width, height: splatBounds.height },
-                            geoBounds: {
-                                west: geoBounds.west.toFixed(8),
-                                east: geoBounds.east.toFixed(8),
-                                south: geoBounds.south.toFixed(8),
-                                north: geoBounds.north.toFixed(8)
-                            }
-                        });
+                        // Coordinate debug removed
 
                         // Calculate bounds of transformed vertices for debugging
                         const bounds = {
@@ -446,22 +409,7 @@ class SuperSplatBridge {
                             maxZ: Math.max(...vertices.map(v => v.z))
                         };
 
-                        console.log(`🔺 TRIANGULATION ANALYSIS for "${name}":`, {
-                            vertexCount: vertices.length,
-                            expectedTriangles: vertices.length - 2, // Ear clipping creates n-2 triangles
-                            triangulationMethod: 'Ear clipping (for complex polygons)',
-                            bounds: {
-                                minX: bounds.minX.toFixed(3),
-                                maxX: bounds.maxX.toFixed(3),
-                                minZ: bounds.minZ.toFixed(3),
-                                maxZ: bounds.maxZ.toFixed(3),
-                                width: (bounds.maxX - bounds.minX).toFixed(3),
-                                height: (bounds.maxZ - bounds.minZ).toFixed(3)
-                            },
-                            potentialIssues: vertices.length > 10 ?
-                                'Complex polygon - using ear clipping for accurate triangulation' :
-                                'Simple polygon - should triangulate well'
-                        });
+                        // Triangulation analysis debug removed
                     }
 
                     if (vertices.length >= 3) {
@@ -532,18 +480,11 @@ class SuperSplatBridge {
                 }
             });
 
-            console.log('✅ GeoJSON polygon rendering complete:', {
-                totalFeatures: geoJsonData.features.length,
-                polygonsRendered: polygonsRendered,
-                plantableAreas: this.polygonRegistry.filter(p => p.isPlantable).length,
-                nonPlantableAreas: this.polygonRegistry.filter(p => !p.isPlantable).length
-            });
 
             // Sort polygons by area for optimal nested click detection (smallest first)
             if (window.superSplatScene && polygonsRendered > 0) {
                 try {
                     window.superSplatScene.events.invoke('triangleOverlay.sortPolygonsByArea');
-                    console.log('🔄 Polygons sorted by area for nested click detection');
                 } catch (error) {
                     console.warn('⚠️ Failed to sort polygons by area:', error);
                 }
@@ -552,7 +493,6 @@ class SuperSplatBridge {
             // Removed forced render to improve camera movement performance
             // SuperSplat will render polygons automatically as needed
             if (window.superSplatScene && polygonsRendered > 0) {
-                console.log('🎨 Polygons loaded - SuperSplat will render automatically');
             }
 
             // Sync window.layerState with actual polygon visibility defaults
@@ -561,14 +501,9 @@ class SuperSplatBridge {
             window.layerState.showPlantableAreas = true;
             window.layerState.showNonPlantableAreas = true;
 
-            console.log('🔄 Synced layer state with actual polygon visibility:', {
-                showPlantableAreas: window.layerState.showPlantableAreas,
-                showNonPlantableAreas: window.layerState.showNonPlantableAreas
-            });
 
             // Sync SuperSplat group visibility with layer state
             if (window.superSplatScene && window.superSplatScene.events) {
-                console.log('🔄 Syncing SuperSplat group visibility with corrected layer state');
                 window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', window.layerState.showPlantableAreas);
                 window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', window.layerState.showNonPlantableAreas);
             }
@@ -582,7 +517,6 @@ class SuperSplatBridge {
 
             // Setup polygon click handling now that polygons are rendered
             setTimeout(() => {
-                console.log('🖱️ Setting up polygon click detection after rendering...');
                 this.setupPolygonClickHandling();
             }, 200); // Small delay to ensure SuperSplat polygon overlay is fully ready
 
@@ -593,7 +527,6 @@ class SuperSplatBridge {
                 timestamp: Date.now()
             });
             this.lastUploadedSiteId = cacheKey;
-            console.log(`💾 Cached polygon geometry with key: ${cacheKey}`);
 
         } catch (error) {
             console.error('❌ Failed to render GeoJSON polygons:', error);
@@ -946,7 +879,6 @@ class SuperSplatBridge {
                                 depth: worldBound.halfExtents.y * 2
                             };
 
-                            console.log('🎨 Extracted SuperSplat bounds:', bounds);
                             return bounds;
                         }
                     }
@@ -979,7 +911,6 @@ class SuperSplatBridge {
                 const bounds = this.getSplatBoundsInSuperSplatCoordinates();
 
                 if (bounds) {
-                    console.log(`✅ Splat bounds detected after ${totalWaitTime}ms (${attempts} attempts)`);
                     resolve(bounds);
                     return;
                 }
@@ -1130,11 +1061,9 @@ class SuperSplatBridge {
 
         // Prevent setting up multiple times
         if (this.polygonClickHandlingSetup) {
-            console.log('🖱️ Polygon click handling already setup, skipping...');
             return;
         }
 
-        console.log('🖱️ Setting up polygon click event bridge');
         this.polygonClickHandlingSetup = true;
 
         // Listen for polygon click events from SuperSplat
@@ -1146,20 +1075,19 @@ class SuperSplatBridge {
             // Determine if this is a PA or NPA polygon based on the polygon name (same logic as elsewhere in codebase)
             if (polygonName && polygonName.startsWith('PA') && polygonName.includes('=') && !polygonName.includes('NPA')) {
                 // This is a plantable area - trigger PA selection
-                console.log('🌱 Detected plantable area:', polygonName);
+                // Detected plantable area: ${polygonName}
                 this.handlePlantableAreaClick(polygonName, polygonGroup);
             } else if (polygonName && polygonName.startsWith('NPA')) {
                 // This is a non-plantable area - trigger NPA selection
-                console.log('🚫 Detected non-plantable area:', polygonName);
+                // Detected non-plantable area: ${polygonName}
                 this.handleNonPlantableAreaClick(polygonName, polygonGroup);
             } else {
-                console.log('🤷 Unknown polygon type, treating as general polygon click. Name:', polygonName);
+                // Unknown polygon type, treating as general polygon click: ${polygonName}
                 // Generic polygon click - could trigger focus panel or other behavior
                 this.handleGenericPolygonClick(polygonName, polygonGroup);
             }
         });
 
-        console.log('✅ Polygon click event bridge established');
     }
 
     /**
@@ -1167,7 +1095,7 @@ class SuperSplatBridge {
      * Opens the PA dropdown and selects the corresponding button
      */
     handlePlantableAreaClick(polygonName, polygonGroup) {
-        console.log(`🌱 Handling plantable area click: ${polygonName} (group: ${polygonGroup})`);
+        // Handling plantable area click: ${polygonName} (group: ${polygonGroup})
 
         try {
             // Ensure plantable areas dropdown is open
@@ -1178,8 +1106,8 @@ class SuperSplatBridge {
             if (paName) {
                 const paButton = this.findPAButton(paName);
                 if (paButton) {
-                    console.log(`🎯 Triggering PA button click for: ${paName}`);
-                    console.log('🔍 PA button before click:', paButton, 'checked:', paButton.checked);
+                    // Triggering PA button click for: ${paName}
+                    // PA button before click: checked=${paButton.checked}
 
                     // Set flag to indicate this click is from polygon, not direct UI interaction
                     window.isPolygonTriggeredClick = true;
@@ -1187,7 +1115,7 @@ class SuperSplatBridge {
                     // Clear flag after click
                     window.isPolygonTriggeredClick = false;
 
-                    console.log('🔍 PA button after click:', paButton.checked);
+                    // PA button after click: checked=${paButton.checked}
                 } else {
                     console.warn(`⚠️ Could not find PA button for: ${paName}`);
                     // Debug: List all available PA buttons
@@ -1207,7 +1135,7 @@ class SuperSplatBridge {
      * Opens the NPA dropdown and selects the corresponding button
      */
     handleNonPlantableAreaClick(polygonName, polygonGroup) {
-        console.log(`🚫 Handling non-plantable area click: ${polygonName} (group: ${polygonGroup})`);
+        // Handling non-plantable area click: ${polygonName} (group: ${polygonGroup})
 
         try {
             // Ensure non-plantable areas dropdown is open
@@ -1218,7 +1146,7 @@ class SuperSplatBridge {
             if (npaName) {
                 const npaButton = this.findNPAButton(npaName);
                 if (npaButton) {
-                    console.log(`🎯 Triggering NPA button click for: ${npaName}`);
+                    // Triggering NPA button click for: ${npaName}
 
                     // Set flag to indicate this click is from polygon, not direct UI interaction
                     window.isPolygonTriggeredClick = true;
@@ -1262,7 +1190,7 @@ class SuperSplatBridge {
             console.log(`📋 Opening dropdown: ${toggleId}`);
             toggle.click();
         } else {
-            console.log(`📋 Dropdown already open: ${toggleId}`);
+            // Dropdown already open: ${toggleId}
         }
     }
 
@@ -1272,20 +1200,20 @@ class SuperSplatBridge {
      */
     extractPANameFromPolygon(polygonName) {
         // Extract description from formats like PA22="Backyard" or PA1="Southeast Front Door Entrance"
-        console.log(`🔍 PA name extraction input: "${polygonName}"`);
+        // PA name extraction input: ${polygonName}
 
         // Check if it's in the format PA##="Description"
         const quotedMatch = polygonName.match(/PA\d+="([^"]+)"/);
         if (quotedMatch) {
             const description = quotedMatch[1];
-            console.log(`🔍 PA name extraction: "${polygonName}" -> "${description}" (quoted format)`);
+            // PA name extraction: ${polygonName} -> ${description} (quoted format)
             return description;
         }
 
         // Fallback: remove numerical suffixes for other formats
         // Example: "PA1 Southeast Front Door Entrance 0" -> "PA1 Southeast Front Door Entrance"
         const cleanName = polygonName.replace(/\s+\d+$/, '').trim();
-        console.log(`🔍 PA name extraction: "${polygonName}" -> "${cleanName}" (fallback)`);
+        // PA name extraction: ${polygonName} -> ${cleanName} (fallback)
         return cleanName;
     }
 
@@ -1294,19 +1222,19 @@ class SuperSplatBridge {
      */
     extractNPANameFromPolygon(polygonName) {
         // Extract description from formats like NPA5="Utilities" or similar
-        console.log(`🔍 NPA name extraction input: "${polygonName}"`);
+        // NPA name extraction input: ${polygonName}
 
         // Check if it's in the format NPA##="Description" or NPA##='Description'
         const quotedMatch = polygonName.match(/NPA\d+=['"]([^'"]+)['"]/);
         if (quotedMatch) {
             const description = quotedMatch[1];
-            console.log(`🔍 NPA name extraction: "${polygonName}" -> "${description}" (quoted format)`);
+            // NPA name extraction: ${polygonName} -> ${description} (quoted format)
             return description;
         }
 
         // Fallback: remove numerical suffixes for other formats
         const cleanName = polygonName.replace(/\s+\d+$/, '').trim();
-        console.log(`🔍 NPA name extraction: "${polygonName}" -> "${cleanName}" (fallback)`);
+        // NPA name extraction: ${polygonName} -> ${cleanName} (fallback)
         return cleanName;
     }
 
@@ -1314,22 +1242,22 @@ class SuperSplatBridge {
      * Find PA button in the UI by PA name
      */
     findPAButton(paName) {
-        console.log(`🔍 Looking for PA button with name: "${paName}"`);
+        // Looking for PA button with name: ${paName}
 
         // Look for buttons or radio inputs that correspond to this PA
         const buttons = document.querySelectorAll('input[type="radio"][name="plantableArea"], button[data-pa-name]');
-        console.log(`🔍 Found ${buttons.length} potential PA buttons`);
+        // Found ${buttons.length} potential PA buttons
 
         // Smart matching: exact match first, then longest match wins
         const candidates = [];
         for (const button of buttons) {
             const buttonValue = button.value || button.dataset.paName || button.textContent;
-            console.log(`🔍 Checking button value: "${buttonValue}" against target: "${paName}"`);
+            // Checking button value: ${buttonValue} against target: ${paName}
 
             if (buttonValue) {
                 // Exact match (highest priority)
                 if (buttonValue.trim() === paName.trim()) {
-                    console.log(`✅ Found EXACT match: "${buttonValue}"`);
+                    // Found EXACT match: ${buttonValue}
                     return button;
                 }
                 // Substring match (store for sorting)
@@ -1366,22 +1294,22 @@ class SuperSplatBridge {
      * Find NPA button in the UI by NPA name
      */
     findNPAButton(npaName) {
-        console.log(`🔍 Looking for NPA button with name: "${npaName}"`);
+        // Looking for NPA button with name: ${npaName}
 
         // Similar to PA button finding, but for NPAs
         const buttons = document.querySelectorAll('input[type="radio"][name="nonPlantableArea"], button[data-npa-name]');
-        console.log(`🔍 Found ${buttons.length} potential NPA buttons`);
+        // Found ${buttons.length} potential NPA buttons
 
         // Smart matching: exact match first, then longest match wins
         const candidates = [];
         for (const button of buttons) {
             const buttonValue = button.value || button.dataset.npaName || button.textContent;
-            console.log(`🔍 Checking button value: "${buttonValue}" against target: "${npaName}"`);
+            // Checking button value: ${buttonValue} against target: ${npaName}
 
             if (buttonValue) {
                 // Exact match (highest priority)
                 if (buttonValue.trim() === npaName.trim()) {
-                    console.log(`✅ Found EXACT match: "${buttonValue}"`);
+                    // Found EXACT match: ${buttonValue}
                     return button;
                 }
                 // Substring match (store for sorting)
@@ -1446,10 +1374,7 @@ class SuperSplatBridge {
             // Get current layer state
             const layerState = window.layerState || {};
 
-            console.log('🔄 Updating polygon visibility without geometry upload:', {
-                showPlantableAreas: layerState.showPlantableAreas,
-                showNonPlantableAreas: layerState.showNonPlantableAreas
-            });
+            // Updating polygon visibility without geometry upload
 
             // Update group visibility in SuperSplat
             window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility',
@@ -1464,7 +1389,7 @@ class SuperSplatBridge {
                 }, 50); // Small delay for SuperSplat to process visibility changes
             }
 
-            console.log('✅ Polygon visibility updated using cached geometry');
+            // Polygon visibility updated using cached geometry
         } catch (error) {
             console.error('❌ Failed to update polygon visibility:', error);
         }
@@ -1487,7 +1412,6 @@ function initializeSuperSplatBridge() {
     const hasSuperSplatScene = window.scene && window.scene.events;
     const mode = hasSuperSplatScene ? 'direct SuperSplat scene' : 'SuperSplat application';
 
-    console.log(`🌉 Initializing SuperSplat bridge for ${mode}`);
     window.superSplatBridge = new SuperSplatBridge();
 }
 
@@ -1521,4 +1445,3 @@ setTimeout(() => {
 }, 30000);
 
 
-console.log('🌉 SuperSplat Bridge loaded.');
