@@ -513,7 +513,6 @@ class Polygon {
         if (!this.selected) {
             this.selected = true;
 
-            console.log(`🔸 BEFORE selection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z}), baseOutlineColor(${this.baseOutlineColor.x}, ${this.baseOutlineColor.y}, ${this.baseOutlineColor.z})`);
 
             // Apply selection visual properties
             this.outlineThickness = this.baseOutlineThickness * 2.0; // Double the thickness
@@ -521,10 +520,8 @@ class Polygon {
             this.color = new Vec3(1, 1, 1); // White fill
             this.fillAlpha = 0.1; // Semi-transparent fill (0.1 alpha)
 
-            console.log(`🔸 AFTER selection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z})`);
 
             this.triangulate(); // Re-triangulate with new properties
-            console.log(`🔹 Polygon "${this.name}" SELECTED (white border, semi-transparent fill)`);
         }
     }
 
@@ -535,7 +532,6 @@ class Polygon {
         if (this.selected) {
             this.selected = false;
 
-            console.log(`🔸 BEFORE deselection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z}), baseOutlineColor(${this.baseOutlineColor.x}, ${this.baseOutlineColor.y}, ${this.baseOutlineColor.z})`);
 
             // Restore all original visual properties
             this.outlineThickness = this.baseOutlineThickness; // Restore original thickness
@@ -543,10 +539,9 @@ class Polygon {
             this.color = this.baseFillColor.clone(); // Restore original fill color
             this.fillAlpha = this.baseFillAlpha; // Restore original fill alpha
 
-            console.log(`🔸 AFTER deselection - "${this.name}": outlineColor(${this.outlineColor.x}, ${this.outlineColor.y}, ${this.outlineColor.z})`);
 
             this.triangulate(); // Re-triangulate with original properties
-            console.log(`🔹 Polygon "${this.name}" DESELECTED (restored original properties)`);
+            // Polygon "${this.name}" deselected
         }
     }
 
@@ -593,9 +588,7 @@ class TriangleOverlay extends Element {
     }
 
     add() {
-        console.log('🔺 ===============================================');
-        console.log('🔺 TriangleOverlay.add() called - STARTING SETUP');
-        console.log('🔺 ===============================================');
+        // TriangleOverlay.add() - starting setup
 
         const device = this.scene.app.graphicsDevice;
 
@@ -604,15 +597,15 @@ class TriangleOverlay extends Element {
         });
 
         this.quadRender = new QuadRender(this.shader);
-        console.log('🎨 Triangle shader and QuadRender created successfully');
+        // Triangle shader and QuadRender created
 
         // Setup click detection for polygon interaction
-        console.log('🔺 About to call setupClickDetection()...');
+        // Setting up click detection
         try {
             this.setupClickDetection();
-            console.log('🔺 ✅ setupClickDetection() completed successfully');
+            // Click detection setup completed
         } catch (error) {
-            console.error('🔺 ❌ setupClickDetection() failed:', error);
+            console.error('❌ setupClickDetection() failed:', error);
         }
 
         const blendState = new BlendState(
@@ -621,7 +614,7 @@ class TriangleOverlay extends Element {
             BLENDEQUATION_ADD, BLENDMODE_ONE, BLENDMODE_ONE_MINUS_SRC_ALPHA
         );
 
-        console.log('🔺 Registering triangle rendering event handler');
+        // Registering triangle rendering event handler
         this.scene.camera.entity.camera.on('preRenderLayer', (layer: Layer, transparent: boolean) => {
             // Combine triangles from direct triangles and polygons
             const allTriangles = this.getAllTriangles();
@@ -821,7 +814,7 @@ class TriangleOverlay extends Element {
         this.scene.events.on('scene.elementAdded', (element: any) => {
             // Check if a splat was added
             if (element.type === ElementType.splat) {
-                console.log(`🔺 Splat "${element.name || 'unnamed'}" loaded - updating Y-plane automatically`);
+                // Splat "${element.name || 'unnamed'}" loaded - updating Y-plane automatically
 
                 // Small delay to ensure splat data is fully initialized
                 setTimeout(() => {
@@ -832,13 +825,13 @@ class TriangleOverlay extends Element {
 
         // Also check for existing splats when triangle overlay initializes
         setTimeout(() => {
-            console.log('🔺 Checking for existing splats on triangle overlay initialization...');
+            // Checking for existing splats on triangle overlay initialization
             this.updateYPlaneFromSplats();
         }, 500);
 
         // Demo polygons removed - ready for GeoJSON data
 
-        console.log('✅ TriangleOverlay initialized with dynamic irregular triangle and dynamic color');
+        // TriangleOverlay initialized with dynamic irregular triangle and dynamic color
     }
 
     /**
@@ -847,27 +840,15 @@ class TriangleOverlay extends Element {
      */
     setupClickDetection() {
         const canvas = this.scene.app.graphicsDevice.canvas;
-        console.log('🖱️ Setting up polygon click detection');
-        console.log('🎯 Canvas element:', canvas);
-        console.log('🎯 Canvas dimensions:', canvas.width, 'x', canvas.height);
-        console.log('🎯 Canvas client dimensions:', canvas.clientWidth, 'x', canvas.clientHeight);
+        // Setting up polygon click detection
 
-        // Test if we can attach any event listener at all
-        const testHandler = () => console.log('🧪 Test event fired');
+        // Test event listener attachment
+        const testHandler = () => { /* test event */ };
         canvas.addEventListener('click', testHandler);
-        console.log('🧪 Test click listener attached');
 
         // Pointer down event - start tracking potential click
         this.clickHandlers.pointerdown = (e: PointerEvent) => {
-            console.log('🖱️ POINTERDOWN EVENT FIRED:', {
-                pointerType: e.pointerType,
-                button: e.button,
-                pointerId: e.pointerId,
-                currentDragId: this.dragId,
-                offsetX: e.offsetX,
-                offsetY: e.offsetY,
-                target: e.target
-            });
+            // Pointer down event logged
 
             // SAFETY: If we have a stuck drag state, reset it (override mechanism)
             if (this.dragId !== undefined) {
@@ -882,11 +863,9 @@ class TriangleOverlay extends Element {
                 this.dragMoved = false;
                 this.dragStartX = e.offsetX;
                 this.dragStartY = e.offsetY;
-                console.log(`🖱️ ✅ Started tracking click/drag for pointer ${this.dragId} at (${this.dragStartX}, ${this.dragStartY})`);
 
                 // Don't use setPointerCapture as it might be interfering with SuperSplat's controls
                 // Instead, rely on global event listeners
-                console.log('🖱️ ✅ Click tracking started successfully (no pointer capture)');
             } else {
                 console.log('🖱️ ⏭️ Ignoring pointer down:', {
                     reason: e.pointerType !== 'mouse' ? 'not mouse' : 'not left button'
@@ -903,7 +882,7 @@ class TriangleOverlay extends Element {
                 const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
                 if (distance >= this.DRAG_THRESHOLD) {
-                    console.log(`🖱️ ✅ Drag detected: distance ${distance.toFixed(1)}px >= threshold ${this.DRAG_THRESHOLD}px`);
+                    // Drag detected
                     this.dragMoved = true;
                 }
             }
@@ -911,18 +890,10 @@ class TriangleOverlay extends Element {
 
         // Pointer up event - process click if no drag occurred
         this.clickHandlers.pointerup = (e: PointerEvent) => {
-            console.log('🖱️ POINTERUP EVENT FIRED:', {
-                pointerId: e.pointerId,
-                currentDragId: this.dragId,
-                dragMoved: this.dragMoved,
-                offsetX: e.offsetX,
-                offsetY: e.offsetY,
-                button: e.button
-            });
+            // Pointer up event fired
 
             // Check if this is our tracked pointer
             if (e.pointerId === this.dragId) {
-                console.log('🖱️ Processing pointer up event');
 
                 // Fallback distance check in case pointermove events were missed
                 if (!this.dragMoved) {
@@ -930,7 +901,6 @@ class TriangleOverlay extends Element {
                     const deltaY = Math.abs(e.offsetY - this.dragStartY);
                     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                    console.log(`🖱️ Final distance check: ${distance.toFixed(1)}px from start (${this.dragStartX}, ${this.dragStartY}) to end (${e.offsetX}, ${e.offsetY})`);
 
                     if (distance >= this.DRAG_THRESHOLD) {
                         console.log(`🖱️ ✅ FALLBACK: Drag detected in pointerup - distance ${distance.toFixed(1)}px >= threshold ${this.DRAG_THRESHOLD}px`);
@@ -940,11 +910,10 @@ class TriangleOverlay extends Element {
 
                 if (!this.dragMoved) {
                     // This is a single click - check for polygon intersection
-                    console.log('🎯 ✅ SINGLE CLICK CONFIRMED - Processing polygon intersection');
-                    console.log('🎯 Click coordinates:', e.offsetX, e.offsetY);
+                    // Single click confirmed - processing polygon intersection
                     this.handlePolygonClick(e.offsetX, e.offsetY);
                 } else {
-                    console.log('🖱️ ⏭️ Ignoring click - was a drag operation');
+                    // Ignoring click - was a drag operation
                 }
 
                 // Always reset state on pointerup
@@ -953,19 +922,17 @@ class TriangleOverlay extends Element {
                 this.dragStartX = 0;
                 this.dragStartY = 0;
 
-                console.log('🖱️ Drag state reset');
+                // Drag state reset
             } else {
-                console.log('🖱️ ⏭️ Ignoring pointer up - different pointer ID or no tracked drag');
+                // Ignoring pointer up - different pointer ID or no tracked drag
             }
         };
 
         // Attach event listeners to canvas AND document for better coverage
-        console.log('🔗 Attaching event listeners to canvas and document...');
-
         // Canvas listeners (primary)
         try {
             canvas.addEventListener('pointerdown', this.clickHandlers.pointerdown);
-            console.log('✅ pointerdown listener attached to canvas');
+            // pointerdown listener attached to canvas
         } catch (error) {
             console.error('❌ Failed to attach pointerdown listener to canvas:', error);
         }
@@ -973,14 +940,14 @@ class TriangleOverlay extends Element {
         try {
             // Try canvas first with capturing to get events before SuperSplat's controls
             canvas.addEventListener('pointermove', this.clickHandlers.pointermove, { capture: true });
-            console.log('✅ pointermove listener attached to canvas (capturing)');
+            // pointermove listener attached to canvas (capturing)
         } catch (error) {
             console.error('❌ Failed to attach pointermove listener to canvas:', error);
         }
 
         try {
             canvas.addEventListener('pointerup', this.clickHandlers.pointerup);
-            console.log('✅ pointerup listener attached to canvas');
+            // pointerup listener attached to canvas
         } catch (error) {
             console.error('❌ Failed to attach pointerup listener to canvas:', error);
         }
@@ -988,31 +955,25 @@ class TriangleOverlay extends Element {
         // Document listeners (fallback for events that bubble up)
         try {
             document.addEventListener('pointermove', this.clickHandlers.pointermove);
-            console.log('✅ pointermove listener attached to document (fallback)');
+            // pointermove listener attached to document (fallback)
         } catch (error) {
             console.error('❌ Failed to attach pointermove listener to document:', error);
         }
 
         try {
             document.addEventListener('pointerup', this.clickHandlers.pointerup);
-            console.log('✅ pointerup listener attached to document (fallback)');
+            // pointerup listener attached to document (fallback)
         } catch (error) {
             console.error('❌ Failed to attach pointerup listener to document:', error);
         }
 
-        console.log('🖱️ ✅ Polygon click detection setup complete');
+        // Polygon click detection setup complete
 
         // Also add a simple click event for debugging
         const simpleClickHandler = (e: MouseEvent) => {
-            console.log('🖱️ 🧪 SIMPLE CLICK EVENT FIRED:', {
-                offsetX: e.offsetX,
-                offsetY: e.offsetY,
-                button: e.button,
-                target: e.target
-            });
+            // Simple click event fired
         };
         canvas.addEventListener('click', simpleClickHandler);
-        console.log('🧪 Simple click listener also attached for debugging');
     }
 
     /**
@@ -1020,50 +981,33 @@ class TriangleOverlay extends Element {
      * This method determines which polygon was clicked and fires the appropriate event
      */
     handlePolygonClick(screenX: number, screenY: number) {
-        console.log(`🎯 ===== POLYGON CLICK DETECTION START =====`);
-        console.log(`🎯 Screen coordinates: (${screenX}, ${screenY})`);
+        // Polygon click detection started
 
         try {
             // Convert screen coordinates to normalized device coordinates
             const canvas = this.scene.app.graphicsDevice.canvas;
-            console.log(`🎯 Canvas info:`, {
-                width: canvas.width,
-                height: canvas.height,
-                clientWidth: canvas.clientWidth,
-                clientHeight: canvas.clientHeight
-            });
 
             const rect = canvas.getBoundingClientRect();
-            console.log(`🎯 Canvas bounding rect:`, rect);
 
             const normalizedX = (screenX / canvas.clientWidth) * 2 - 1;
             const normalizedY = -((screenY / canvas.clientHeight) * 2 - 1);
 
-            console.log(`🎯 Normalized coordinates: (${normalizedX.toFixed(3)}, ${normalizedY.toFixed(3)})`);
 
             // Convert to world coordinates using camera ray casting
             const camera = this.scene.camera.entity.camera;
-            console.log(`🎯 Camera info:`, {
-                farClip: camera.farClip,
-                nearClip: camera.nearClip,
-                fov: camera.fov
-            });
 
             const worldPoint = new Vec3();
 
             // Project screen point to world space at the Y-plane level
             camera.screenToWorld(screenX, screenY, camera.farClip * 0.5, worldPoint);
-            console.log(`🎯 Screen-to-world result: (${worldPoint.x.toFixed(2)}, ${worldPoint.y.toFixed(2)}, ${worldPoint.z.toFixed(2)})`);
 
             // Create a ray from camera to the world point
             const cameraPos = this.scene.camera.entity.getPosition();
-            console.log(`🎯 Camera position: (${cameraPos.x.toFixed(2)}, ${cameraPos.y.toFixed(2)}, ${cameraPos.z.toFixed(2)})`);
 
             const rayDirection = worldPoint.sub(cameraPos).normalize();
-            console.log(`🎯 Ray direction: (${rayDirection.x.toFixed(3)}, ${rayDirection.y.toFixed(3)}, ${rayDirection.z.toFixed(3)})`);
 
             // Intersect ray with Y-plane to get world coordinates
-            console.log(`🎯 Y-plane level: ${this.yPlane}`);
+            // Y-plane level: ${this.yPlane}
 
             if (Math.abs(rayDirection.y) < 0.0001) {
                 console.warn('⚠️ Ray is nearly parallel to Y-plane, cannot intersect');
@@ -1071,7 +1015,7 @@ class TriangleOverlay extends Element {
             }
 
             const t = (this.yPlane - cameraPos.y) / rayDirection.y;
-            console.log(`🎯 Ray parameter t: ${t.toFixed(3)}`);
+            // Ray parameter t: ${t.toFixed(3)}
 
             const worldIntersection = new Vec3(
                 cameraPos.x + rayDirection.x * t,
@@ -1079,33 +1023,28 @@ class TriangleOverlay extends Element {
                 cameraPos.z + rayDirection.z * t
             );
 
-            console.log(`🌍 World intersection point: (${worldIntersection.x.toFixed(2)}, ${worldIntersection.z.toFixed(2)}) at Y=${this.yPlane}`);
 
             // Check each visible polygon for intersection
-            console.log(`🔍 Starting polygon intersection check...`);
             const clickedPolygon = this.findPolygonAtWorldPoint(worldIntersection);
 
             if (clickedPolygon) {
-                console.log(`🎯 ✅ POLYGON CLICKED: "${clickedPolygon.name}" (group: ${clickedPolygon.group})`);
+                // Polygon clicked: ${clickedPolygon.name} (group: ${clickedPolygon.group})
 
                 // Fire event to bridge to terrain-3d
-                console.log(`🔥 Firing polygon.clicked event...`);
                 this.scene.events.fire('polygon.clicked', {
                     polygonName: clickedPolygon.name,
                     polygonGroup: clickedPolygon.group,
                     worldPosition: { x: worldIntersection.x, y: worldIntersection.y, z: worldIntersection.z },
                     screenPosition: { x: screenX, y: screenY }
                 });
-                console.log(`🔥 Event fired successfully`);
             } else {
-                console.log('🎯 ❌ No polygon found at click position');
+                // No polygon found at click position
             }
         } catch (error) {
             console.error('❌ Error in handlePolygonClick:', error);
-            console.error('❌ Stack trace:', error.stack);
         }
 
-        console.log(`🎯 ===== POLYGON CLICK DETECTION END =====`);
+        // Polygon click detection completed
     }
 
     /**
@@ -1114,42 +1053,33 @@ class TriangleOverlay extends Element {
      * Polygons are checked in order of size (smallest first) for nested polygon priority
      */
     findPolygonAtWorldPoint(worldPoint: Vec3): Polygon | null {
-        console.log(`🔍 === POLYGON INTERSECTION CHECK ===`);
-        console.log(`🔍 World point: (${worldPoint.x.toFixed(2)}, ${worldPoint.z.toFixed(2)})`);
-        console.log(`🔍 Total polygons available: ${this.polygons.length}`);
+        // Polygon intersection check
+        // World point: (${worldPoint.x.toFixed(2)}, ${worldPoint.z.toFixed(2)})
+        // Total polygons available: ${this.polygons.length}
 
         // Only check visible polygons - they maintain smallest-first order
         const visiblePolygons = this.polygons.filter(polygon => polygon.visible);
-        console.log(`🔍 Visible polygons: ${visiblePolygons.length} (sorted by area: smallest first)`);
+        // Visible polygons: ${visiblePolygons.length} (sorted by area: smallest first)
 
         if (visiblePolygons.length === 0) {
-            console.log('🔍 ❌ No visible polygons to check');
+            // No visible polygons to check
             return null;
         }
 
         // Log details about each visible polygon with area and group info
-        console.log(`🔍 === VISIBLE POLYGON ORDER (by area, smallest first) ===`);
-        for (let i = 0; i < Math.min(visiblePolygons.length, 10); i++) {
-            const polygon = visiblePolygons[i];
-            console.log(`🔍 ${i+1}. "${polygon.name}" | Area: ${polygon.area.toFixed(2)} | Group: ${polygon.group} | Vertices: ${polygon.vertices.length}`);
-        }
-        if (visiblePolygons.length > 10) {
-            console.log(`🔍   ... and ${visiblePolygons.length - 10} more polygons`);
-        }
+        // Testing ${visiblePolygons.length} visible polygons (sorted by area)
 
         for (let i = 0; i < visiblePolygons.length; i++) {
             const polygon = visiblePolygons[i];
-            console.log(`🔍 Testing polygon ${i}: "${polygon.name}" (area: ${polygon.area.toFixed(2)})`);
+            // Testing polygon: ${polygon.name}
 
             if (this.isPointInPolygon(worldPoint, polygon)) {
-                console.log(`🔍 ✅ MATCH FOUND: "${polygon.name}" (smallest matching polygon)`);
+                // Match found: ${polygon.name}
                 return polygon;
-            } else {
-                console.log(`🔍 ❌ No match: "${polygon.name}"`);
             }
         }
 
-        console.log(`🔍 ❌ No polygon contains the point`);
+        // No polygon contains the point
         return null;
     }
 
@@ -1162,7 +1092,7 @@ class TriangleOverlay extends Element {
         const testX = worldPoint.x;
         const testZ = worldPoint.z;
 
-        console.log(`🔍   Ray casting test for "${polygon.name}": point(${testX.toFixed(2)}, ${testZ.toFixed(2)})`);
+        // Ray casting test for ${polygon.name}
 
         let isInside = false;
         let j = vertices.length - 1;
@@ -1183,7 +1113,7 @@ class TriangleOverlay extends Element {
             j = i;
         }
 
-        console.log(`🔍   Ray intersections: ${intersectionCount}, inside: ${isInside}`);
+        // Ray intersections: ${intersectionCount}, inside: ${isInside}
         return isInside;
     }
 
@@ -1237,7 +1167,7 @@ class TriangleOverlay extends Element {
 
     setYPlane(yPlane: number) {
         this.yPlane = yPlane;
-        console.log(`🔺 Y-plane set to ${yPlane}`);
+        // Y-plane set to ${yPlane}
     }
 
     /**
@@ -1291,27 +1221,12 @@ class TriangleOverlay extends Element {
      * Call this after loading all polygons for a site to optimize click detection
      */
     sortPolygonsByArea() {
-        console.log(`🔄 === SORTING POLYGONS BY AREA ===`);
-        console.log(`🔄 Total polygons to sort: ${this.polygons.length}`);
-
-        // Log first few polygons before sorting
-        const beforeSort = this.polygons.slice(0, 10).map(p => ({
-            name: p.name?.substring(0, 20) || 'unnamed',
-            area: p.area?.toFixed(2) || 'undefined',
-            group: p.group
-        }));
-        console.log(`🔄 Before sort (first 10):`, beforeSort);
+        // Sorting polygons by area
+        // Total polygons to sort: ${this.polygons.length}
 
         this.polygons.sort((a, b) => a.area - b.area);
 
-        // Log first few polygons after sorting
-        const afterSort = this.polygons.slice(0, 10).map(p => ({
-            name: p.name?.substring(0, 20) || 'unnamed',
-            area: p.area?.toFixed(2) || 'undefined',
-            group: p.group
-        }));
-        console.log(`🔄 After sort (first 10):`, afterSort);
-        console.log(`🔄 === SORTING COMPLETE ===`);
+        // Sorting complete
     }
 
     /**
@@ -1386,7 +1301,7 @@ class TriangleOverlay extends Element {
                 if (!polygon.selected) {
                     polygon.select();
                     selectedCount++;
-                    console.log(`🎯 Polygon "${name}" SELECTED for multi-selection`);
+                    // Polygon "${name}" selected for multi-selection
                 }
             } else {
                 console.warn(`⚠️ Polygon "${name}" not found for multi-selection`);
@@ -1395,7 +1310,7 @@ class TriangleOverlay extends Element {
 
         if (selectedCount > 0) {
             this.scene.forceRender = true; // Trigger SuperSplat view update
-            console.log(`🎯 Multi-selection complete: ${selectedCount} polygons selected`);
+            // Multi-selection complete: ${selectedCount} polygons selected
         }
 
         return selectedCount;
@@ -1465,7 +1380,7 @@ class TriangleOverlay extends Element {
                     });
 
                     selectedCount++;
-                    console.log(`🎨 Polygon "${name}" styled with ${colorType.toUpperCase()} environmental metric`);
+                    // Polygon "${name}" styled with ${colorType.toUpperCase()} environmental metric
                 }
             } else {
                 console.warn(`⚠️ Polygon "${name}" not found for environmental metric styling`);
@@ -1474,7 +1389,7 @@ class TriangleOverlay extends Element {
 
         if (selectedCount > 0) {
             this.scene.forceRender = true; // Trigger SuperSplat view update
-            console.log(`🎨 Environmental metric styling complete: ${selectedCount} polygons with ${colorType} colors`);
+            // Environmental metric styling complete: ${selectedCount} polygons with ${colorType} colors
         }
 
         return selectedCount;
@@ -1507,7 +1422,7 @@ class TriangleOverlay extends Element {
                 deselectedCount++;
             }
         });
-        console.log(`🎯 ${deselectedCount} polygons deselected`);
+        // ${deselectedCount} polygons deselected
         return deselectedCount;
     }
 
@@ -1537,7 +1452,7 @@ class TriangleOverlay extends Element {
         if (affectedCount > 0) {
             this.scene.forceRender = true; // Trigger SuperSplat view update
         }
-        console.log(`👁️ Group "${groupName}" ${visible ? 'shown' : 'hidden'} (${affectedCount} polygons affected)`);
+        // Group "${groupName}" ${visible ? 'shown' : 'hidden'} (${affectedCount} polygons affected)
         return affectedCount;
     }
 
@@ -1572,7 +1487,7 @@ class TriangleOverlay extends Element {
         const splats = this.scene.getElementsByType(ElementType.splat) as any[];
 
         if (!splats || splats.length === 0) {
-            console.log('📊 No splats found in scene');
+            // No splats found in scene
             return null;
         }
 
@@ -1616,7 +1531,7 @@ class TriangleOverlay extends Element {
         const percentile75 = allYValues[percentile75Index];
 
         // Log key statistics
-        console.log(`📊 Analyzed ${allYValues.length} splat points - Highest Y-value: ${highest.toFixed(3)}`);
+        // Analyzed ${allYValues.length} splat points - Highest Y-value: ${highest.toFixed(3)}
 
         return { highest, percentile90, percentile75 };
     }
@@ -1629,7 +1544,7 @@ class TriangleOverlay extends Element {
         const stats = this.calculateSplatYStatistics();
 
         if (!stats) {
-            console.log(`🔺 No splat data available - keeping current Y-plane: ${this.yPlane}`);
+            // No splat data available - keeping current Y-plane: ${this.yPlane}
             return;
         }
 
@@ -1637,7 +1552,7 @@ class TriangleOverlay extends Element {
         const safetyMargin = 0.1; // 10cm above highest splat
         const newYPlane = stats.highest + safetyMargin;
 
-        console.log(`🔺 Automatically setting Y-plane to highest splat Y-value + margin: ${stats.highest.toFixed(3)} + ${safetyMargin} = ${newYPlane.toFixed(3)}`);
+        // Automatically setting Y-plane to highest splat Y-value + margin: ${stats.highest.toFixed(3)} + ${safetyMargin} = ${newYPlane.toFixed(3)}
         this.setYPlane(newYPlane);
     }
 

@@ -91,7 +91,6 @@ class PolygonOverlay extends Element {
             return;
         }
 
-        console.log('🎨 Creating PolygonOverlay materials...');
 
         // Plantable area material (transparent blue)
         this.plantableMaterial = new StandardMaterial();
@@ -126,7 +125,6 @@ class PolygonOverlay extends Element {
         this.outlineMaterial.diffuse = new Color(0.03, 0.17, 0.18, 1.0); // Solid Ecodash blue
         this.outlineMaterial.update();
 
-        console.log('✅ PolygonOverlay materials created successfully');
     }
 
     /**
@@ -135,7 +133,6 @@ class PolygonOverlay extends Element {
     add(): void {
         if (!this.scene) return;
 
-        console.log('🔧 Initializing PolygonOverlay element for SuperSplat');
 
         // Create materials now that scene is available
         this.createMaterials();
@@ -176,7 +173,6 @@ class PolygonOverlay extends Element {
             this.renderTestPoint(worldPosition);
         });
 
-        console.log('✅ PolygonOverlay bridge functions registered in SuperSplat events');
     }
 
     /**
