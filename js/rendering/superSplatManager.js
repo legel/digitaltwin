@@ -18,14 +18,6 @@ class SuperSplatManager {
 
     }
 
-    // Toggle logic removed - SuperSplat-only mode
-
-    // switchToSuperSplat method removed - SuperSplat is now the base state
-
-    // switchToCesium method removed - SuperSplat-only mode
-
-    // initializeCesiumSiteVisualization method removed - SuperSplat-only mode
-
     /**
      * Loads SuperSplat editor in an iframe with the current site's splat file
      */
@@ -78,7 +70,6 @@ class SuperSplatManager {
             // Check if we're in a cross-origin situation
             const isCrossOrigin = editorUrl.includes('testing.ecodash.ai');
             
-            // Button positioning removed - SuperSplat-only mode
             // Only set initial view
             setTimeout(() => {
                 this.setInitialSuperSplatView();
@@ -91,8 +82,6 @@ class SuperSplatManager {
                 }
             }, 2500); // Allow time for SuperSplat scene to initialize
 
-            // Loading acceleration now handled by SuperSplatBridge when splat is actually loaded
-            // No longer triggering on iframe ready - wait for actual splat loading
         };
 
         this.superSplatIframe.onerror = (error) => {
@@ -203,12 +192,6 @@ class SuperSplatManager {
 
     }
 
-    // showUIForCesiumMode method removed - SuperSplat-only mode
-
-    // applyFallbackPositioning method removed - SuperSplat button no longer needed
-    
-    // positionButtonRelativeToViewCube method removed - SuperSplat button no longer needed
-
     /**
      * Set the initial camera view in SuperSplat to top-down +Y orthographic, zoomed out
      * Uses the SuperSplat event system and proper camera API calls from source code analysis
@@ -237,7 +220,6 @@ class SuperSplatManager {
                     const scene = iframeWindow.scene;
                     if (scene && scene.camera && scene.camera.setAzimElev) {
                         
-                        // Additional check: make sure there's actual content (distance > 0)
                         const distance = scene.camera.distance;
                         if (distance && distance > 0) {
                             
@@ -398,4 +380,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// Resize listener removed - SuperSplat button positioning no longer needed

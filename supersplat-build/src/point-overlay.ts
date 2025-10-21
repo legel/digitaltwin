@@ -148,8 +148,6 @@ class Polygon {
             this.triangulateWithEarClipping();
         }
 
-        // Triangle coordinate logging removed to reduce console spam
-
     }
 
     /**
@@ -212,13 +210,9 @@ class Polygon {
         let maxIterations = workingVertices.length * 3; // Prevent infinite loops
         let iterationCount = 0;
 
-        // Starting ear clipping triangulation
-
         while (workingVertices.length > 3 && iterationCount < maxIterations) {
             let earFound = false;
             iterationCount++;
-
-            // Verbose ear clipping logging removed to reduce console spam
 
             // Look for an ear (a convex vertex where the triangle contains no other vertices)
             for (let i = 0; i < workingVertices.length; i++) {
@@ -230,10 +224,8 @@ class Polygon {
                 const next = workingVertices[nextI];
 
                 const isConvex = this.isConvex(prev.vertex, curr.vertex, next.vertex);
-                // Vertex testing logging removed to reduce console spam
 
                 if (this.isEar(prev, curr, next, workingVertices)) {
-                    // Found ear logging removed to reduce console spam
                     earFound = true;
                     // Found an ear! Create triangle and remove the ear vertex
                     const triangle = {
@@ -365,7 +357,6 @@ class Polygon {
         // For counter-clockwise polygons: cross > 0 means convex
         const isConvex = this.polygonWindingClockwise ? cross < 0 : cross > 0;
 
-        // isConvex logging removed to reduce console spam
         return isConvex;
     }
 
@@ -465,9 +456,6 @@ class Polygon {
         const edge01Visible = this.exteriorEdges.has(edge01Key);
         const edge12Visible = this.exteriorEdges.has(edge12Key);
         const edge20Visible = this.exteriorEdges.has(edge20Key);
-
-        // Log first few triangles to verify logic
-        // Edge visibility logging removed to reduce console spam
 
         return {
             edge01Visible,
@@ -600,7 +588,6 @@ class TriangleOverlay extends Element {
         // Triangle shader and QuadRender created
 
         // Setup click detection for polygon interaction
-        // Setting up click detection
         try {
             this.setupClickDetection();
             // Click detection setup completed
@@ -646,8 +633,6 @@ class TriangleOverlay extends Element {
                     const currentBatchSize = Math.min(remainingTriangles, TRIANGLES_PER_BATCH);
                     batchCount++;
 
-                    // Removed excessive batch logging to reduce console spam
-
                     // Initialize all vec4 uniforms with zeros for this batch
                     const vec4Data: number[][] = [];
                     for (let i = 0; i < VEC4_PER_BATCH; i++) {
@@ -691,8 +676,6 @@ class TriangleOverlay extends Element {
                     ];
                 }
 
-                    // Debug removed due to scope issue - key fix is boolean comparison change above
-
                     // Set shared uniforms
                     device.scope.resolve('triangleYPlane').setValue(this.yPlane);
                     device.scope.resolve('triangleCount').setValue(currentBatchSize);
@@ -708,7 +691,6 @@ class TriangleOverlay extends Element {
                     triangleIndex += currentBatchSize;
                 }
 
-                // Only log render completion occasionally to reduce spam
                 if (Math.random() < 0.005) {
                     console.log(`🔺 Rendered ${allTriangles.length} triangles in ${batchCount} batch(es) at Y-plane ${this.yPlane}`);
                 }
@@ -823,15 +805,11 @@ class TriangleOverlay extends Element {
             }
         });
 
-        // Also check for existing splats when triangle overlay initializes
         setTimeout(() => {
             // Checking for existing splats on triangle overlay initialization
             this.updateYPlaneFromSplats();
         }, 500);
 
-        // Demo polygons removed - ready for GeoJSON data
-
-        // TriangleOverlay initialized with dynamic irregular triangle and dynamic color
     }
 
     /**
@@ -840,15 +818,12 @@ class TriangleOverlay extends Element {
      */
     setupClickDetection() {
         const canvas = this.scene.app.graphicsDevice.canvas;
-        // Setting up polygon click detection
-
         // Test event listener attachment
         const testHandler = () => { /* test event */ };
         canvas.addEventListener('click', testHandler);
 
         // Pointer down event - start tracking potential click
         this.clickHandlers.pointerdown = (e: PointerEvent) => {
-            // Pointer down event logged
 
             // SAFETY: If we have a stuck drag state, reset it (override mechanism)
             if (this.dragId !== undefined) {

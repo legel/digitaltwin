@@ -399,7 +399,6 @@ class SuperSplatBridge {
 
                     // Debug: Log coordinate transformation and polygon complexity
                     if (polygonsRendered < 3) { // Only log first 3 for readability
-                        // Coordinate debug removed
 
                         // Calculate bounds of transformed vertices for debugging
                         const bounds = {
@@ -409,7 +408,6 @@ class SuperSplatBridge {
                             maxZ: Math.max(...vertices.map(v => v.z))
                         };
 
-                        // Triangulation analysis debug removed
                     }
 
                     if (vertices.length >= 3) {
@@ -429,7 +427,6 @@ class SuperSplatBridge {
                             group: group
                         });
 
-                        // Render polygon in SuperSplat (verbose logging removed)
 
                         if (window.superSplatScene && window.superSplatScene.events) {
 
@@ -1382,7 +1379,6 @@ class SuperSplatBridge {
             window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility',
                 'non-plantable-areas', layerState.showNonPlantableAreas !== false);
 
-            // Update UI buttons to match visibility state
             if (window.updateVisibilityButtonIcons) {
                 setTimeout(() => {
                     window.updateVisibilityButtonIcons();
@@ -1422,7 +1418,6 @@ window.initializeSuperSplatBridge = initializeSuperSplatBridge;
 // Auto-initialize only when called explicitly or when SuperSplat scene is ready
 // Removed automatic DOM initialization to prevent timing issues
 
-// Also try to initialize when SuperSplat scene becomes available
 const checkForSuperSplatScene = () => {
     if (window.scene && window.scene.events && !window.superSplatBridge) {
         console.log('🎯 SuperSplat scene detected, initializing bridge');
