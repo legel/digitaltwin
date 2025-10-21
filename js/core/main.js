@@ -15,19 +15,19 @@ document.addEventListener("DOMContentLoaded", async function() {
     startIndependentLoadingAnimation();
 
     // Wait for utilities.js to load
-    if (typeof allSystemsGo === 'undefined') {
+    if (typeof initializeApplication === 'undefined') {
         await new Promise(resolve => {
-            const checkForAllSystemsGo = () => {
-                if (typeof allSystemsGo !== 'undefined') {
+            const checkForInitializeApplication = () => {
+                if (typeof initializeApplication !== 'undefined') {
                     resolve();
                 } else {
-                    setTimeout(checkForAllSystemsGo, 50);
+                    setTimeout(checkForInitializeApplication, 50);
                 }
             };
-            checkForAllSystemsGo();
+            checkForInitializeApplication();
         });
     }
-    await allSystemsGo();
+    await initializeApplication();
 
 
 });
@@ -218,9 +218,5 @@ function startIndependentLoadingAnimation() {
     };
     
     startWorkerWithMessages();
-    
-    
-    // setupSimpleMessageCycling();
-    
 }
 

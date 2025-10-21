@@ -121,6 +121,28 @@ Site Selection (dropdown)
 3. **Ecological model overlay**: Scientific data visualization on 3D twins
 4. **Commercial platform features**: Native plant marketplace integration
 
+### Code Quality Standards
+When refactoring or creating new code, maintain clean and professional code standards:
+
+#### Comment Guidelines
+- **NEVER add "Note:", "BUT:", "DISABLED", or similar explanatory comments**
+- **Avoid comments explaining previous behavior** (e.g., "logging removed for cleaner output")
+- **No implementation detail explanations** that add no functional value
+- **Use JSDoc for function documentation** with proper @param and @returns tags
+- **Keep comments concise and function-focused**
+
+#### Formatting Standards
+- **Single blank line** between functions only
+- **No excessive newlines** (never more than one blank line)
+- **Remove orphaned code** from incomplete edits
+- **Consistent indentation** and spacing throughout files
+
+#### Code Organization
+- **Remove unused functions completely** rather than commenting them out
+- **Extract related functions** into focused modules when appropriate
+- **Maintain single responsibility** for each file and function
+- **Use descriptive function and variable names** that eliminate need for explanatory comments
+
 ## Recent Implementations
 
 ### Gaussian Splat Integration (3D Digital Twins)

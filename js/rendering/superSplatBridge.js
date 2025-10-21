@@ -351,7 +351,7 @@ class SuperSplatBridge {
 
 
             const geoBounds = window.coordinateTransform.calculateGeoJSONBounds(geoJsonData);
-            const format = window.detectGeoJsonFormat ? window.detectGeoJsonFormat(geoJsonData.features[0]) : 'boyd';
+            const geoJsonFormat = window.detectGeoJsonFormat ? window.detectGeoJsonFormat(geoJsonData.features[0]) : 'boyd';
 
             // Track polygons for UI controls
             this.polygonRegistry = this.polygonRegistry || [];
@@ -382,7 +382,7 @@ class SuperSplatBridge {
                     let name = rawName;
 
                     // Determine if plantable or non-plantable
-                    const isPlantable = this.isPlantableFeature(feature, format);
+                    const isPlantable = this.isPlantableFeature(feature, geoJsonFormat);
 
                     // Check visibility state for this polygon type
                     const layerState = window.layerState || {};
@@ -551,8 +551,8 @@ class SuperSplatBridge {
     /**
      * Determine if feature is plantable area based on format and properties
      */
-    isPlantableFeature(feature, format) {
-        if (format === 'boyd') {
+    isPlantableFeature(feature, geoJsonFormat) {
+        if (geoJsonFormat === 'boyd') {
             const name = feature.properties.name;
             if (!name) return false;
 
@@ -940,111 +940,6 @@ class SuperSplatBridge {
     }
 
 
-    // Removed: renderGeoJSONBoundsRectangle() debug function
-    /*
-        if (!this.polygonOverlayReady) {
-            console.warn('⚠️ SuperSplat not ready for bounds rectangle test');
-            return false;
-        }
-
-        if (!window.coordinateTransform) {
-            console.error('❌ CoordinateTransform not available - make sure CoordinateTransform.js is loaded');
-            return false;
-        }
-
-        try {
-            console.log('🔬 === GEOJSON BOUNDS RECTANGLE TEST (DYNAMIC SCALING) ===');
-
-            // Ensure coordinate transform is loaded
-            await window.coordinateTransform.ensureLoaded();
-
-            // Wait for splat bounds to be available
-            console.log('⏳ Waiting for splat bounds to load...');
-            let splatBounds = null;
-
-            try {
-                splatBounds = await this.waitForSplatBounds(15000); // Wait up to 15 seconds
-            } catch (error) {
-                console.warn('⚠️ Could not get splat bounds - proceeding with fallback scaling:', error.message);
-            }
-
-            // Create bounds rectangle with dynamic scaling if splat bounds available
-            const rectangleVertices = await window.coordinateTransform.createBoundsRectangle(geoJsonData, splatBounds);
-
-            if (rectangleVertices.length !== 4) {
-                console.error('❌ Invalid rectangle vertices:', rectangleVertices);
-                return false;
-            }
-
-            // Get additional splat information
-            const sceneBounds = this.getSceneBounds();
-            const splatCenter = this.getSplatCenter();
-
-            console.log('🎨 Splat Scene Information:', {
-                splat_center: splatCenter || 'Not available',
-                scene_bounds: sceneBounds || 'Not available',
-                splat_bounds_extracted: splatBounds ? 'Yes (used for dynamic scaling)' : 'No (using fallback scaling)',
-                note: 'These coordinates are in SuperSplat local coordinate system'
-            });
-
-            // Clear existing polygons and triangles
-            this.clearTriangles();
-
-            // Create polygon using SuperSplat polygon system
-            const events = window.superSplatScene.events;
-
-            // Convert vertices to Vec3 format expected by SuperSplat
-            const vec3Vertices = rectangleVertices.map(v => ({
-                x: v.x,
-                y: v.y,
-                z: v.z
-            }));
-
-            // Add polygon with distinctive styling for testing
-            const polygonColor = { x: 0.2, y: 0.8, z: 0.2 }; // Green
-            const fillAlpha = 0.3; // Semi-transparent
-            const outlineColor = { x: 1.0, y: 1.0, z: 0.0 }; // Yellow outline
-            const outlineThickness = splatBounds ? 0.05 : 0.15; // Thinner outline if we have proper scaling
-            const polygonName = `GeoJSON_Bounds_Rectangle_${splatBounds ? 'Dynamic' : 'Fallback'}`;
-
-            console.log('🔹 Creating bounds rectangle polygon:', {
-                vertices: vec3Vertices,
-                color: polygonColor,
-                fillAlpha: fillAlpha,
-                outlineColor: outlineColor,
-                outlineThickness: outlineThickness,
-                name: polygonName,
-                scaling_method: splatBounds ? 'Dynamic (based on splat)' : 'Fallback (static)'
-            });
-
-            // Send polygon to SuperSplat
-            events.invoke('triangleOverlay.addPolygon',
-                vec3Vertices,
-                polygonColor,
-                fillAlpha,
-                outlineColor,
-                outlineThickness,
-                polygonName
-            );
-
-            console.log('✅ GeoJSON bounds rectangle sent to SuperSplat successfully');
-
-            if (splatBounds) {
-                console.log('🎯 Dynamic scaling used - rectangle should cover the entire splat extent');
-            } else {
-                console.log('⚠️ Fallback scaling used - rectangle may be incorrectly sized');
-            }
-
-            console.log('👁️ Look for a semi-transparent green rectangle with yellow outline covering the GeoJSON bounds');
-            console.log('🔬 === BOUNDS RECTANGLE TEST COMPLETE ===');
-
-            return true;
-
-        } catch (error) {
-            console.error('❌ Failed to render GeoJSON bounds rectangle:', error);
-            return false;
-        }
-    */
 
     /**
      * Setup polygon click event handling

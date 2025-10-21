@@ -468,7 +468,7 @@ async function autoLoadSiteData() {
 
         // Trigger the detection system
         if (window.detectGeoJsonFormat) {
-            const format = window.detectGeoJsonFormat(geoJsonData.features[0]);
+            const geoJsonFormat = window.detectGeoJsonFormat(geoJsonData.features[0]);
         }
 
         return true;
@@ -527,8 +527,8 @@ function initializeLayerControls() {
 
         // Check site data and format
         if (window.currentSiteData) {
-            const format = detectGeoJsonFormat(window.currentSiteData.features[0]);
-            if (format === 'boyd') {
+            const geoJsonFormat = detectGeoJsonFormat(window.currentSiteData.features[0]);
+            if (geoJsonFormat === 'boyd') {
                 document.getElementById('layerControls').style.display = 'block';
                 analyzeNPACategories(window.currentSiteData);
                 analyzePACategories(window.currentSiteData);
@@ -550,8 +550,8 @@ function initializeLayerControls() {
                 }
 
                 if (window.currentSiteData) {
-                    const format = detectGeoJsonFormat(window.currentSiteData.features[0]);
-                    if (format === 'boyd') {
+                    const geoJsonFormat = detectGeoJsonFormat(window.currentSiteData.features[0]);
+                    if (geoJsonFormat === 'boyd') {
                         document.getElementById('layerControls').style.display = 'block';
                         analyzeNPACategories(window.currentSiteData);
                         analyzePACategories(window.currentSiteData);
@@ -1350,10 +1350,10 @@ function reRenderPolygons() {
  * Initialize layer controls based on site data format
  * Shows/hides layer controls and analyzes PA/NPA categories for Boyd format sites
  */
-function initializeLayerControlsForSite(format) {
+function initializeLayerControlsForSite(geoJsonFormat) {
     const layerControls = document.getElementById('layerControls');
 
-    if (format === 'boyd') {
+    if (geoJsonFormat === 'boyd') {
         layerControls.style.display = 'block';
         // Analyze PA and NPA categories for this site
         if (window.currentSiteData) {

@@ -114,23 +114,6 @@ class SuperSplatManager {
 
 
     /**
-     * Checks if a splat file exists for the given site
-     */
-    async hasSplatFile(siteId) {
-        try {
-            const dataUrl = window.TerrainConfig ? 
-                window.TerrainConfig.getDataUrl(`${siteId}/splat.ply`) :
-                `/data/${siteId}/splat.ply`;
-            const response = await fetch(dataUrl, { method: 'HEAD' });
-            return response.ok;
-        } catch (error) {
-            console.warn(`No splat file found for site: ${siteId}`);
-            return false;
-        }
-    }
-
-
-    /**
      * Configures UI elements
      */
     configureUI() {
@@ -139,11 +122,11 @@ class SuperSplatManager {
         const layerControls = document.getElementById('layerControls');
         if (layerControls && window.currentSiteData) {
             // Check if current site is Boyd format (which supports layer controls)
-            const format = window.detectGeoJsonFormat ?
+            const geoJsonFormat = window.detectGeoJsonFormat ?
                 window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
 
 
-            if (format === 'boyd') {
+            if (geoJsonFormat === 'boyd') {
                 layerControls.style.display = 'block';
 
                 // Initialize layer controls with current site data
@@ -162,10 +145,10 @@ class SuperSplatManager {
                 window.autoLoadSiteData().then(success => {
                     if (success) {
                         // Retry showing layer controls now that data is loaded
-                        const format = window.detectGeoJsonFormat ?
+                        const geoJsonFormat = window.detectGeoJsonFormat ?
                             window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
 
-                        if (format === 'boyd') {
+                        if (geoJsonFormat === 'boyd') {
                             layerControls.style.display = 'block';
 
                             if (window.initializeLayerControls) {
