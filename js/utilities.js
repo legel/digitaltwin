@@ -652,12 +652,7 @@ async function initializeSupersplatSiteData() {
         console.warn('⚠️ initializeLayerControlsForSite not available');
     }
 
-    // Trigger initial visualization with plantable areas
-    if (window.superSplatBridge) {
-        window.superSplatBridge.renderGeoJSONPolygons(defaultSite.geoJson);
-    } else {
-        console.warn('⚠️ SuperSplatBridge not available');
-    }
+    // Polygon rendering handled by other components once SuperSplat is ready
 
 }
 
