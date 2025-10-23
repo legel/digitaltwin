@@ -7,9 +7,7 @@ import {
     SEMANTIC_POSITION,
     TYPE_FLOAT32,
     TYPE_UINT16,
-    BoundingBox,
     Color,
-    Entity,
     IndexBuffer,
     Material,
     Mesh,
@@ -56,7 +54,6 @@ interface LayerState {
 class PolygonOverlay extends Element {
     private polygonMeshInstances: MeshInstance[] = [];
     private outlineMeshInstances: MeshInstance[] = [];
-    private testPointMeshInstance: MeshInstance | null = null;
     private currentGeoJsonData: GeoJSONData | null = null;
     private currentLayerState: LayerState = {};
 
@@ -140,8 +137,6 @@ class PolygonOverlay extends Element {
         // Register terrain-3d bridge functions in SuperSplat event system
         this.registerTerrainBridgeFunctions();
 
-        // Listen for terrain-3d events
-        this.setupEventListeners();
 
         // Initial render if data is already available
         this.tryInitialRender();
@@ -168,29 +163,9 @@ class PolygonOverlay extends Element {
             this.clearPolygons();
         });
 
-        // Function to render a test point at fixed location
-        events.function('polygonOverlay.renderTestPoint', (worldPosition: Vec3) => {
-            this.renderTestPoint(worldPosition);
-        });
 
     }
 
-    /**
-     * Set up event listeners for SuperSplat events
-     */
-    private setupEventListeners(): void {
-        const events = this.scene.events;
-
-        // Listen for camera changes to potentially adjust polygon positioning
-        events.on('camera.changed', () => {
-            // Future: Update polygon LOD or visibility based on camera distance
-        });
-
-        // Listen for scene bounds changes
-        events.on('scene.boundChanged', () => {
-            // Future: Reposition polygons if scene bounds change
-        });
-    }
 
     /**
      * Try to render polygons if terrain-3d data is already available
@@ -202,7 +177,6 @@ class PolygonOverlay extends Element {
             const layerState = (window as any).layerState;
 
             if (terrainData && layerState) {
-                console.log('🎯 Found existing terrain-3d data, rendering polygons');
                 this.updateFromGeoJSON(terrainData, layerState);
             }
         }
@@ -223,10 +197,6 @@ class PolygonOverlay extends Element {
             return;
         }
 
-        console.log('🎨 PolygonOverlay updating from GeoJSON data', {
-            features: geoJsonData.features.length,
-            layerState
-        });
 
         this.currentGeoJsonData = geoJsonData;
         this.currentLayerState = { ...layerState };
@@ -273,7 +243,6 @@ class PolygonOverlay extends Element {
 
         this.worldBounds = { minLat, maxLat, minLon, maxLon };
 
-        console.log('🗺️ PolygonOverlay calculated world bounds:', this.worldBounds);
     }
 
     /**
@@ -359,166 +328,10 @@ class PolygonOverlay extends Element {
             }
         });
 
-        console.log(`✅ PolygonOverlay rendered ${renderedCount} polygons on overlayLayer`);
     }
 
-    /**
-     * Render a simple test point at the specified world position
-     */
-    private renderTestPoint(worldPosition: Vec3): void {
-        if (!this.scene?.app?.graphicsDevice || !this.scene.overlayLayer) {
-            console.warn('⚠️ PolygonOverlay scene not properly initialized for test point');
-            return;
-        }
 
-        console.log('🎯 Rendering test point at:', worldPosition);
 
-        // Clear existing test point
-        this.clearTestPoint();
-
-        // Create a simple sphere mesh for the test point
-        const device = this.scene.app.graphicsDevice;
-        const testPointMesh = this.createSphereMesh(device, 2.0); // Much larger - 2.0 unit radius
-
-        if (!testPointMesh) {
-            console.error('❌ Failed to create test point mesh');
-            return;
-        }
-
-        // Create bright red material for visibility
-        const testPointMaterial = new StandardMaterial();
-        testPointMaterial.name = 'PolygonOverlay-TestPoint';
-        testPointMaterial.diffuse = new Color(1.0, 0.0, 0.0, 1.0); // Bright red
-        testPointMaterial.emissive = new Color(0.2, 0.0, 0.0, 1.0); // Slight glow
-        testPointMaterial.update();
-
-        // Create entity to hold the mesh instance for proper positioning
-        const testPointEntity = new Entity('test-point');
-        testPointEntity.setLocalPosition(worldPosition.x, worldPosition.y, worldPosition.z);
-
-        // Create mesh instance
-        this.testPointMeshInstance = new MeshInstance(testPointMesh, testPointMaterial);
-
-        // Set the entity's transform matrix for the mesh instance
-        this.testPointMeshInstance.node = testPointEntity;
-
-        // Add to overlay layer
-        this.scene.overlayLayer.addMeshInstances([this.testPointMeshInstance]);
-
-        console.log('✅ Test point rendered successfully on overlay layer');
-    }
-
-    /**
-     * Create a simple cube mesh for test point rendering (easier than sphere)
-     */
-    private createSphereMesh(device: any, radius: number): Mesh | null {
-        try {
-            // Create a simple cube instead of sphere to avoid complex geometry issues
-            const size = radius;
-            const vertices = new Float32Array([
-                // Front face
-                -size, -size,  size,
-                 size, -size,  size,
-                 size,  size,  size,
-                -size,  size,  size,
-
-                // Back face
-                -size, -size, -size,
-                -size,  size, -size,
-                 size,  size, -size,
-                 size, -size, -size,
-
-                // Top face
-                -size,  size, -size,
-                -size,  size,  size,
-                 size,  size,  size,
-                 size,  size, -size,
-
-                // Bottom face
-                -size, -size, -size,
-                 size, -size, -size,
-                 size, -size,  size,
-                -size, -size,  size,
-
-                // Right face
-                 size, -size, -size,
-                 size,  size, -size,
-                 size,  size,  size,
-                 size, -size,  size,
-
-                // Left face
-                -size, -size, -size,
-                -size, -size,  size,
-                -size,  size,  size,
-                -size,  size, -size
-            ]);
-
-            const indices = new Uint16Array([
-                0,  1,  2,    0,  2,  3,    // front
-                4,  5,  6,    4,  6,  7,    // back
-                8,  9, 10,    8, 10, 11,    // top
-               12, 13, 14,   12, 14, 15,    // bottom
-               16, 17, 18,   16, 18, 19,    // right
-               20, 21, 22,   20, 22, 23     // left
-            ]);
-
-            // Create vertex format
-            const vertexFormat = new VertexFormat(device, [{
-                semantic: SEMANTIC_POSITION,
-                components: 3,
-                type: TYPE_FLOAT32
-            }]);
-
-            // Create vertex buffer
-            const vertexBuffer = new VertexBuffer(device, vertexFormat, vertices.length / 3, {
-                usage: BUFFER_STATIC,
-                data: vertices.buffer
-            });
-
-            // Create index buffer
-            const indexBuffer = new IndexBuffer(device, TYPE_UINT16, indices.length, BUFFER_STATIC, indices.buffer);
-
-            // Create mesh
-            const mesh = new Mesh(device);
-            mesh.vertexBuffer = vertexBuffer;
-            mesh.indexBuffer = [indexBuffer];
-            mesh.primitive[0] = {
-                type: PRIMITIVE_TRIANGLES,
-                base: 0,
-                baseVertex: 0,
-                count: indices.length,
-                indexed: true
-            };
-
-            // Set AABB
-            const aabb = new BoundingBox();
-            aabb.setMinMax(
-                new Vec3(-size, -size, -size),
-                new Vec3(size, size, size)
-            );
-            mesh.aabb = aabb;
-
-            return mesh;
-        } catch (error) {
-            console.error('❌ Error creating cube mesh:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Clear the test point mesh instance
-     */
-    private clearTestPoint(): void {
-        if (this.testPointMeshInstance && this.scene?.overlayLayer) {
-            this.scene.overlayLayer.removeMeshInstances([this.testPointMeshInstance]);
-
-            if (this.testPointMeshInstance.mesh) {
-                this.testPointMeshInstance.mesh.destroy();
-            }
-
-            this.testPointMeshInstance = null;
-        }
-    }
 
     /**
      * Create a triangulated mesh for polygon fill
@@ -722,10 +535,9 @@ class PolygonOverlay extends Element {
      * Get appropriate material for feature based on state
      */
     private getMaterialForFeature(feature: GeoJSONFeature, layerState: LayerState, isPlantable: boolean): StandardMaterial {
-        // Check if this feature is selected
+        // Check if this feature is in the selected polygons list
         const name = feature.properties.name || '';
-        const isSelected = (isPlantable && name.includes(layerState.selectedPA || '')) ||
-                          (!isPlantable && name.includes(layerState.selectedNPA || ''));
+        const isSelected = layerState.selectedPolygons?.includes(name) || false;
 
         if (isSelected) {
             return this.selectedMaterial;
@@ -762,9 +574,7 @@ class PolygonOverlay extends Element {
      * Clean up when element is removed
      */
     remove(): void {
-        console.log('🔄 Cleaning up PolygonOverlay element');
         this.clearPolygons();
-        this.clearTestPoint();
     }
 
     /**
@@ -780,12 +590,6 @@ class PolygonOverlay extends Element {
         super.destroy();
     }
 
-    /**
-     * Update called each frame
-     */
-    onPreRender(): void {
-        // Future: Handle per-frame updates like animations or LOD
-    }
 }
 
 export { PolygonOverlay };
