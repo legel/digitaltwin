@@ -30,40 +30,45 @@ const fragmentShader = /* glsl*/ `
     uniform float triangleYPlane;   // Y plane for all triangles
     uniform int triangleCount;      // Number of active triangles
 
+    // Pre-computed view-dependent values (calculated once per frame, not per pixel)
+    uniform float fadeDistance;    // Distance fade factor
+    uniform float viewOpacity;     // View angle opacity
+    uniform vec3 viewDirection;    // Normalized view direction
+
     // Pack triangle data in vec4 uniforms - now using 4 vec4 per triangle for outline colors
     // Max triangles expanded to 8 (8 * 4 = 32 vec4 uniforms used)
     uniform vec4 triangleData0;     // Triangle 0: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData1;     // Triangle 0: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData2;     // Triangle 0: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData3;     // Triangle 0: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData3;     // Triangle 0: outlineColor.b, fillAlpha, edgeFlags, unused
     uniform vec4 triangleData4;     // Triangle 1: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData5;     // Triangle 1: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData6;     // Triangle 1: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData7;     // Triangle 1: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData7;     // Triangle 1: outlineColor.b, fillAlpha, edgeFlags, unused
     uniform vec4 triangleData8;     // Triangle 2: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData9;     // Triangle 2: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData10;    // Triangle 2: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData11;    // Triangle 2: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData11;    // Triangle 2: outlineColor.b, fillAlpha, edgeFlags, unused
     uniform vec4 triangleData12;    // Triangle 3: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData13;    // Triangle 3: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData14;    // Triangle 3: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData15;    // Triangle 3: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData15;    // Triangle 3: outlineColor.b, fillAlpha, edgeFlags, unused
     uniform vec4 triangleData16;    // Triangle 4: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData17;    // Triangle 4: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData18;    // Triangle 4: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData19;    // Triangle 4: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData19;    // Triangle 4: outlineColor.b, fillAlpha, edgeFlags, unused
     uniform vec4 triangleData20;    // Triangle 5: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData21;    // Triangle 5: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData22;    // Triangle 5: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData23;    // Triangle 5: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData23;    // Triangle 5: outlineColor.b, fillAlpha, edgeFlags, unused
     uniform vec4 triangleData24;    // Triangle 6: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData25;    // Triangle 6: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData26;    // Triangle 6: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData27;    // Triangle 6: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData27;    // Triangle 6: outlineColor.b, fillAlpha, edgeFlags, unused
     uniform vec4 triangleData28;    // Triangle 7: v0.x, v0.z, v1.x, v1.z
     uniform vec4 triangleData29;    // Triangle 7: v2.x, v2.z, color.r, color.g
     uniform vec4 triangleData30;    // Triangle 7: color.b, outlineThickness, outlineColor.r, outlineColor.g
-    uniform vec4 triangleData31;    // Triangle 7: outlineColor.b, fillAlpha, unused, unused
+    uniform vec4 triangleData31;    // Triangle 7: outlineColor.b, fillAlpha, edgeFlags, unused
 
     varying vec3 worldNear;
     varying vec3 worldFar;
@@ -203,14 +208,24 @@ const fragmentShader = /* glsl*/ `
         vec3 worldPos = p + v * t;
         vec2 currentPos = worldPos.xz;
 
-        // Loop through all triangles and accumulate edge information
-        vec3 finalColor = vec3(0.0, 0.0, 0.0);
+        // Use pre-computed view-dependent values passed as uniforms
+        float finalAlphaMultiplier = fadeDistance * viewOpacity;
+
+        // Early exit for pixels that will be completely transparent
+        if (finalAlphaMultiplier < 0.01) {
+            discard;
+        }
+
+        // Loop through triangles with early exit optimization
+        vec3 finalColor = vec3(0.0);
         float alpha = 0.0;
         bool foundTriangle = false;
         bool isOnVisibleEdge = false;
 
-        for (int i = 0; i < 8; i++) { // Max 8 triangles with 4 vec4 per triangle
-            if (i >= triangleCount) break; // Only process active triangles
+        // OPTIMIZED: Unroll loop for better GPU performance and early exit
+        for (int i = 0; i < 8; i++) {
+            // Early exit when we've processed all active triangles
+            if (i >= triangleCount) break;
 
             // Get triangle data from vec4 uniforms
             vec2 v0, v1, v2;
@@ -218,7 +233,7 @@ const fragmentShader = /* glsl*/ `
             float triangleFillAlpha, outlineThickness, edgeFlags;
             getTriangleData(i, v0, v1, v2, triangleColor, triangleFillAlpha, triangleOutlineColor, outlineThickness, edgeFlags);
 
-            // Cross product test for triangle inclusion
+            // Fast triangle inclusion test using cross products
             vec2 e0 = v1 - v0;
             vec2 e1 = v2 - v1;
             vec2 e2 = v0 - v2;
@@ -237,84 +252,51 @@ const fragmentShader = /* glsl*/ `
             if (insideTriangle) {
                 foundTriangle = true;
 
-                // Store fill color and alpha (will be overridden if we find visible edge)
+                // Extract edge visibility flags from packed float (optimized bit operations)
+                float edgeFlagsInt = floor(edgeFlags + 0.5); // Round to nearest integer
+                bool edge01Visible = mod(edgeFlagsInt, 2.0) >= 1.0;
+                bool edge12Visible = mod(floor(edgeFlagsInt * 0.5), 2.0) >= 1.0;
+                bool edge20Visible = mod(floor(edgeFlagsInt * 0.25), 2.0) >= 1.0;
+
+                // Check for visible edges with early exit
+                bool hasVisibleOutlines = edge01Visible || edge12Visible || edge20Visible;
+
+                if (hasVisibleOutlines) {
+                    // Pre-compute edge lengths (squared for performance)
+                    float len0Sq = dot(e0, e0);
+                    float len1Sq = dot(e1, e1);
+                    float len2Sq = dot(e2, e2);
+
+                    // Fast edge distance check using squared distances to avoid sqrt
+                    float outlineThicknessSq = outlineThickness * outlineThickness;
+
+                    if ((edge01Visible && (d0 * d0) < (len0Sq * outlineThicknessSq)) ||
+                        (edge12Visible && (d1 * d1) < (len1Sq * outlineThicknessSq)) ||
+                        (edge20Visible && (d2 * d2) < (len2Sq * outlineThicknessSq))) {
+
+                        isOnVisibleEdge = true;
+                        finalColor = triangleOutlineColor;
+                        alpha = finalAlphaMultiplier; // Full opacity for edges
+                        break; // Early exit - we found an edge
+                    }
+                }
+
+                // Set fill color and alpha if not on edge
                 if (!isOnVisibleEdge) {
                     finalColor = triangleColor;
-
-                    // Distance-based fading
-                    float distFromCamera = length(worldPos - view_position);
-                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
-
-                    // View-dependent opacity
-                    vec3 viewDir = normalize(worldPos - view_position);
-                    float viewAngleFactor = abs(viewDir.y);
-                    float viewOpacity = viewDir.y < 0.0 ?
-                        mix(0.4, 1.0, viewAngleFactor) :
-                        mix(0.8, 0.1, viewAngleFactor);
-
-                    alpha = fade * viewOpacity * triangleFillAlpha;
-                }
-
-                // Calculate proper distance to each edge using point-to-line distance
-                float distToEdge0 = abs(d0) / length(e0); // Distance to edge v0→v1
-                float distToEdge1 = abs(d1) / length(e1); // Distance to edge v1→v2
-                float distToEdge2 = abs(d2) / length(e2); // Distance to edge v2→v0
-
-                // Extract edge visibility flags from packed float
-                bool edge01Visible = mod(floor(edgeFlags), 2.0) >= 1.0;        // bit 0
-                bool edge12Visible = mod(floor(edgeFlags / 2.0), 2.0) >= 1.0;  // bit 1
-                bool edge20Visible = mod(floor(edgeFlags / 4.0), 2.0) >= 1.0;  // bit 2
-
-                // Check if pixel is near any visible edge
-                if (edge01Visible && distToEdge0 < outlineThickness) {
-                    isOnVisibleEdge = true;
-                    finalColor = triangleOutlineColor;
-
-                    float distFromCamera = length(worldPos - view_position);
-                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
-                    vec3 viewDir = normalize(worldPos - view_position);
-                    float viewAngleFactor = abs(viewDir.y);
-                    float viewOpacity = viewDir.y < 0.0 ?
-                        mix(0.4, 1.0, viewAngleFactor) :
-                        mix(0.8, 0.1, viewAngleFactor);
-                    alpha = fade * viewOpacity * 1.0;
-                }
-                if (edge12Visible && distToEdge1 < outlineThickness) {
-                    isOnVisibleEdge = true;
-                    finalColor = triangleOutlineColor;
-
-                    float distFromCamera = length(worldPos - view_position);
-                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
-                    vec3 viewDir = normalize(worldPos - view_position);
-                    float viewAngleFactor = abs(viewDir.y);
-                    float viewOpacity = viewDir.y < 0.0 ?
-                        mix(0.4, 1.0, viewAngleFactor) :
-                        mix(0.8, 0.1, viewAngleFactor);
-                    alpha = fade * viewOpacity * 1.0;
-                }
-                if (edge20Visible && distToEdge2 < outlineThickness) {
-                    isOnVisibleEdge = true;
-                    finalColor = triangleOutlineColor;
-
-                    float distFromCamera = length(worldPos - view_position);
-                    float fade = 1.0 - smoothstep(50.0, 200.0, distFromCamera);
-                    vec3 viewDir = normalize(worldPos - view_position);
-                    float viewAngleFactor = abs(viewDir.y);
-                    float viewOpacity = viewDir.y < 0.0 ?
-                        mix(0.4, 1.0, viewAngleFactor) :
-                        mix(0.8, 0.1, viewAngleFactor);
-                    alpha = fade * viewOpacity * 1.0;
+                    alpha = finalAlphaMultiplier * triangleFillAlpha;
                 }
             }
         }
 
-        // Discard if no triangle contains this pixel
+        // Early discard for transparent or empty pixels
         if (!foundTriangle || alpha < 0.01) {
             discard;
         }
 
         gl_FragColor = vec4(finalColor, alpha);
-        // Ensure polygons always render in front of splats with slight depth bias
+
+        // Optimized depth calculation
         float baseDepth = calcDepth(worldPos);
         gl_FragDepth = writeDepth(alpha) ? (baseDepth - 0.00001) : 1.0;
     }

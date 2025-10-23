@@ -16,7 +16,6 @@ import {
 } from 'playcanvas';
 
 import { Element, ElementType } from './element';
-import { Serializer } from './serializer';
 import { vertexShader, fragmentShader } from './shaders/point-overlay-shader';
 
 interface TriangleData {
@@ -62,6 +61,7 @@ class Polygon {
     triangles: TriangleData[] = [];
     private exteriorEdges?: Set<string>;
     area: number; // Polygon area for nested click detection priority
+    private cachedTriangleCount = 0; // Cache triangle count for performance
 
     constructor(data: PolygonData) {
         this.vertices = data.vertices.map(v => v.clone());
@@ -118,6 +118,7 @@ class Polygon {
 
         if (this.vertices.length < 3) {
             console.warn(`⚠️ Polygon "${this.name}" has less than 3 vertices - cannot triangulate`);
+            this.cachedTriangleCount = 0; // Cache count for performance
             return;
         }
 
@@ -136,6 +137,7 @@ class Polygon {
                 edge12Visible: true, // v1 → v2 (perimeter edge)
                 edge20Visible: true  // v2 → v0 (perimeter edge)
             });
+            this.cachedTriangleCount = 1; // Cache count for performance
             return;
         }
 
@@ -148,6 +150,8 @@ class Polygon {
             this.triangulateWithEarClipping();
         }
 
+        // Cache triangle count for performance
+        this.cachedTriangleCount = this.triangles.length;
     }
 
     /**
@@ -468,8 +472,9 @@ class Polygon {
     /**
      * Update polygon properties and re-triangulate
      * NOTE: This updates current properties but preserves original base properties for restoration
+     * NOTE: This method is called from the overlay to update individual polygon properties
      */
-    updateProperties(data: Partial<PolygonData>) {
+    updateProperties(data: Partial<PolygonData>, overlay?: TriangleOverlay) {
         if (data.vertices) this.vertices = data.vertices.map(v => v.clone());
         if (data.color) {
             this.color = data.color.clone();
@@ -492,15 +497,20 @@ class Polygon {
 
         // Re-triangulate with new properties
         this.triangulate();
+
+        // Invalidate render cache in overlay for visual property changes
+        if (overlay && (data.color || data.fillAlpha !== undefined ||
+                        data.outlineColor || data.outlineThickness !== undefined)) {
+            overlay.invalidateRenderCache();
+        }
     }
 
     /**
      * Select this polygon (doubles outline thickness, applies white border and semi-transparent white fill)
      */
-    select() {
+    select(overlay?: TriangleOverlay) {
         if (!this.selected) {
             this.selected = true;
-
 
             // Apply selection visual properties
             this.outlineThickness = this.baseOutlineThickness * 2.0; // Double the thickness
@@ -508,18 +518,21 @@ class Polygon {
             this.color = new Vec3(1, 1, 1); // White fill
             this.fillAlpha = 0.1; // Semi-transparent fill (0.1 alpha)
 
-
             this.triangulate(); // Re-triangulate with new properties
+
+            // Invalidate render cache for visual property changes
+            if (overlay) {
+                overlay.invalidateRenderCache();
+            }
         }
     }
 
     /**
      * Deselect this polygon (restores all original visual properties)
      */
-    deselect() {
+    deselect(overlay?: TriangleOverlay) {
         if (this.selected) {
             this.selected = false;
-
 
             // Restore all original visual properties
             this.outlineThickness = this.baseOutlineThickness; // Restore original thickness
@@ -527,20 +540,23 @@ class Polygon {
             this.color = this.baseFillColor.clone(); // Restore original fill color
             this.fillAlpha = this.baseFillAlpha; // Restore original fill alpha
 
-
             this.triangulate(); // Re-triangulate with original properties
-            // Polygon "${this.name}" deselected
+
+            // Invalidate render cache for visual property changes
+            if (overlay) {
+                overlay.invalidateRenderCache();
+            }
         }
     }
 
     /**
      * Toggle selection state
      */
-    toggleSelection() {
+    toggleSelection(overlay?: TriangleOverlay) {
         if (this.selected) {
-            this.deselect();
+            this.deselect(overlay);
         } else {
-            this.select();
+            this.select(overlay);
         }
     }
 
@@ -550,6 +566,65 @@ class Polygon {
     getTriangles(): TriangleData[] {
         return this.triangles;
     }
+
+    /**
+     * Get cached triangle count for performance (avoids accessing triangles.length)
+     */
+    getTriangleCount(): number {
+        return this.cachedTriangleCount;
+    }
+}
+
+interface StaticTriangleGeometry {
+    // Immutable geometry data (never changes after creation)
+    v0x: number; v0z: number;
+    v1x: number; v1z: number;
+    v2x: number; v2z: number;
+    edge01Visible: boolean;
+    edge12Visible: boolean;
+    edge20Visible: boolean;
+
+    // Pre-computed geometry values for performance
+    edgeFlags: number; // Packed edge visibility as single integer
+    triangleIndex: number; // Index in static geometry array
+}
+
+interface DynamicTriangleProperties {
+    // Dynamic properties that can change (visibility, colors, thickness)
+    polygonIndex: number; // Reference to polygon for dynamic data
+    visible: boolean; // Cached visibility state
+
+    // Cached dynamic values to avoid polygon lookups
+    color: Vec3;
+    fillAlpha: number;
+    outlineColor: Vec3;
+    outlineThickness: number;
+}
+
+interface RenderedTriangleData {
+    // Combined static + dynamic data ready for GPU
+    staticData: StaticTriangleGeometry;
+    dynamicData: DynamicTriangleProperties;
+}
+
+interface StaticGeometryCache {
+    // Pure static geometry data - computed once, never changes
+    staticTriangles: StaticTriangleGeometry[];
+    totalTriangleCount: number;
+}
+
+interface RenderBatch {
+    // GPU-ready combined uniforms - rebuilt only when dynamic properties change via JS events
+    combinedUniforms: number[][];  // Static geometry + dynamic properties ready for GPU upload
+    visibleTriangleCount: number;
+    lastUpdateHash: string; // Track when this batch needs rebuilding from JS events
+}
+
+interface RenderState {
+    // Track what we last sent to GPU to detect changes
+    visibleTriangleCount: number;
+    yPlane: number;
+    lastVisibilityHash: string; // Hash of visibility states
 }
 
 class TriangleOverlay extends Element {
@@ -562,6 +637,124 @@ class TriangleOverlay extends Element {
     triangles: TriangleData[] = [];
     polygons: Polygon[] = [];
     yPlane: number = 3.2; // Default Y plane for all triangles
+
+    // CLEAN ARCHITECTURE: Static geometry cached once, render batches rebuilt only on JS events
+    private staticGeometryCache: StaticGeometryCache | null = null;
+    private renderBatches: RenderBatch[] = [];
+
+    // Cache state tracking
+    private staticGeometryDirty = true; // Only rebuild when polygons added/removed
+    private renderBatchesDirty = true; // Rebuild when dynamic properties change via JS events
+    private lastRenderState: RenderState = {
+        visibleTriangleCount: -1,
+        yPlane: 0,
+        lastVisibilityHash: ''
+    };
+
+    // PERFORMANCE: Cache triangle count to avoid expensive recalculation every frame
+    private cachedVisibleTriangleCount = -1;
+    private triangleCountCacheDirty = true;
+
+    // PERFORMANCE: Cache visibility hash to avoid looping through all polygons every frame
+    private cachedVisibilityHash = '';
+    private visibilityHashCacheDirty = true;
+
+    // Pre-allocated arrays for rendering to avoid memory allocation every frame
+    private readonly TRIANGLES_PER_BATCH = 8;
+    private readonly VEC4_PER_BATCH = this.TRIANGLES_PER_BATCH * 4;
+    private preallocatedVec4Data: number[][] = [];
+
+    // GPU state caching for performance optimization during camera movement
+    private gpuStateInitialized = false;
+    private lastYPlaneUploaded = -999; // Track last Y-plane value uploaded to GPU
+    private lastTriangleCountUploaded = -1; // Track last triangle count to avoid redundant uploads
+
+    // Enhanced GPU uniform caching for view-dependent calculations
+    private lastCameraPosition = new Vec3();
+    private lastViewDirection = new Vec3();
+    private lastFadeDistance = -1;
+    private lastViewOpacity = -1;
+    private viewUniformsNeedUpdate = true;
+
+
+    private initializePreallocatedArrays() {
+        // Pre-allocate arrays to avoid memory allocation in render loop
+        for (let i = 0; i < this.VEC4_PER_BATCH; i++) {
+            this.preallocatedVec4Data[i] = [0, 0, 0, 0];
+        }
+    }
+
+    /**
+     * Calculate view-dependent values once per frame instead of per-pixel
+     * This moves expensive calculations from GPU fragment shader to CPU
+     */
+    private calculateViewDependentUniforms(): { fadeDistance: number, viewOpacity: number, viewDirection: Vec3 } {
+        const cameraEntity = this.scene.camera.entity;
+        const cameraPos = cameraEntity.getPosition();
+
+        // Calculate average world position for fade distance (use center of triangles)
+        let avgWorldPos = new Vec3(0, this.yPlane, 0);
+        let triangleCount = 0;
+
+        // Sample a few triangles to get approximate world center (performance optimization)
+        for (const polygon of this.polygons) {
+            if (!polygon.visible) continue;
+
+            const vertices = polygon.vertices;
+            if (vertices.length >= 3) {
+                // Use polygon centroid
+                let centroidX = 0, centroidZ = 0;
+                for (const vertex of vertices) {
+                    centroidX += vertex.x;
+                    centroidZ += vertex.z;
+                }
+                avgWorldPos.x += centroidX / vertices.length;
+                avgWorldPos.z += centroidZ / vertices.length;
+                triangleCount++;
+
+                // Performance: Only sample first few polygons
+                if (triangleCount >= 5) break;
+            }
+        }
+
+        if (triangleCount > 0) {
+            avgWorldPos.x /= triangleCount;
+            avgWorldPos.z /= triangleCount;
+        }
+
+        // Calculate distance-based fade
+        const distFromCamera = avgWorldPos.distance(cameraPos);
+        const fadeDistance = 1.0 - Math.max(0, Math.min(1, (distFromCamera - 50.0) / 150.0)); // smoothstep(50.0, 200.0)
+
+        // Calculate view-dependent opacity
+        const viewDir = new Vec3().sub2(avgWorldPos, cameraPos).normalize();
+        const viewAngleFactor = Math.abs(viewDir.y);
+        const viewOpacity = viewDir.y < 0.0 ?
+            0.4 + (1.0 - 0.4) * viewAngleFactor : // mix(0.4, 1.0, viewAngleFactor)
+            0.8 + (0.1 - 0.8) * viewAngleFactor;  // mix(0.8, 0.1, viewAngleFactor)
+
+        return { fadeDistance, viewOpacity, viewDirection: viewDir };
+    }
+
+    /**
+     * Check if view-dependent uniforms need updating (camera moved significantly)
+     */
+    private checkViewUniformsUpdate(): boolean {
+        const cameraEntity = this.scene.camera.entity;
+        const currentPos = cameraEntity.getPosition();
+
+        // Check if camera moved significantly (more than 0.1 units)
+        const cameraMoved = this.lastCameraPosition.distance(currentPos) > 0.1;
+
+        if (cameraMoved || this.viewUniformsNeedUpdate) {
+            this.lastCameraPosition.copy(currentPos);
+            this.viewUniformsNeedUpdate = false;
+            return true;
+        }
+
+        return false;
+    }
+
 
     // Click detection properties
     private dragId: number | undefined;
@@ -585,7 +778,9 @@ class TriangleOverlay extends Element {
         });
 
         this.quadRender = new QuadRender(this.shader);
-        // Triangle shader and QuadRender created
+
+        // Initialize pre-allocated arrays for performance
+        this.initializePreallocatedArrays();
 
         // Setup click detection for polygon interaction
         try {
@@ -601,99 +796,102 @@ class TriangleOverlay extends Element {
             BLENDEQUATION_ADD, BLENDMODE_ONE, BLENDMODE_ONE_MINUS_SRC_ALPHA
         );
 
-        // Registering triangle rendering event handler
+        // PERFORMANCE OPTIMIZED: Cached rendering system for camera movement
         this.scene.camera.entity.camera.on('preRenderLayer', (layer: Layer, transparent: boolean) => {
-            // Combine triangles from direct triangles and polygons
-            const allTriangles = this.getAllTriangles();
-
             const shouldRender = this.visible && layer === this.scene.debugLayer && transparent &&
-                this.scene.camera.renderOverlays && allTriangles.length > 0;
+                this.scene.camera.renderOverlays;
 
-            if (shouldRender) {
+            if (!shouldRender) return;
+
+            // PERFORMANCE: Early exit if overlay is disabled or no triangles to render
+            if (!this.visible) {
+                return;
+            }
+
+            // PERFORMANCE: Early exit if no triangles will be rendered (much faster than building render cache)
+            const triangleCount = this.getCachedVisibleTriangleCount();
+            if (triangleCount === 0) {
+                return;
+            }
+
+            // OPTIMIZED CACHE SYSTEM: Separate static geometry from dynamic properties
+
+            // Build static geometry cache only when polygons added/removed (very rare)
+            if (this.staticGeometryDirty) {
+                this.buildStaticGeometryCache();
+            }
+
+            // Build render batches only when dynamic properties change via JS events
+            if (this.renderBatchesDirty || this.checkRenderBatchesUpdate()) {
+                this.buildRenderBatches();
+            }
+
+            // Early exit if no render batches ready
+            if (!this.staticGeometryCache || this.renderBatches.length === 0) return;
+
+            // CRITICAL OPTIMIZATION: Only set GPU state once at initialization
+            if (!this.gpuStateInitialized) {
                 device.setBlendState(blendState);
                 device.setCullMode(CULLFACE_NONE);
                 device.setDepthState(DepthState.WRITEDEPTH);
                 device.setStencilState(null, null);
+                this.gpuStateInitialized = true;
+            }
 
-                // Pack triangle data into vec4 uniforms (max 8 triangles with outline colors)
-                const TRIANGLES_PER_BATCH = 8; // Conservative start: 8 triangles * 4 vec4 = 32 uniforms
-                const VEC4_PER_BATCH = TRIANGLES_PER_BATCH * 4; // 32 vec4 uniforms per batch
+            // CRITICAL OPTIMIZATION: Only update Y-plane when it actually changes
+            if (this.lastYPlaneUploaded !== this.yPlane) {
+                device.scope.resolve('triangleYPlane').setValue(this.yPlane);
+                this.lastYPlaneUploaded = this.yPlane;
+            }
 
-                // Only log batching info once per render cycle, not every frame
-                if (allTriangles.length > TRIANGLES_PER_BATCH && Math.random() < 0.01) {
-                    console.log(`ℹ️ BATCHED RENDERING: ${allTriangles.length} triangles in ${Math.ceil(allTriangles.length / TRIANGLES_PER_BATCH)} batches`);
+            // NEW OPTIMIZATION: Update view-dependent uniforms only when camera moves significantly
+            if (this.checkViewUniformsUpdate()) {
+                const viewUniforms = this.calculateViewDependentUniforms();
+
+                // Cache and upload view-dependent uniforms
+                if (Math.abs(this.lastFadeDistance - viewUniforms.fadeDistance) > 0.01) {
+                    device.scope.resolve('fadeDistance').setValue(viewUniforms.fadeDistance);
+                    this.lastFadeDistance = viewUniforms.fadeDistance;
                 }
 
-                // Render triangles in batches
-                let triangleIndex = 0;
-                let batchCount = 0;
-
-                while (triangleIndex < allTriangles.length) {
-                    const remainingTriangles = allTriangles.length - triangleIndex;
-                    const currentBatchSize = Math.min(remainingTriangles, TRIANGLES_PER_BATCH);
-                    batchCount++;
-
-                    // Initialize all vec4 uniforms with zeros for this batch
-                    const vec4Data: number[][] = [];
-                    for (let i = 0; i < VEC4_PER_BATCH; i++) {
-                    vec4Data[i] = [0, 0, 0, 0];
+                if (Math.abs(this.lastViewOpacity - viewUniforms.viewOpacity) > 0.01) {
+                    device.scope.resolve('viewOpacity').setValue(viewUniforms.viewOpacity);
+                    this.lastViewOpacity = viewUniforms.viewOpacity;
                 }
 
-                // Pack triangle data into vec4 uniforms (4 vec4 per triangle) for current batch
-                for (let i = 0; i < currentBatchSize; i++) {
-                    const triangle = allTriangles[triangleIndex + i];
-                    const dataIndex = i * 4; // Each triangle uses 4 vec4 uniforms
+                device.scope.resolve('viewDirection').setValue([
+                    viewUniforms.viewDirection.x,
+                    viewUniforms.viewDirection.y,
+                    viewUniforms.viewDirection.z
+                ]);
+            }
 
-                    // First vec4: v0.x, v0.z, v1.x, v1.z
-                    vec4Data[dataIndex] = [
-                        triangle.v0.x, triangle.v0.z,
-                        triangle.v1.x, triangle.v1.z
-                    ];
+            // CLEAN ARCHITECTURE: Render with pre-computed batches
+            // Static geometry cached once, render batches rebuilt only on JS events
 
-                    // Second vec4: v2.x, v2.z, color.r, color.g
-                    vec4Data[dataIndex + 1] = [
-                        triangle.v2.x, triangle.v2.z,
-                        triangle.color.x, triangle.color.y
-                    ];
+            for (let batchIndex = 0; batchIndex < this.renderBatches.length; batchIndex++) {
+                const batch = this.renderBatches[batchIndex];
 
-                    // Third vec4: color.b, outlineThickness, outlineColor.r, outlineColor.g
-                    vec4Data[dataIndex + 2] = [
-                        triangle.color.z, triangle.outlineThickness,
-                        triangle.outlineColor.x, triangle.outlineColor.y
-                    ];
-
-                    // Fourth vec4: outlineColor.b, fillAlpha, edgeVisibility packed, unused
-                    // Pack edge visibility flags into single float:
-                    // bits 0-2: edge01Visible, edge12Visible, edge20Visible
-                    // FIXED: Use explicit boolean comparison to avoid undefined issues
-                    const edgeFlags = (triangle.edge01Visible === true ? 1.0 : 0.0) +
-                                     (triangle.edge12Visible === true ? 2.0 : 0.0) +
-                                     (triangle.edge20Visible === true ? 4.0 : 0.0);
-
-                    vec4Data[dataIndex + 3] = [
-                        triangle.outlineColor.z, triangle.fillAlpha,
-                        edgeFlags, 0.0
-                    ];
+                // OPTIMIZATION: Only set triangle count if it changed
+                if (this.lastTriangleCountUploaded !== batch.visibleTriangleCount) {
+                    device.scope.resolve('triangleCount').setValue(batch.visibleTriangleCount);
+                    this.lastTriangleCountUploaded = batch.visibleTriangleCount;
                 }
 
-                    // Set shared uniforms
-                    device.scope.resolve('triangleYPlane').setValue(this.yPlane);
-                    device.scope.resolve('triangleCount').setValue(currentBatchSize);
+                // PERFORMANCE: Upload pre-computed combined uniforms directly from cache
+                const uniformsNeeded = batch.visibleTriangleCount * 4; // 4 vec4 per visible triangle
 
-                    // Set vec4 uniforms for triangle data (up to 128 uniforms for 32 triangles)
-                    for (let i = 0; i < VEC4_PER_BATCH; i++) {
-                        device.scope.resolve(`triangleData${i}`).setValue(vec4Data[i]);
-                    }
-
-                    // Render this batch
-                    this.quadRender.render();
-
-                    triangleIndex += currentBatchSize;
+                for (let i = 0; i < uniformsNeeded; i++) {
+                    device.scope.resolve(`triangleData${i}`).setValue(batch.combinedUniforms[i]);
                 }
 
-                if (Math.random() < 0.005) {
-                    console.log(`🔺 Rendered ${allTriangles.length} triangles in ${batchCount} batch(es) at Y-plane ${this.yPlane}`);
+                // Zero out unused uniforms
+                for (let i = uniformsNeeded; i < this.VEC4_PER_BATCH; i++) {
+                    device.scope.resolve(`triangleData${i}`).setValue([0, 0, 0, 0]);
                 }
+
+                // Render this batch
+                this.quadRender.render();
             }
         });
 
@@ -792,6 +990,7 @@ class TriangleOverlay extends Element {
             return this.isGroupVisible(groupName);
         });
 
+
         // Set up automatic Y-plane adjustment when splats are loaded
         this.scene.events.on('scene.elementAdded', (element: any) => {
             // Check if a splat was added
@@ -841,10 +1040,6 @@ class TriangleOverlay extends Element {
 
                 // Don't use setPointerCapture as it might be interfering with SuperSplat's controls
                 // Instead, rely on global event listeners
-            } else {
-                console.log('🖱️ ⏭️ Ignoring pointer down:', {
-                    reason: e.pointerType !== 'mouse' ? 'not mouse' : 'not left button'
-                });
             }
         };
 
@@ -878,7 +1073,6 @@ class TriangleOverlay extends Element {
 
 
                     if (distance >= this.DRAG_THRESHOLD) {
-                        console.log(`🖱️ ✅ FALLBACK: Drag detected in pointerup - distance ${distance.toFixed(1)}px >= threshold ${this.DRAG_THRESHOLD}px`);
                         this.dragMoved = true;
                     }
                 }
@@ -1109,6 +1303,12 @@ class TriangleOverlay extends Element {
 
         // Click detection cleanup - no timeouts to clear
 
+        // Reset GPU state cache for potential reuse
+        this.gpuStateInitialized = false;
+        this.lastYPlaneUploaded = -999;
+        this.lastTriangleCountUploaded = -1;
+
+
         this.shader?.destroy();
         this.quadRender?.destroy();
     }
@@ -1135,26 +1335,296 @@ class TriangleOverlay extends Element {
             edge20Visible
         });
 
-        const nameStr = name ? ` (${name})` : '';
-        const edgeInfo = edge01Visible && edge12Visible && edge20Visible ? '' : ` edges:[${edge01Visible ? '01' : ''}${edge12Visible ? '12' : ''}${edge20Visible ? '20' : ''}]`;
-        // Triangle added successfully
+        this.staticGeometryDirty = true; // Invalidate static geometry when triangles added
+        this.renderBatchesDirty = true; // Invalidate render batches when triangles added
+        this.triangleCountCacheDirty = true; // Invalidate triangle count cache
+        this.visibilityHashCacheDirty = true; // Invalidate visibility hash cache
+        this.viewUniformsNeedUpdate = true; // Update view uniforms when geometry changes
     }
 
     setYPlane(yPlane: number) {
-        this.yPlane = yPlane;
-        // Y-plane set to ${yPlane}
+        // Only invalidate if Y-plane actually changed
+        if (this.yPlane !== yPlane) {
+            this.yPlane = yPlane;
+        }
     }
 
     /**
-     * Get all triangles from both direct triangles and visible polygons
+     * Build static geometry cache - IMMUTABLE data that never changes after polygon creation
+     * This is the most expensive operation and only runs when polygons are added/removed
+     */
+    /**
+     * Build static geometry cache once - only when polygons added/removed
+     * This data never changes (no position/rotation/scale updates)
+     */
+    private buildStaticGeometryCache(): void {
+        const allStaticGeometry: StaticTriangleGeometry[] = [];
+        let triangleIndex = 0;
+
+        // Process direct triangles (convert to static geometry format)
+        for (const triangle of this.triangles) {
+            const edgeFlags = (triangle.edge01Visible ? 1 : 0) +
+                             (triangle.edge12Visible ? 2 : 0) +
+                             (triangle.edge20Visible ? 4 : 0);
+
+            allStaticGeometry.push({
+                v0x: triangle.v0.x, v0z: triangle.v0.z,
+                v1x: triangle.v1.x, v1z: triangle.v1.z,
+                v2x: triangle.v2.x, v2z: triangle.v2.z,
+                edge01Visible: triangle.edge01Visible || false,
+                edge12Visible: triangle.edge12Visible || false,
+                edge20Visible: triangle.edge20Visible || false,
+                edgeFlags: edgeFlags,
+                triangleIndex: triangleIndex++
+            });
+        }
+
+        // Process triangles from all polygons (static geometry never changes)
+        for (let polygonIdx = 0; polygonIdx < this.polygons.length; polygonIdx++) {
+            const polygon = this.polygons[polygonIdx];
+            const triangles = polygon.getTriangles();
+
+            for (const triangle of triangles) {
+                const edgeFlags = (triangle.edge01Visible ? 1 : 0) +
+                                 (triangle.edge12Visible ? 2 : 0) +
+                                 (triangle.edge20Visible ? 4 : 0);
+
+                allStaticGeometry.push({
+                    v0x: triangle.v0.x, v0z: triangle.v0.z,
+                    v1x: triangle.v1.x, v1z: triangle.v1.z,
+                    v2x: triangle.v2.x, v2z: triangle.v2.z,
+                    edge01Visible: triangle.edge01Visible || false,
+                    edge12Visible: triangle.edge12Visible || false,
+                    edge20Visible: triangle.edge20Visible || false,
+                    edgeFlags: edgeFlags,
+                    triangleIndex: triangleIndex++
+                });
+            }
+        }
+
+        // Store the clean static geometry cache (no redundant data)
+        this.staticGeometryCache = {
+            staticTriangles: allStaticGeometry,
+            totalTriangleCount: allStaticGeometry.length
+        };
+
+        this.staticGeometryDirty = false;
+        this.renderBatchesDirty = true; // Need to rebuild render batches when static geometry changes
+    }
+
+    /**
+     * Check if render batches need updating (called every frame, but efficient)
+     */
+    private checkRenderBatchesUpdate(): boolean {
+        const currentHash = this.getCachedVisibilityHash();
+
+        // Check if any batch is stale (different hash = properties changed)
+        for (const batch of this.renderBatches) {
+            if (batch.lastUpdateHash !== currentHash) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Build render batches with combined uniforms - only when dynamic properties change via JS events
+     * This combines static geometry with current dynamic properties (colors, visibility, thickness)
+     */
+    private buildRenderBatches(): void {
+        if (!this.staticGeometryCache) {
+            console.warn('Static geometry cache not built yet');
+            return;
+        }
+
+        this.renderBatches = [];
+        const currentHash = this.getCachedVisibilityHash();
+
+        // Get all current dynamic properties for polygons
+        const allDynamicProperties: DynamicTriangleProperties[] = [];
+        let triangleIndex = 0;
+
+        // Direct triangles - always visible, use their own properties
+        for (const triangle of this.triangles) {
+            allDynamicProperties.push({
+                polygonIndex: -1,
+                visible: true,
+                color: triangle.color.clone(),
+                fillAlpha: triangle.fillAlpha,
+                outlineColor: triangle.outlineColor.clone(),
+                outlineThickness: triangle.outlineThickness
+            });
+            triangleIndex++;
+        }
+
+        // Polygon triangles - use polygon's current properties
+        for (let polygonIdx = 0; polygonIdx < this.polygons.length; polygonIdx++) {
+            const polygon = this.polygons[polygonIdx];
+            const triangleCount = polygon.getTriangleCount();
+
+            for (let i = 0; i < triangleCount; i++) {
+                allDynamicProperties.push({
+                    polygonIndex: polygonIdx,
+                    visible: polygon.visible,
+                    color: polygon.color.clone(),
+                    fillAlpha: polygon.fillAlpha,
+                    outlineColor: polygon.outlineColor.clone(),
+                    outlineThickness: polygon.outlineThickness
+                });
+                triangleIndex++;
+            }
+        }
+
+        // Create render batches by combining static geometry with current dynamic properties
+        let propertiesIndex = 0;
+        while (propertiesIndex < allDynamicProperties.length) {
+            const remainingProperties = allDynamicProperties.length - propertiesIndex;
+            const batchSize = Math.min(remainingProperties, this.TRIANGLES_PER_BATCH);
+
+            // Pre-allocate combined uniforms
+            const combinedUniforms: number[][] = [];
+            for (let i = 0; i < this.VEC4_PER_BATCH; i++) {
+                combinedUniforms[i] = [0, 0, 0, 0];
+            }
+
+            let visibleTrianglesInBatch = 0;
+
+            // Pack only visible triangles into combined uniforms
+            for (let i = 0; i < batchSize; i++) {
+                const dynamicProps = allDynamicProperties[propertiesIndex + i];
+                const staticGeom = this.staticGeometryCache.staticTriangles[propertiesIndex + i];
+
+                if (dynamicProps.visible && staticGeom) {
+                    const dataIndex = visibleTrianglesInBatch * 4;
+
+                    if (dataIndex + 3 < this.VEC4_PER_BATCH) {
+                        // Combine static geometry with current dynamic properties
+                        combinedUniforms[dataIndex] = [staticGeom.v0x, staticGeom.v0z, staticGeom.v1x, staticGeom.v1z];
+                        combinedUniforms[dataIndex + 1] = [staticGeom.v2x, staticGeom.v2z, dynamicProps.color.x, dynamicProps.color.y];
+                        combinedUniforms[dataIndex + 2] = [dynamicProps.color.z, dynamicProps.outlineThickness, dynamicProps.outlineColor.x, dynamicProps.outlineColor.y];
+                        combinedUniforms[dataIndex + 3] = [dynamicProps.outlineColor.z, dynamicProps.fillAlpha, staticGeom.edgeFlags, 0.0];
+                        visibleTrianglesInBatch++;
+                    }
+                }
+            }
+
+            // Only create batch if there are visible triangles
+            if (visibleTrianglesInBatch > 0) {
+                this.renderBatches.push({
+                    combinedUniforms,
+                    visibleTriangleCount: visibleTrianglesInBatch,
+                    lastUpdateHash: currentHash
+                });
+            }
+
+            propertiesIndex += batchSize;
+        }
+
+        this.renderBatchesDirty = false;
+    }
+
+    /**
+     * Get cached visibility hash - only recalculates when visibility changes
+     * PERFORMANCE: Avoids looping through all polygons every frame
+     */
+    private getCachedVisibilityHash(): string {
+        if (this.visibilityHashCacheDirty) {
+            // Only recalculate when visibility has actually changed
+            let hash = '';
+            for (const polygon of this.polygons) {
+                hash += polygon.visible ? '1' : '0';
+            }
+            this.cachedVisibilityHash = hash;
+            this.visibilityHashCacheDirty = false;
+        }
+        return this.cachedVisibilityHash;
+    }
+
+    /**
+     * Get cached triangle count - only recalculates when visibility changes
+     * PERFORMANCE: Avoids expensive getRenderTriangles() call every frame
+     */
+    private getCachedVisibleTriangleCount(): number {
+        if (this.triangleCountCacheDirty) {
+            // Only recalculate when visibility has actually changed
+            let count = 0;
+
+            // Count direct triangles (always visible if overlay is visible)
+            count += this.triangles.length;
+
+            // Count visible polygon triangles
+            for (const polygon of this.polygons) {
+                if (polygon.visible) {
+                    count += polygon.getTriangleCount();
+                }
+            }
+
+            this.cachedVisibleTriangleCount = count;
+            this.triangleCountCacheDirty = false;
+        }
+        return this.cachedVisibleTriangleCount;
+    }
+
+
+
+
+    /**
+     * Check if render cache needs rebuilding (only when visibility/colors change, NOT for camera movement)
+     */
+    private checkRenderCacheStatus(): boolean {
+        const currentHash = this.getCachedVisibilityHash(); // PERFORMANCE: Use cached hash
+        const currentTriangleCount = this.getCachedVisibleTriangleCount(); // PERFORMANCE: Use cached count
+
+        // Cache is dirty if visibility changed, Y-plane changed, or triangle count changed
+        if (this.renderBatchesDirty ||
+            currentHash !== this.lastRenderState.lastVisibilityHash ||
+            this.yPlane !== this.lastRenderState.yPlane ||
+            currentTriangleCount !== this.lastRenderState.visibleTriangleCount) {
+
+            // Update tracking state
+            this.lastRenderState.lastVisibilityHash = currentHash;
+            this.lastRenderState.yPlane = this.yPlane;
+            this.lastRenderState.visibleTriangleCount = currentTriangleCount;
+
+            return true; // Needs rebuild
+        }
+
+        return false; // Cache is still valid
+    }
+
+    /**
+     * Public method to invalidate render cache (called by Polygon instances)
+     */
+    invalidateRenderCache(): void {
+        this.renderBatchesDirty = true; // Polygon changes affect render batches
+        this.viewUniformsNeedUpdate = true; // Also update view uniforms when polygons change
+    }
+
+
+    /**
+     * LEGACY METHOD: Maintained for backward compatibility
+     * Use the new separated cache system instead for better performance
+     */
+    private getRenderTriangles(): any[] {
+        // This method is now deprecated - the new system uses separated static/dynamic batches
+        // Return empty array as this is only used by the legacy getAllTriangles method
+        return [];
+    }
+
+    /**
+     * LEGACY METHOD: Get all triangles from both direct triangles and visible polygons
+     * DEPRECATED: This method is expensive - new optimized system uses separated caches
      */
     getAllTriangles(): TriangleData[] {
         const allTriangles: TriangleData[] = [];
 
-        // Add direct triangles (always visible if overlay is visible)
-        allTriangles.push(...this.triangles);
+        // Add direct triangles (always visible when overlay is visible)
+        for (const triangle of this.triangles) {
+            allTriangles.push(triangle);
+        }
 
-        // Add triangles from visible polygons only
+        // Add visible polygon triangles
         for (const polygon of this.polygons) {
             if (polygon.visible) {
                 allTriangles.push(...polygon.getTriangles());
@@ -1168,7 +1638,6 @@ class TriangleOverlay extends Element {
      * Add a polygon to the overlay
      */
     addPolygon(vertices: Vec3[], color: Vec3 = new Vec3(0, 1, 0), fillAlpha: number = 1.0, outlineColor: Vec3 = new Vec3(1, 1, 1), outlineThickness: number = 0.1, name?: string, group?: string) {
-
         const polygon = new Polygon({
             vertices,
             color,
@@ -1180,6 +1649,11 @@ class TriangleOverlay extends Element {
         });
 
         this.polygons.push(polygon);
+        this.staticGeometryDirty = true; // Invalidate static geometry when polygons added
+        this.renderBatchesDirty = true; // Invalidate render batches when polygons added
+        this.triangleCountCacheDirty = true; // Invalidate triangle count cache
+        this.visibilityHashCacheDirty = true; // Invalidate visibility hash cache
+        this.viewUniformsNeedUpdate = true; // Update view uniforms when geometry changes
         return polygon;
     }
 
@@ -1188,7 +1662,11 @@ class TriangleOverlay extends Element {
      */
     clearPolygons() {
         this.polygons = [];
-        console.log('🧹 All polygons cleared from overlay');
+        this.staticGeometryDirty = true; // Invalidate static geometry when polygons cleared
+        this.renderBatchesDirty = true; // Invalidate render batches when polygons cleared
+        this.triangleCountCacheDirty = true; // Invalidate triangle count cache
+        this.visibilityHashCacheDirty = true; // Invalidate visibility hash cache
+        this.viewUniformsNeedUpdate = true; // Update view uniforms when geometry changes
     }
 
     /**
@@ -1210,8 +1688,17 @@ class TriangleOverlay extends Element {
     updatePolygon(name: string, updates: Partial<PolygonData>) {
         const polygon = this.polygons.find(p => p.name === name);
         if (polygon) {
-            polygon.updateProperties(updates);
-            console.log(`🔹 Polygon "${name}" updated and re-triangulated`);
+            // Only invalidate static geometry cache if vertices changed (very rare)
+            if (updates.vertices) {
+                this.staticGeometryDirty = true;
+            }
+            // Always invalidate dynamic properties for any visual changes
+            if (updates.color || updates.fillAlpha !== undefined ||
+                updates.outlineColor || updates.outlineThickness !== undefined ||
+                updates.visible !== undefined) {
+                this.renderBatchesDirty = true;
+            }
+            polygon.updateProperties(updates, this);
         } else {
             console.warn(`⚠️ Polygon "${name}" not found`);
         }
@@ -1223,8 +1710,13 @@ class TriangleOverlay extends Element {
     setPolygonVisibility(name: string, visible: boolean) {
         const polygon = this.polygons.find(p => p.name === name);
         if (polygon) {
-            polygon.visible = visible;
-            console.log(`👁️ Polygon "${name}" ${visible ? 'shown' : 'hidden'}`);
+            if (polygon.visible !== visible) {
+                polygon.visible = visible;
+                this.renderBatchesDirty = true; // Invalidate render batches when visibility changes
+                this.triangleCountCacheDirty = true; // Invalidate triangle count cache when visibility changes
+                this.visibilityHashCacheDirty = true; // Invalidate visibility hash cache when visibility changes
+                this.viewUniformsNeedUpdate = true; // Update view uniforms when polygon visibility changes
+            }
         } else {
             console.warn(`⚠️ Polygon "${name}" not found`);
         }
@@ -1234,10 +1726,20 @@ class TriangleOverlay extends Element {
      * Show/hide all polygons
      */
     setAllPolygonsVisibility(visible: boolean) {
+        let changed = false;
         this.polygons.forEach(polygon => {
-            polygon.visible = visible;
+            if (polygon.visible !== visible) {
+                polygon.visible = visible;
+                changed = true;
+            }
         });
-        console.log(`👁️ All polygons ${visible ? 'shown' : 'hidden'} (${this.polygons.length} polygons)`);
+
+        if (changed) {
+            this.renderBatchesDirty = true; // Invalidate render batches when visibility changes
+            this.triangleCountCacheDirty = true; // Invalidate triangle count cache when visibility changes
+            this.visibilityHashCacheDirty = true; // Invalidate visibility hash cache when visibility changes
+            this.viewUniformsNeedUpdate = true; // Update view uniforms when polygon visibility changes
+        }
     }
 
     /**
@@ -1247,16 +1749,15 @@ class TriangleOverlay extends Element {
         // First deselect all polygons
         this.polygons.forEach(polygon => {
             if (polygon.selected) {
-                polygon.deselect();
+                polygon.deselect(this);
             }
         });
 
         // Then select the specified polygon
         const polygon = this.polygons.find(p => p.name === name);
         if (polygon) {
-            polygon.select();
+            polygon.select(this);
             this.scene.forceRender = true; // Trigger SuperSplat view update
-            console.log(`🎯 Polygon "${name}" selected (all others deselected)`);
             return true;
         } else {
             console.warn(`⚠️ Polygon "${name}" not found for selection`);
@@ -1274,9 +1775,8 @@ class TriangleOverlay extends Element {
             const polygon = this.polygons.find(p => p.name === name);
             if (polygon) {
                 if (!polygon.selected) {
-                    polygon.select();
+                    polygon.select(this);
                     selectedCount++;
-                    // Polygon "${name}" selected for multi-selection
                 }
             } else {
                 console.warn(`⚠️ Polygon "${name}" not found for multi-selection`);
@@ -1285,7 +1785,6 @@ class TriangleOverlay extends Element {
 
         if (selectedCount > 0) {
             this.scene.forceRender = true; // Trigger SuperSplat view update
-            // Multi-selection complete: ${selectedCount} polygons selected
         }
 
         return selectedCount;
@@ -1298,7 +1797,7 @@ class TriangleOverlay extends Element {
         // First deselect all polygons
         this.polygons.forEach(polygon => {
             if (polygon.selected) {
-                polygon.deselect();
+                polygon.deselect(this);
             }
         });
 
@@ -1352,7 +1851,7 @@ class TriangleOverlay extends Element {
                         outlineColor: colorSet.border, // Colored border
                         color: colorSet.fill, // Colored fill
                         fillAlpha: 0.5 // Semi-transparent fill (0.5 alpha as requested)
-                    });
+                    }, this);
 
                     selectedCount++;
                     // Polygon "${name}" styled with ${colorType.toUpperCase()} environmental metric
@@ -1376,9 +1875,8 @@ class TriangleOverlay extends Element {
     deselectPolygon(name: string) {
         const polygon = this.polygons.find(p => p.name === name);
         if (polygon) {
-            polygon.deselect();
+            polygon.deselect(this);
             this.scene.forceRender = true; // Trigger SuperSplat view update
-            console.log(`🎯 Polygon "${name}" deselected`);
             return true;
         } else {
             console.warn(`⚠️ Polygon "${name}" not found for deselection`);
@@ -1393,11 +1891,10 @@ class TriangleOverlay extends Element {
         let deselectedCount = 0;
         this.polygons.forEach(polygon => {
             if (polygon.selected) {
-                polygon.deselect();
+                polygon.deselect(this);
                 deselectedCount++;
             }
         });
-        // ${deselectedCount} polygons deselected
         return deselectedCount;
     }
 
@@ -1419,15 +1916,18 @@ class TriangleOverlay extends Element {
                 polygon.visible = visible;
                 // If hiding the group, also deselect any selected polygons in this group
                 if (!visible && polygon.selected) {
-                    polygon.deselect();
+                    polygon.deselect(this);
                 }
                 affectedCount++;
             }
         });
         if (affectedCount > 0) {
+            this.renderBatchesDirty = true; // Invalidate render batches when visibility changes
+            this.triangleCountCacheDirty = true; // Invalidate triangle count cache when visibility changes
+            this.visibilityHashCacheDirty = true; // Invalidate visibility hash cache when visibility changes
+            this.viewUniformsNeedUpdate = true; // Update view uniforms when polygon visibility changes
             this.scene.forceRender = true; // Trigger SuperSplat view update
         }
-        // Group "${groupName}" ${visible ? 'shown' : 'hidden'} (${affectedCount} polygons affected)
         return affectedCount;
     }
 
@@ -1533,62 +2033,13 @@ class TriangleOverlay extends Element {
 
     clearTriangles() {
         this.triangles = [];
-        console.log('🧹 All triangles cleared from overlay');
+        this.staticGeometryDirty = true; // Invalidate static geometry when triangles cleared
+        this.renderBatchesDirty = true; // Invalidate render batches
+        this.triangleCountCacheDirty = true; // Invalidate triangle count cache
+        this.visibilityHashCacheDirty = true; // Invalidate visibility hash cache
+        this.viewUniformsNeedUpdate = true; // Update view uniforms when geometry changes
     }
 
-
-
-    /**
-     * Local implementation of triangulation logic (same as SuperSplatBridge)
-     */
-    localTriangulatePolygon(vertices: any[]) {
-        if (vertices.length < 3) return [];
-        if (vertices.length === 3) return [vertices]; // Already a triangle
-
-        // Fan triangulation from first vertex (same as SuperSplatBridge)
-        const triangles = [];
-        const firstVertex = vertices[0];
-
-        for (let i = 1; i < vertices.length - 1; i++) {
-            const triangle = [
-                firstVertex,
-                vertices[i],
-                vertices[i + 1]
-            ];
-            triangles.push(triangle);
-        }
-
-        // Polygon triangulated locally
-        return triangles;
-    }
-
-    /**
-     * Convert HSL to RGB color values
-     */
-    hslToRgb(h: number, s: number, l: number): {r: number, g: number, b: number} {
-        h /= 360;
-        const a = s * Math.min(l, 1 - l);
-        const f = (n: number) => {
-            const k = (n + h * 12) % 12;
-            return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-        };
-        return {r: f(0), g: f(8), b: f(4)};
-    }
-
-    serialize(serializer: Serializer): void {
-        serializer.pack(this.visible);
-        serializer.pack(this.triangles.length);
-        serializer.pack(this.yPlane);
-        for (const triangle of this.triangles) {
-            serializer.pack(triangle.v0.x, triangle.v0.y, triangle.v0.z);
-            serializer.pack(triangle.v1.x, triangle.v1.y, triangle.v1.z);
-            serializer.pack(triangle.v2.x, triangle.v2.y, triangle.v2.z);
-            serializer.pack(triangle.color.x, triangle.color.y, triangle.color.z);
-            serializer.pack(triangle.fillAlpha);
-            serializer.pack(triangle.outlineColor.x, triangle.outlineColor.y, triangle.outlineColor.z);
-            serializer.pack(triangle.outlineThickness);
-        }
-    }
 }
 
 export { TriangleOverlay };
