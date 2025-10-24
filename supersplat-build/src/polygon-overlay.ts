@@ -63,16 +63,6 @@ class PolygonOverlay extends Element {
     private selectedMaterial: StandardMaterial;
     private outlineMaterial: StandardMaterial;
 
-    // Coordinate transformation parameters
-    private worldBounds: {
-        minLat: number;
-        maxLat: number;
-        minLon: number;
-        maxLon: number;
-    } | null = null;
-
-    // World scale factor for coordinate conversion
-    private readonly WORLD_SCALE = 100; // Adjust based on SuperSplat scene scale
 
     constructor() {
         super(ElementType.other);
@@ -204,9 +194,6 @@ class PolygonOverlay extends Element {
         // Clear existing polygons
         this.clearPolygons();
 
-        // Calculate world bounds from GeoJSON data
-        this.calculateWorldBounds(geoJsonData);
-
         // Render polygons based on current layer state
         this.renderPolygons(geoJsonData, layerState);
     }
@@ -222,49 +209,6 @@ class PolygonOverlay extends Element {
         }
     }
 
-    /**
-     * Calculate world bounds from GeoJSON data for coordinate conversion
-     */
-    private calculateWorldBounds(geoJsonData: GeoJSONData): void {
-        let minLat = Infinity, maxLat = -Infinity;
-        let minLon = Infinity, maxLon = -Infinity;
-
-        geoJsonData.features.forEach(feature => {
-            if (feature.geometry.type === 'Polygon') {
-                feature.geometry.coordinates[0].forEach(coord => {
-                    const [lon, lat] = coord;
-                    minLat = Math.min(minLat, lat);
-                    maxLat = Math.max(maxLat, lat);
-                    minLon = Math.min(minLon, lon);
-                    maxLon = Math.max(maxLon, lon);
-                });
-            }
-        });
-
-        this.worldBounds = { minLat, maxLat, minLon, maxLon };
-
-    }
-
-    /**
-     * Convert geographic coordinates (lat/lon) to PlayCanvas world coordinates
-     */
-    private geoToWorld(lon: number, lat: number, elevation: number = 0): Vec3 {
-        if (!this.worldBounds) {
-            return new Vec3(0, elevation, 0);
-        }
-
-        const bounds = this.worldBounds;
-
-        // Normalize coordinates to 0-1 range
-        const normalizedX = (lon - bounds.minLon) / (bounds.maxLon - bounds.minLon);
-        const normalizedZ = (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
-
-        // Convert to world coordinates (center around origin)
-        const worldX = (normalizedX - 0.5) * this.WORLD_SCALE;
-        const worldZ = (normalizedZ - 0.5) * this.WORLD_SCALE;
-
-        return new Vec3(worldX, elevation, worldZ);
-    }
 
     /**
      * Render polygons based on GeoJSON data and layer state
@@ -344,15 +288,11 @@ class PolygonOverlay extends Element {
                 return null;
             }
 
-            // Convert geographic coordinates to world positions
-            const vertices: Vec3[] = [];
-            coordinates.forEach(coord => {
-                if (coord.length >= 2) {
-                    const [lon, lat, elevation = 0] = coord;
-                    const worldPos = this.geoToWorld(lon, lat, elevation);
-                    vertices.push(worldPos);
-                }
-            });
+            // NOTE: This polygon-overlay.ts is unused by terrain-3d
+            // terrain-3d uses coordinateTransform.js and superSplatBridge.js instead
+            // This method should not be called in the current architecture
+            console.warn('⚠️ polygon-overlay.ts createPolygonMesh called - this should use coordinateTransform.js instead');
+            return null;
 
             if (vertices.length < 3) {
                 console.warn('⚠️ Insufficient vertices for polygon:', feature.properties.name);
@@ -412,15 +352,10 @@ class PolygonOverlay extends Element {
                 return null;
             }
 
-            // Convert geographic coordinates to world positions
-            const vertices: number[] = [];
-            coordinates.forEach(coord => {
-                if (coord.length >= 2) {
-                    const [lon, lat, elevation = 0] = coord;
-                    const worldPos = this.geoToWorld(lon, lat, elevation);
-                    vertices.push(worldPos.x, worldPos.y, worldPos.z);
-                }
-            });
+            // NOTE: This polygon-overlay.ts is unused by terrain-3d
+            // terrain-3d uses coordinateTransform.js and superSplatBridge.js instead
+            console.warn('⚠️ polygon-overlay.ts createOutlineMesh called - this should use coordinateTransform.js instead');
+            return null;
 
             if (vertices.length < 9) {
                 console.warn('⚠️ Insufficient vertices for outline:', feature.properties.name);

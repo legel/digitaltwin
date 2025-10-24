@@ -84,7 +84,16 @@ class CoordinateTransform {
                 z: superSplatZ
             };
         } else {
-            // Fallback to original static scaling method
+            // FALLBACK WARNING: This should not happen when splat bounds are available
+            console.error('❌ COORDINATE TRANSFORM FALLBACK: Using inaccurate static scaling');
+            console.error('❌ This indicates splatBounds or geoBounds were not provided');
+            console.error('❌ Expected: geoToSuperSplat(lon, lat, elevation, splatBounds, geoBounds)');
+            console.error(`❌ Received: geoToSuperSplat(${longitude}, ${latitude}, ${elevation}, ${splatBounds ? 'PROVIDED' : 'NULL'}, ${geoBounds ? 'PROVIDED' : 'NULL'})`);
+
+            // For this site, splat bounds should always be available - this fallback indicates a bug
+            console.trace('❌ Stack trace for static fallback usage:');
+
+            // Still provide fallback to prevent crashes, but with clear warnings
             const scaleFactor = 100.0; // Default scale factor
 
             // Convert degrees to meters using standard conversion
@@ -99,6 +108,8 @@ class CoordinateTransform {
             const superSplatX = lonToMeters * (scaleFactor / 111320) * scaleCorrectionFactor; // East-West
             const superSplatY = 0; // Fixed Y-plane handled by SuperSplat triangle overlay
             const superSplatZ = -latToMeters * (scaleFactor / 111320) * scaleCorrectionFactor; // North-South (negated for SuperSplat orientation)
+
+            console.warn(`⚠️ FALLBACK RESULT: (${longitude}, ${latitude}) → (${superSplatX.toFixed(3)}, ${superSplatZ.toFixed(3)}) - POTENTIALLY INACCURATE`);
 
             return {
                 x: superSplatX,
@@ -304,66 +315,6 @@ class CoordinateTransform {
         return rectangleVertices;
     }
 
-    /**
-     * Transform a GeoJSON feature's coordinates to SuperSplat coordinates
-     * @param {Object} feature - GeoJSON feature
-     * @returns {Array} Array of SuperSplat coordinate vertices
-     */
-    transformFeatureToSuperSplat(feature) {
-        if (!this.isLoaded || !this.siteBounds) {
-            throw new Error('Site bounds not loaded. Call ensureLoaded() first.');
-        }
-
-        if (!feature.geometry || feature.geometry.type !== 'Polygon') {
-            console.warn('⚠️ Feature is not a polygon, skipping:', feature);
-            return [];
-        }
-
-        // Transform exterior ring (first coordinate array)
-        const coordinates = feature.geometry.coordinates[0];
-        const featureName = feature.properties?.name || feature.id || 'unnamed';
-
-        console.log(`🗺️ COORDINATE CONVERSION: ${featureName} - Converting ${coordinates.length} vertices`);
-        console.log(`📍 Original GeoJSON coordinates (first 5 and last 5):`, {
-            first5: coordinates.slice(0, 5).map((coord, i) => ({
-                index: i,
-                lon: coord[0].toFixed(8),
-                lat: coord[1].toFixed(8),
-                elev: coord[2]?.toFixed(3) || 'n/a'
-            })),
-            last5: coordinates.slice(-5).map((coord, i) => ({
-                index: coordinates.length - 5 + i,
-                lon: coord[0].toFixed(8),
-                lat: coord[1].toFixed(8),
-                elev: coord[2]?.toFixed(3) || 'n/a'
-            }))
-        });
-
-        const superSplatVertices = coordinates.map((coord, index) => {
-            const [lon, lat, elevation] = coord;
-            const superSplatCoord = this.geoToSuperSplat(lon, lat, elevation);
-
-            // Log every 5th coordinate and first/last few for debugging
-            if (index < 5 || index >= coordinates.length - 5 || index % 5 === 0) {
-                console.log(`  ${index}: (${lon.toFixed(8)}, ${lat.toFixed(8)}) → (${superSplatCoord.x.toFixed(3)}, ${superSplatCoord.z.toFixed(3)})`);
-            }
-
-            return superSplatCoord;
-        });
-
-        console.log(`🎯 SUPERSPLAT COORDINATES: ${featureName} - Converted to SuperSplat space`);
-        console.log(`📊 SuperSplat bounds analysis:`, {
-            vertices: superSplatVertices.length,
-            minX: Math.min(...superSplatVertices.map(v => v.x)).toFixed(3),
-            maxX: Math.max(...superSplatVertices.map(v => v.x)).toFixed(3),
-            minZ: Math.min(...superSplatVertices.map(v => v.z)).toFixed(3),
-            maxZ: Math.max(...superSplatVertices.map(v => v.z)).toFixed(3),
-            width: (Math.max(...superSplatVertices.map(v => v.x)) - Math.min(...superSplatVertices.map(v => v.x))).toFixed(3),
-            height: (Math.max(...superSplatVertices.map(v => v.z)) - Math.min(...superSplatVertices.map(v => v.z))).toFixed(3)
-        });
-
-        return superSplatVertices;
-    }
 }
 
 // Create global instance
