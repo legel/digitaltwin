@@ -13,6 +13,21 @@ class SuperSplatBridge {
         this.polygonGeometryCache = new Map();
         this.lastUploadedSiteId = null;
 
+        // Initialize polygon manager for centralized polygon handling
+        this.polygonManager = new window.PolygonManager();
+
+        // Set up auto-renderer callback for immediate visual updates
+        this.polygonManager.setAutoRendererCallback((renderTriangles) => {
+            if (window.superSplatScene && window.superSplatScene.events) {
+                try {
+                    // Send the triangle data to SuperSplat's mesh-based renderer
+                    window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangles', renderTriangles);
+                } catch (error) {
+                    console.warn('⚠️ Failed to auto-update SuperSplat renderer:', error);
+                }
+            }
+        });
+
         this.initialize();
     }
 
@@ -353,16 +368,16 @@ class SuperSplatBridge {
             const geoBounds = window.coordinateTransform.calculateGeoJSONBounds(geoJsonData);
             const geoJsonFormat = window.detectGeoJsonFormat ? window.detectGeoJsonFormat(geoJsonData.features[0]) : 'boyd';
 
-            // Track polygons for UI controls
-            this.polygonRegistry = this.polygonRegistry || [];
+            // Clear existing polygons from polygon manager
+            this.polygonManager.clearPolygons();
 
-            // Clear existing polygons
+            // Clear existing polygons from SuperSplat (if needed)
             if (window.superSplatScene && window.superSplatScene.events) {
                 window.superSplatScene.events.fire('triangleOverlay.clearPolygons');
             }
 
             let polygonsRendered = 0;
-            const maxPolygons = 100; // Increased to 100 to show all plantable areas
+            const maxPolygons = 1000; // Increased to 1000 to show all plantable areas
 
             // Render all plantable area polygons
             geoJsonData.features.forEach((feature, index) => {
@@ -417,79 +432,44 @@ class SuperSplatBridge {
                         // Assign group based on PA/NPA classification
                         const group = isPlantable ? 'plantable-areas' : 'non-plantable-areas';
 
-                        // Register polygon for tracking
-                        this.polygonRegistry.push({
-                            name: name,
-                            isPlantable: isPlantable,
-                            feature: feature,
-                            vertices: vertices,
-                            visible: shouldBeVisible, // Respect layer visibility state
-                            group: group
-                        });
+                        // Convert vertices to the format expected by polygon manager
+                        const polygonVertices = vertices.map(v => ({x: v.x, y: v.y, z: v.z}));
 
+                        // Add polygon to centralized polygon manager
+                        const polygon = this.polygonManager.addPolygon(
+                            polygonVertices,
+                            style.fillColor, // color
+                            style.fillAlpha, // fillAlpha
+                            style.outlineColor, // outlineColor
+                            style.outlineThickness, // outlineThickness
+                            name, // name
+                            group // group
+                        );
 
-                        if (window.superSplatScene && window.superSplatScene.events) {
+                        // Set initial visibility based on layer state
+                        polygon.visible = shouldBeVisible;
 
-                            // Try multiple event methods to find the working one
-                            try {
-                                let success = false;
-
-                                // Method 1: Try invoke (same as working bounds rectangle)
-                                if (typeof window.superSplatScene.events.invoke === 'function') {
-                                    window.superSplatScene.events.invoke('triangleOverlay.addPolygon',
-                                        vertices, style.fillColor, style.fillAlpha,
-                                        style.outlineColor, style.outlineThickness, name, group
-                                    );
-                                    success = true;
-                                }
-
-                                // Method 2: Try accessing function directly
-                                else if (window.superSplatScene.events.functions &&
-                                         window.superSplatScene.events.functions['triangleOverlay.addPolygon']) {
-                                    const addPolygonFunc = window.superSplatScene.events.functions['triangleOverlay.addPolygon'];
-                                    addPolygonFunc(vertices, style.fillColor, style.fillAlpha,
-                                                  style.outlineColor, style.outlineThickness, name, group);
-                                    success = true;
-                                }
-
-                                // Method 3: Try invoke (fallback)
-                                else if (typeof window.superSplatScene.events.invoke === 'function') {
-                                    window.superSplatScene.events.invoke('triangleOverlay.addPolygon',
-                                        vertices, style.fillColor, style.fillAlpha,
-                                        style.outlineColor, style.outlineThickness, name, group
-                                    );
-                                    success = true;
-                                }
-
-                                if (success) {
-                                    polygonsRendered++;
-                                } else {
-                                    console.error('❌ No working event method found for polygon:', name);
-                                }
-
-                            } catch (error) {
-                                console.error('❌ Error sending polygon event for', name, ':', error);
-                            }
-                        } else {
-                            console.error('❌ SuperSplat scene or events not available');
-                        }
+                        // Count this as a rendered polygon
+                        polygonsRendered++;
                     }
                 }
             });
 
-
             // Sort polygons by area for optimal nested click detection (smallest first)
-            if (window.superSplatScene && polygonsRendered > 0) {
-                try {
-                    window.superSplatScene.events.invoke('triangleOverlay.sortPolygonsByArea');
-                } catch (error) {
-                    console.warn('⚠️ Failed to sort polygons by area:', error);
-                }
-            }
+            if (polygonsRendered > 0) {
+                this.polygonManager.sortPolygonsByArea();
 
-            // Removed forced render to improve camera movement performance
-            // SuperSplat will render polygons automatically as needed
-            if (window.superSplatScene && polygonsRendered > 0) {
+                // Send polygon rendering data to SuperSplat
+                this.polygonManager.sendToRenderer((renderTriangles) => {
+                    if (window.superSplatScene && window.superSplatScene.events) {
+                        try {
+                            // Send the aggregated triangle data to SuperSplat's mesh-based renderer
+                            window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangles', renderTriangles);
+                        } catch (error) {
+                            console.warn('⚠️ Failed to send polygon data to SuperSplat renderer:', error);
+                        }
+                    }
+                });
             }
 
             // Sync window.layerState with actual polygon visibility defaults
@@ -497,7 +477,6 @@ class SuperSplatBridge {
             // Since polygons are being rendered for both types, set both to visible
             window.layerState.showPlantableAreas = true;
             window.layerState.showNonPlantableAreas = true;
-
 
             // Sync SuperSplat group visibility with layer state
             if (window.superSplatScene && window.superSplatScene.events) {
@@ -1258,21 +1237,27 @@ class SuperSplatBridge {
      */
     updatePolygonVisibility() {
         try {
-            if (!window.superSplatScene || !window.superSplatScene.events) {
-                console.warn('⚠️ SuperSplat scene not available for visibility update');
-                return;
-            }
-
             // Get current layer state
             const layerState = window.layerState || {};
 
-            // Updating polygon visibility without geometry upload
+            // Update polygon manager group visibility
+            const plantableVisible = layerState.showPlantableAreas !== false;
+            const nonPlantableVisible = layerState.showNonPlantableAreas !== false;
 
-            // Update group visibility in SuperSplat
-            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility',
-                'plantable-areas', layerState.showPlantableAreas !== false);
-            window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility',
-                'non-plantable-areas', layerState.showNonPlantableAreas !== false);
+            this.polygonManager.setGroupVisibility('plantable-areas', plantableVisible);
+            this.polygonManager.setGroupVisibility('non-plantable-areas', nonPlantableVisible);
+
+            // Send updated rendering data to SuperSplat
+            this.polygonManager.sendToRenderer((renderTriangles) => {
+                if (window.superSplatScene && window.superSplatScene.events) {
+                    try {
+                        // Send the updated triangle data to SuperSplat's mesh-based renderer
+                        window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangles', renderTriangles);
+                    } catch (error) {
+                        console.warn('⚠️ Failed to update SuperSplat renderer with visibility changes:', error);
+                    }
+                }
+            });
 
             if (window.updateVisibilityButtonIcons) {
                 setTimeout(() => {
@@ -1280,19 +1265,19 @@ class SuperSplatBridge {
                 }, 50); // Small delay for SuperSplat to process visibility changes
             }
 
-            // Polygon visibility updated using cached geometry
         } catch (error) {
             console.error('❌ Failed to update polygon visibility:', error);
         }
     }
 
     /**
-     * Clear polygon geometry cache (useful when switching sites)
+     * Clear polygon geometry cache and polygon manager (useful when switching sites)
      */
     clearPolygonCache() {
-        console.log('🧹 Clearing polygon geometry cache');
+        console.log('🧹 Clearing polygon geometry cache and polygon manager');
         this.polygonGeometryCache.clear();
         this.lastUploadedSiteId = null;
+        this.polygonManager.clearPolygons();
     }
 
 }

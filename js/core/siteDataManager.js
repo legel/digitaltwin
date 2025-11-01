@@ -202,10 +202,10 @@ async function initializeSupersplatSiteData() {
     // Store the site data globally
     window.currentSiteData = defaultSite.geoJson;
 
-    // Initialize layer state with plantable areas checked by default
+    // Initialize layer state
     window.layerState = {
         showPlantableAreas: true,
-        showNonPlantableAreas: false,
+        showNonPlantableAreas: true,
 
         // Unified selection structure
         selectedGroup: null,        // PA name, NPA category, or metric name ('soilMoisture', 'pH', etc.)

@@ -4,8 +4,8 @@
 
 // Layer state management - condensed structure
 window.layerState = {
-    showPlantableAreas: false,
-    showNonPlantableAreas: false,
+    showPlantableAreas: true,
+    showNonPlantableAreas: true,
 
     // Unified selection structure
     selectedGroup: null,        // PA name, NPA category, or metric name ('soilMoisture', 'pH', etc.)
@@ -74,9 +74,9 @@ function clearAllPolygonSelections() {
     removeColorLegend();
 
     // Also deselect all polygons in SuperSplat to restore visual properties
-    if (window.superSplatScene && window.superSplatScene.events) {
+    if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
         try {
-            window.superSplatScene.events.invoke('triangleOverlay.deselectAllPolygons');
+            window.superSplatBridge.polygonManager.deselectAllPolygons();
         } catch (error) {
             console.warn('Failed to deselect SuperSplat polygons:', error);
         }
@@ -158,9 +158,10 @@ function setSelection(groupName, groupType, geoJsonData) {
             window.layerState.showPlantableAreas = true;
             visibilityChanged = true;
 
-            // Update SuperSplat group visibility
-            if (window.superSplatScene && window.superSplatScene.events) {
-                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', true);
+            // Update polygonManager visibility directly and trigger renderer update
+            if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
+                window.superSplatBridge.polygonManager.setGroupVisibility('plantable-areas', true);
+                window.superSplatBridge.polygonManager.triggerAutoRendererUpdate();
             }
         }
     } else if (groupType === 'NPA') {
@@ -169,9 +170,10 @@ function setSelection(groupName, groupType, geoJsonData) {
             window.layerState.showNonPlantableAreas = true;
             visibilityChanged = true;
 
-            // Update SuperSplat group visibility
-            if (window.superSplatScene && window.superSplatScene.events) {
-                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', true);
+            // Update polygonManager visibility directly and trigger renderer update
+            if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
+                window.superSplatBridge.polygonManager.setGroupVisibility('non-plantable-areas', true);
+                window.superSplatBridge.polygonManager.triggerAutoRendererUpdate();
             }
         }
     }
@@ -204,9 +206,9 @@ function setSelection(groupName, groupType, geoJsonData) {
 
     window.layerState.selectedPolygons = polygons;
 
-    if (window.superSplatScene && window.superSplatScene.events && polygons.length > 0) {
+    if (window.superSplatBridge && window.superSplatBridge.polygonManager && polygons.length > 0) {
         try {
-            window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', polygons);
+            window.superSplatBridge.polygonManager.selectPolygonArea(polygons);
         } catch (error) {
             console.warn('Failed to apply visual selection in SuperSplat:', error);
         }
@@ -340,7 +342,7 @@ function selectEnvironmentalMetric(metricName, geoJsonData) {
     const metricData = processEnvironmentalMetricColors(metricName, geoJsonData);
 
     // Apply metric-based colors via SuperSplat
-    if (window.superSplatScene && window.superSplatScene.events && metricData.totalPolygons > 0) {
+    if (window.superSplatBridge && window.superSplatBridge.polygonManager && metricData.totalPolygons > 0) {
         try {
             // Environmental metrics don't change group visibility
 
@@ -364,7 +366,7 @@ function selectEnvironmentalMetric(metricName, geoJsonData) {
                 const group = colorGroups[colorKey];
                 const hexColor = `#${group.color.r.toString(16).padStart(2, '0')}${group.color.g.toString(16).padStart(2, '0')}${group.color.b.toString(16).padStart(2, '0')}`;
 
-                window.superSplatScene.events.invoke('triangleOverlay.selectEnvironmentalMetricPolygons',
+                window.superSplatBridge.polygonManager.selectEnvironmentalMetricPolygons(
                     group.polygons, hexColor);
 
             });
@@ -624,15 +626,26 @@ function setupVisibilityToggleButtons() {
                 img.alt = window.layerState.showPlantableAreas ? 'Visible' : 'Hidden';
             }
 
-            // Update SuperSplat group visibility directly (no re-rendering needed)
-            if (window.superSplatScene && window.superSplatScene.events) {
-                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', window.layerState.showPlantableAreas);
+            // Update polygonManager visibility directly and trigger renderer update
+            if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
+                const affectedCount = window.superSplatBridge.polygonManager.setGroupVisibility('plantable-areas', window.layerState.showPlantableAreas);
+                console.log(`👁️ PA visibility toggle: ${affectedCount} polygons ${window.layerState.showPlantableAreas ? 'shown' : 'hidden'}`);
+
+                // Trigger automatic renderer update
+                window.superSplatBridge.polygonManager.triggerAutoRendererUpdate();
             } else {
-                console.warn('⚠️ SuperSplat not available for visibility toggle');
+                console.warn('⚠️ PolygonManager not available for visibility toggle');
             }
 
             // Remove UI objects when hiding PAs
             if (!window.layerState.showPlantableAreas) {
+                // Clear all PA selections when hiding the entire PA group
+                if (window.layerState.selectedGroupType === 'PA') {
+                    clearAllPolygonSelections();
+                    // Uncheck all PA radio buttons
+                    document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
+                }
+
                 // Remove focus panel if visible
                 if (window.clearPAConnection) {
                     window.clearPAConnection();
@@ -667,11 +680,22 @@ function setupVisibilityToggleButtons() {
                 img.alt = window.layerState.showNonPlantableAreas ? 'Visible' : 'Hidden';
             }
 
-            // Update SuperSplat group visibility directly (no re-rendering needed)
-            if (window.superSplatScene && window.superSplatScene.events) {
-                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', window.layerState.showNonPlantableAreas);
+            // Update polygonManager visibility directly and trigger renderer update
+            if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
+                const affectedCount = window.superSplatBridge.polygonManager.setGroupVisibility('non-plantable-areas', window.layerState.showNonPlantableAreas);
+                console.log(`👁️ NPA visibility toggle: ${affectedCount} polygons ${window.layerState.showNonPlantableAreas ? 'shown' : 'hidden'}`);
+
+                // Trigger automatic renderer update
+                window.superSplatBridge.polygonManager.triggerAutoRendererUpdate();
             } else {
-                console.warn('⚠️ SuperSplat not available for visibility toggle');
+                console.warn('⚠️ PolygonManager not available for visibility toggle');
+            }
+
+            // Clear NPA selections when hiding the entire NPA group
+            if (!window.layerState.showNonPlantableAreas && window.layerState.selectedGroupType === 'NPA') {
+                clearAllPolygonSelections();
+                // Uncheck all NPA radio buttons
+                document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
             }
         });
 
@@ -725,7 +749,6 @@ function updateVisibilityButtonIcons() {
     } else {
         console.warn('⚠️ NPA visibility toggle button not found');
     }
-
 }
 
 /**
@@ -1077,14 +1100,14 @@ function populatePACategories(categories, categorizedPAs) {
                 document.querySelectorAll('input[name="nonPlantableArea"]').forEach(r => r.checked = false);
 
                 // Show plantable areas group and select all polygons for this PA in SuperSplat
-                if (window.superSplatScene && window.superSplatScene.events) {
+                if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
                     try {
                                     // This PA selection does not change group visibility
 
                         // Select all polygons for this PA area
                         const selectedPolygons = window.layerState.selectedPolygons || [];
                         if (selectedPolygons.length > 0) {
-                            window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
+                            window.superSplatBridge.polygonManager.selectPolygonArea(selectedPolygons);
                         }
                     } catch (error) {
                         console.warn('Failed to select SuperSplat PA polygons:', error);
@@ -1293,7 +1316,7 @@ function populateNPACategories(categories) {
             document.querySelectorAll('input[name="plantableArea"]').forEach(r => r.checked = false);
 
             // Show non-plantable areas group and select first polygon in this category
-            if (window.superSplatScene && window.superSplatScene.events && window.currentSiteData) {
+            if (window.superSplatBridge && window.superSplatBridge.polygonManager && window.currentSiteData) {
                 try {
                     // This NPA selection does not change group visibility
 
@@ -1307,7 +1330,7 @@ function populateNPACategories(categories) {
                     // Select all polygons for this NPA category
                     const selectedPolygons = window.layerState.selectedPolygons || [];
                     if (selectedPolygons.length > 0) {
-                        window.superSplatScene.events.invoke('triangleOverlay.selectPolygonArea', selectedPolygons);
+                        window.superSplatBridge.polygonManager.selectPolygonArea(selectedPolygons);
                     }
                 } catch (error) {
                     console.warn('Failed to show/select SuperSplat NPA polygons:', error);
@@ -1372,8 +1395,8 @@ function initializeLayerControlsForSite(geoJsonFormat) {
         layerControls.style.display = 'none';
         // Reset layer state
         window.layerState = {
-            showPlantableAreas: false,
-            showNonPlantableAreas: false,
+            showPlantableAreas: true,
+            showNonPlantableAreas: true,
 
             // Unified selection structure
             selectedGroup: null,
