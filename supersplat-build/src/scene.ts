@@ -19,7 +19,8 @@ import { Events } from './events';
 import { InfiniteGrid as Grid } from './infinite-grid';
 import { Outline } from './outline';
 import { PCApp } from './pc-app';
-import { TriangleOverlay } from './point-overlay';
+import { TriangleOverlay } from './point-overlay-backup';
+import { MeshTriangleOverlay } from './point-overlay';
 import { PolygonOverlay } from './polygon-overlay';
 import { SceneConfig } from './scene-config';
 import { SceneState } from './scene-state';
@@ -57,6 +58,7 @@ class Scene {
     camera: Camera;
     splatOverlay: SplatOverlay;
     triangleOverlay: TriangleOverlay;
+    meshTriangleOverlay: MeshTriangleOverlay;
     polygonOverlay: PolygonOverlay;
     grid: Grid;
     outline: Outline;
@@ -213,6 +215,10 @@ class Scene {
 
         this.triangleOverlay = new TriangleOverlay();
         this.add(this.triangleOverlay);
+
+        // Add new mesh-based triangle overlay for testing
+        this.meshTriangleOverlay = new MeshTriangleOverlay();
+        this.add(this.meshTriangleOverlay);
 
         this.polygonOverlay = new PolygonOverlay();
         this.add(this.polygonOverlay);
