@@ -45,6 +45,14 @@ class MeshTriangleOverlay extends Element {
     private meshInstance: MeshInstance | null = null;
     yPlane: number = 3.5; // Default Y plane - raised off ground
 
+    // Click detection properties
+    private dragId: number | undefined;
+    private dragMoved: boolean = false;
+    private clickHandlers: { pointerdown: any, pointermove: any, pointerup: any } = { pointerdown: null, pointermove: null, pointerup: null };
+    private dragStartX = 0;
+    private dragStartY = 0;
+    private readonly DRAG_THRESHOLD = 10; // pixels - threshold for distinguishing click from drag
+
     constructor() {
         super(ElementType.debug);
     }
@@ -62,6 +70,13 @@ class MeshTriangleOverlay extends Element {
             // Register event functions for terrain-3d bridge compatibility
             this.registerEventFunctions();
 
+            // Setup click detection for polygon interaction
+            try {
+                this.setupClickDetection();
+            } catch (error) {
+                console.error('❌ setupClickDetection() failed:', error);
+            }
+
             // Set up automatic Y-plane adjustment when splats are loaded
             this.scene.events.on('scene.elementAdded', (element: any) => {
                 // Check if a splat was added
@@ -78,13 +93,26 @@ class MeshTriangleOverlay extends Element {
                 this.updateYPlaneFromSplats();
             }, 500);
 
-            console.log('✅ TriangleOverlay initialization complete');
         } catch (error) {
             console.error('❌ TriangleOverlay initialization failed:', error);
         }
     }
 
     remove() {
+        // Clean up click event listeners
+        const canvas = this.scene.app.graphicsDevice.canvas;
+        if (this.clickHandlers.pointerdown) {
+            canvas.removeEventListener('pointerdown', this.clickHandlers.pointerdown);
+        }
+        if (this.clickHandlers.pointermove) {
+            canvas.removeEventListener('pointermove', this.clickHandlers.pointermove);
+        }
+        if (this.clickHandlers.pointerup) {
+            canvas.removeEventListener('pointerup', this.clickHandlers.pointerup);
+            document.removeEventListener('pointermove', this.clickHandlers.pointermove);
+            document.removeEventListener('pointerup', this.clickHandlers.pointerup);
+        }
+
         // Clean up mesh instance from layer
         if (this.meshInstance) {
             this.scene.debugLayer.removeMeshInstances([this.meshInstance]);
@@ -117,7 +145,6 @@ class MeshTriangleOverlay extends Element {
      * Generic function to render an array of triangles as a mesh
      */
     private renderTriangles(triangles: TriangleData[]) {
-        console.log(`🔺 Rendering ${triangles.length} triangles as mesh...`);
 
         const device = this.scene.app.graphicsDevice;
         if (!device) {
@@ -128,6 +155,15 @@ class MeshTriangleOverlay extends Element {
         try {
             // Clean up existing mesh if any
             this.remove();
+
+            // Handle empty triangles case - just clear existing triangles and return
+            if (triangles.length === 0) {
+                // Force immediate render update to clear triangles from view
+                if (this.scene) {
+                    this.scene.forceRender = true;
+                }
+                return;
+            }
 
             // Create new mesh
             this.triangleMesh = new Mesh(device);
@@ -201,7 +237,6 @@ class MeshTriangleOverlay extends Element {
                 this.scene.forceRender = true;
             }
 
-            console.log(`✅ Successfully rendered ${totalTriangles} triangles`);
 
         } catch (error) {
             console.error('❌ Error in renderTriangles:', error);
@@ -324,7 +359,6 @@ class MeshTriangleOverlay extends Element {
         });
 
         this.scene.events.function('meshTriangleOverlay.renderTriangles', (triangles: any[]) => {
-            console.log(`📡 meshTriangleOverlay.renderTriangles called with ${triangles.length} triangles`);
             // Convert and render the triangle data using the mesh system
             this.renderTriangles(triangles);
         });
@@ -337,7 +371,6 @@ class MeshTriangleOverlay extends Element {
             return this.calculateSplatYStatistics();
         });
 
-        console.log('✅ Event functions registered for mesh-based system (non-conflicting names)');
     }
 
     /**
@@ -462,6 +495,136 @@ class MeshTriangleOverlay extends Element {
             g: g + m,
             b: b + m
         };
+    }
+
+    /**
+     * Setup click detection for polygon interaction
+     * Uses SuperSplat's proven click vs drag differentiation pattern
+     */
+    setupClickDetection() {
+        const canvas = this.scene.app.graphicsDevice.canvas;
+
+        if (!canvas) {
+            console.error('❌ Canvas not available for click detection setup');
+            return;
+        }
+
+        // Pointer down event - start tracking potential click
+        this.clickHandlers.pointerdown = (e: PointerEvent) => {
+            // SAFETY: If we have a stuck drag state, reset it (override mechanism)
+            if (this.dragId !== undefined) {
+                this.dragId = undefined;
+                this.dragMoved = false;
+            }
+
+            // Only handle left mouse button clicks
+            if (e.pointerType === 'mouse' && e.button === 0) {
+                this.dragId = e.pointerId;
+                this.dragMoved = false;
+                this.dragStartX = e.offsetX;
+                this.dragStartY = e.offsetY;
+            }
+        };
+
+        // Pointer move event - detect if this is a drag using distance threshold
+        this.clickHandlers.pointermove = (e: PointerEvent) => {
+            if (e.pointerId === this.dragId && !this.dragMoved) {
+                // Calculate distance from start position
+                const deltaX = Math.abs(e.offsetX - this.dragStartX);
+                const deltaY = Math.abs(e.offsetY - this.dragStartY);
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                if (distance >= this.DRAG_THRESHOLD) {
+                    // Drag detected
+                    this.dragMoved = true;
+                }
+            }
+        };
+
+        // Pointer up event - process click if no drag occurred
+        this.clickHandlers.pointerup = (e: PointerEvent) => {
+            // Check if this is our tracked pointer
+            if (e.pointerId === this.dragId) {
+                // Fallback distance check in case pointermove events were missed
+                if (!this.dragMoved) {
+                    const deltaX = Math.abs(e.offsetX - this.dragStartX);
+                    const deltaY = Math.abs(e.offsetY - this.dragStartY);
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                    if (distance >= this.DRAG_THRESHOLD) {
+                        this.dragMoved = true;
+                    }
+                }
+
+                if (!this.dragMoved) {
+                    // This is a single click - convert coordinates and pass to polygonManager
+                    this.handlePolygonClick(e.offsetX, e.offsetY);
+                }
+
+                // Always reset state on pointerup
+                this.dragId = undefined;
+                this.dragMoved = false;
+                this.dragStartX = 0;
+                this.dragStartY = 0;
+            }
+        };
+
+        // Add event listeners for click detection
+        canvas.addEventListener('pointerdown', this.clickHandlers.pointerdown, true);
+        canvas.addEventListener('pointermove', this.clickHandlers.pointermove, true);
+        document.addEventListener('pointerup', this.clickHandlers.pointerup, true);
+    }
+
+    /**
+     * Handle polygon click - convert screen coordinates to world coordinates and pass to polygonManager
+     * This method only handles coordinate conversion, polygon finding and selection is handled by polygonManager
+     */
+    handlePolygonClick(screenX: number, screenY: number) {
+        try {
+            // Convert to world coordinates using camera ray casting
+            const camera = this.scene.camera.entity.camera;
+            const worldPoint = new Vec3();
+
+            // Project screen point to world space at far clip distance
+            camera.screenToWorld(screenX, screenY, camera.farClip * 0.5, worldPoint);
+
+            // Create a ray from camera to the world point
+            const cameraPos = this.scene.camera.entity.getPosition();
+            const rayDirection = worldPoint.sub(cameraPos).normalize();
+
+            // Intersect ray with Y-plane to get world coordinates
+            if (Math.abs(rayDirection.y) < 0.0001) {
+                console.warn('⚠️ Ray is nearly parallel to Y-plane, cannot intersect');
+                return;
+            }
+
+            const t = (this.yPlane - cameraPos.y) / rayDirection.y;
+            const worldIntersection = new Vec3(
+                cameraPos.x + rayDirection.x * t,
+                this.yPlane,
+                cameraPos.z + rayDirection.z * t
+            );
+
+            // Check for SuperSplatBridge in current window first, then parent window (iframe context)
+            let polygonManager = null;
+            if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
+                polygonManager = window.superSplatBridge.polygonManager;
+            } else if (window.parent && window.parent.superSplatBridge && window.parent.superSplatBridge.polygonManager) {
+                polygonManager = window.parent.superSplatBridge.polygonManager;
+            }
+
+            if (polygonManager) {
+                polygonManager.handlePolygonClickAtWorldPoint(worldIntersection, {
+                    screenX,
+                    screenY
+                });
+            } else {
+                console.warn('⚠️ SuperSplatBridge or PolygonManager not available');
+            }
+
+        } catch (error) {
+            console.error('❌ Error in handlePolygonClick:', error);
+        }
     }
 }
 

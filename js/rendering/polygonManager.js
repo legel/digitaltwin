@@ -1272,6 +1272,49 @@ class PolygonManager {
     }
 
     /**
+     * Handle polygon click at world point - find clicked polygon and trigger selection
+     * Called by point-overlay.ts after screen-to-world coordinate conversion
+     */
+    handlePolygonClickAtWorldPoint(worldPoint, screenData) {
+        try {
+            // Find which polygon was clicked
+            const clickedPolygon = this.findPolygonAtWorldPoint(worldPoint);
+
+            if (clickedPolygon) {
+                // Select the polygon (this will deselect others and select this one)
+                this.selectPolygon(clickedPolygon.name);
+
+                // Fire polygon.clicked event for superSplatBridge.js integration
+                // This maintains compatibility with the existing bridge system
+                if (window.superSplatScene && window.superSplatScene.events) {
+                    window.superSplatScene.events.fire('polygon.clicked', {
+                        polygonName: clickedPolygon.name,
+                        polygonGroup: clickedPolygon.group,
+                        worldPosition: {
+                            x: worldPoint.x,
+                            y: worldPoint.y,
+                            z: worldPoint.z
+                        },
+                        screenPosition: {
+                            x: screenData.screenX,
+                            y: screenData.screenY
+                        }
+                    });
+                } else {
+                    console.warn('⚠️ SuperSplat scene not available for polygon.clicked event');
+                }
+
+                return clickedPolygon;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Error in handlePolygonClickAtWorldPoint:', error);
+            return null;
+        }
+    }
+
+    /**
      * Send all visible polygons' rendering data to the renderer
      * Processes dirty polygons first, then aggregates all triangles into a single array for efficient mesh rendering
      */
@@ -1282,20 +1325,15 @@ class PolygonManager {
         }
 
         // Process dirty polygons before rendering
-        const processedCount = this.processDirtyPolygons();
-        if (processedCount > 0) {
-            console.log(`🔄 Processed ${processedCount} dirty polygons before rendering`);
-        }
+        this.processDirtyPolygons();
 
         const renderTriangles = this.getAllRenderTriangles();
 
         if (renderTriangles.length === 0) {
-            console.log('📊 No visible triangles to render');
             rendererCallback([]);
             return;
         }
 
-        console.log(`📊 Sending ${renderTriangles.length} triangles from ${this.polygons.filter(p => p.visible).length} visible polygons to renderer`);
         rendererCallback(renderTriangles);
     }
 

@@ -14,7 +14,11 @@ class SuperSplatBridge {
         this.lastUploadedSiteId = null;
 
         // Initialize polygon manager for centralized polygon handling
-        this.polygonManager = new window.PolygonManager();
+        if (window.PolygonManager) {
+            this.polygonManager = new window.PolygonManager();
+        } else {
+            console.error('❌ window.PolygonManager not available!');
+        }
 
         // Set up auto-renderer callback for immediate visual updates
         this.polygonManager.setAutoRendererCallback((renderTriangles) => {
@@ -371,9 +375,9 @@ class SuperSplatBridge {
             // Clear existing polygons from polygon manager
             this.polygonManager.clearPolygons();
 
-            // Clear existing polygons from SuperSplat (if needed)
+            // Clear existing triangles from new mesh system (if needed)
             if (window.superSplatScene && window.superSplatScene.events) {
-                window.superSplatScene.events.fire('triangleOverlay.clearPolygons');
+                window.superSplatScene.events.fire('meshTriangleOverlay.clearTriangles');
             }
 
             let polygonsRendered = 0;
@@ -478,10 +482,10 @@ class SuperSplatBridge {
             window.layerState.showPlantableAreas = true;
             window.layerState.showNonPlantableAreas = true;
 
-            // Sync SuperSplat group visibility with layer state
-            if (window.superSplatScene && window.superSplatScene.events) {
-                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'plantable-areas', window.layerState.showPlantableAreas);
-                window.superSplatScene.events.invoke('triangleOverlay.setGroupVisibility', 'non-plantable-areas', window.layerState.showNonPlantableAreas);
+            // Sync polygon visibility with layer state via polygonManager
+            if (this.polygonManager) {
+                this.polygonManager.setGroupVisibility('plantable-areas', window.layerState.showPlantableAreas);
+                this.polygonManager.setGroupVisibility('non-plantable-areas', window.layerState.showNonPlantableAreas);
             }
 
             // Update visibility button icons to match actual polygon visibility
@@ -723,7 +727,7 @@ class SuperSplatBridge {
 
         try {
             const events = window.superSplatScene.events;
-            events.invoke('triangleOverlay.clearTriangles');
+            events.invoke('meshTriangleOverlay.clearTriangles');
             console.log('🧹 All triangles cleared from SuperSplat');
             return true;
         } catch (error) {
@@ -743,7 +747,7 @@ class SuperSplatBridge {
 
         try {
             const events = window.superSplatScene.events;
-            events.invoke('triangleOverlay.setYPlane', yPlane);
+            events.invoke('meshTriangleOverlay.setYPlane', yPlane);
             console.log(`🔺 Triangle Y-plane set to ${yPlane}`);
             return true;
         } catch (error) {
@@ -1284,10 +1288,6 @@ class SuperSplatBridge {
 
 // Initialize the bridge for SuperSplat application
 function initializeSuperSplatBridge() {
-    // Always initialize the SuperSplat bridge
-    const hasSuperSplatScene = window.scene && window.scene.events;
-    const mode = hasSuperSplatScene ? 'direct SuperSplat scene' : 'SuperSplat application';
-
     window.superSplatBridge = new SuperSplatBridge();
 }
 
@@ -1300,7 +1300,6 @@ window.initializeSuperSplatBridge = initializeSuperSplatBridge;
 
 const checkForSuperSplatScene = () => {
     if (window.scene && window.scene.events && !window.superSplatBridge) {
-        console.log('🎯 SuperSplat scene detected, initializing bridge');
         initializeSuperSplatBridge();
     }
 };
