@@ -1497,12 +1497,20 @@ class PolygonManager {
 
     /**
      * Get all rendering triangles from visible polygons (format for renderer)
+     * Triangles with alpha of 0 are filtered out to prevent invisible triangles from covering other geometry
      */
     getAllRenderTriangles() {
         const allRenderTriangles = [];
         for (const polygon of this.polygons) {
             if (polygon.visible) {
-                allRenderTriangles.push(...polygon.getRenderTriangles());
+                const renderTriangles = polygon.getRenderTriangles();
+
+                // Filter out triangles with alpha of 0 (completely transparent)
+                const visibleTriangles = renderTriangles.filter(triangle => {
+                    return triangle.color && triangle.color.a > 0;
+                });
+
+                allRenderTriangles.push(...visibleTriangles);
             }
         }
         return allRenderTriangles;
@@ -1512,6 +1520,7 @@ class PolygonManager {
      * Get rendering triangles grouped by PA/NPA for layered rendering
      * Returns array of triangle groups: [paTriangles, npaTriangles]
      * Empty groups are filtered out, so result may have 0, 1, or 2 groups
+     * Triangles with alpha of 0 are filtered out to prevent invisible triangles from covering other geometry
      */
     getGroupedRenderTriangles() {
         const paTriangles = [];
@@ -1523,15 +1532,21 @@ class PolygonManager {
             }
 
             const renderTriangles = polygon.getRenderTriangles();
+
+            // Filter out triangles with alpha of 0 (completely transparent)
+            const visibleTriangles = renderTriangles.filter(triangle => {
+                return triangle.color && triangle.color.a > 0;
+            });
+
             // Group by polygon group (PA vs NPA)
             if (polygon.group === 'plantable-areas') {
-                paTriangles.push(...renderTriangles);
+                paTriangles.push(...visibleTriangles);
             } else if (polygon.group === 'non-plantable-areas') {
-                npaTriangles.push(...renderTriangles);
+                npaTriangles.push(...visibleTriangles);
             } else {
                 // Default ungrouped polygons to PA group
                 console.log(polygon.group);
-                paTriangles.push(...renderTriangles);
+                paTriangles.push(...visibleTriangles);
             }
         }
 
