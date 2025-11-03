@@ -35,15 +35,16 @@ interface TriangleData {
 
 /**
  * New mesh-based triangle overlay system for efficient rendering
- * Runs independently alongside the backup system for testing
+ * Supports multiple mesh layers to prevent Z-fighting between overlapping polygons
  */
 class MeshTriangleOverlay extends Element {
     visible = true;
-    private triangleMesh: Mesh | null = null;
-    private triangleEntity: Entity | null = null;
-    private material: StandardMaterial | null = null;
-    private meshInstance: MeshInstance | null = null;
+    private triangleMeshes: Mesh[] = [];
+    private triangleEntities: Entity[] = [];
+    private materials: StandardMaterial[] = [];
+    private meshInstances: MeshInstance[] = [];
     yPlane: number = 3.5; // Default Y plane - raised off ground
+    private readonly Y_PLANE_OFFSET = 0.01; // Small offset between mesh layers to prevent Z-fighting
 
     // Click detection properties
     private dragId: number | undefined;
@@ -113,39 +114,54 @@ class MeshTriangleOverlay extends Element {
             document.removeEventListener('pointerup', this.clickHandlers.pointerup);
         }
 
-        // Clean up mesh instance from layer
-        if (this.meshInstance) {
-            this.scene.debugLayer.removeMeshInstances([this.meshInstance]);
-            this.meshInstance = null;
-        }
-
-        // Clean up entity
-        if (this.triangleEntity) {
-            if (this.scene.root && this.triangleEntity.parent === this.scene.root) {
-                this.scene.root.removeChild(this.triangleEntity);
-            }
-            this.triangleEntity.destroy();
-            this.triangleEntity = null;
-        }
-
-        // Clean up mesh
-        if (this.triangleMesh) {
-            this.triangleMesh.destroy();
-            this.triangleMesh = null;
-        }
-
-        // Clean up material
-        if (this.material) {
-            this.material.destroy();
-            this.material = null;
-        }
+        // Clean up all mesh instances
+        this.cleanupAllMeshes();
     }
 
     /**
-     * Generic function to render an array of triangles as a mesh
+     * Clean up all mesh instances, entities, meshes, and materials
      */
-    private renderTriangles(triangles: TriangleData[]) {
+    private cleanupAllMeshes() {
+        // Clean up mesh instances from layer
+        if (this.meshInstances.length > 0) {
+            this.scene.debugLayer.removeMeshInstances(this.meshInstances);
+            this.meshInstances = [];
+        }
 
+        // Clean up entities
+        this.triangleEntities.forEach(entity => {
+            if (entity && this.scene.app.root && entity.parent === this.scene.app.root) {
+                this.scene.app.root.removeChild(entity);
+            }
+            if (entity) {
+                entity.destroy();
+            }
+        });
+        this.triangleEntities = [];
+
+        // Clean up meshes
+        this.triangleMeshes.forEach(mesh => {
+            if (mesh) {
+                mesh.destroy();
+            }
+        });
+        this.triangleMeshes = [];
+
+        // Clean up materials
+        this.materials.forEach(material => {
+            if (material) {
+                material.destroy();
+            }
+        });
+        this.materials = [];
+    }
+
+    /**
+     * Render multiple groups of triangles as separate meshes with Y-plane offsets
+     * Groups are rendered at incrementally higher Y-planes to prevent Z-fighting
+     * @param triangleGroups Array of triangle arrays - first group at base Y-plane, subsequent groups slightly higher
+     */
+    private renderTriangleGroups(triangleGroups: TriangleData[][]) {
         const device = this.scene.app.graphicsDevice;
         if (!device) {
             console.error('❌ Graphics device not available');
@@ -153,11 +169,11 @@ class MeshTriangleOverlay extends Element {
         }
 
         try {
-            // Clean up existing mesh if any
-            this.remove();
+            // Clean up existing meshes
+            this.cleanupAllMeshes();
 
-            // Handle empty triangles case - just clear existing triangles and return
-            if (triangles.length === 0) {
+            // Handle empty groups case - just clear existing triangles and return
+            if (triangleGroups.length === 0 || triangleGroups.every(group => group.length === 0)) {
                 // Force immediate render update to clear triangles from view
                 if (this.scene) {
                     this.scene.forceRender = true;
@@ -165,82 +181,101 @@ class MeshTriangleOverlay extends Element {
                 return;
             }
 
-            // Create new mesh
-            this.triangleMesh = new Mesh(device);
-
-            const totalTriangles = triangles.length;
-            const positions = new Float32Array(totalTriangles * 9);  // 3 vertices * 3 components
-            const colors = new Float32Array(totalTriangles * 12);    // 3 vertices * 4 components
-            const indices = new Uint16Array(totalTriangles * 3);     // 3 indices per triangle
-
-            // Process each triangle
-            triangles.forEach((triangle, triangleIndex) => {
-                for (let v = 0; v < 3; v++) {
-                    const vertex = triangle.vertices[v];
-                    const posOffset = (triangleIndex * 3 + v) * 3;
-                    const colorOffset = (triangleIndex * 3 + v) * 4;
-
-                    // Set position with Y-plane applied
-                    positions[posOffset + 0] = vertex[0]; // X
-                    positions[posOffset + 1] = this.yPlane; // Y - use the calculated Y-plane
-                    positions[posOffset + 2] = vertex[2]; // Z
-
-                    // Set color (same for all 3 vertices of this triangle)
-                    colors[colorOffset + 0] = triangle.color.r;
-                    colors[colorOffset + 1] = triangle.color.g;
-                    colors[colorOffset + 2] = triangle.color.b;
-                    colors[colorOffset + 3] = triangle.color.a;
-
-                    // Set index
-                    indices[triangleIndex * 3 + v] = triangleIndex * 3 + v;
+            // Create a separate mesh for each group
+            triangleGroups.forEach((triangles, groupIndex) => {
+                if (triangles.length === 0) {
+                    return; // Skip empty groups
                 }
+
+                // Calculate Y-plane for this group (first group at base, subsequent groups slightly higher)
+                const groupYPlane = this.yPlane + (groupIndex * this.Y_PLANE_OFFSET);
+
+                // Create mesh for this group
+                const mesh = new Mesh(device);
+                const totalTriangles = triangles.length;
+                const positions = new Float32Array(totalTriangles * 9);  // 3 vertices * 3 components
+                const colors = new Float32Array(totalTriangles * 12);    // 3 vertices * 4 components
+                const indices = new Uint16Array(totalTriangles * 3);     // 3 indices per triangle
+
+                // Process each triangle in this group
+                triangles.forEach((triangle, triangleIndex) => {
+                    for (let v = 0; v < 3; v++) {
+                        const vertex = triangle.vertices[v];
+                        const posOffset = (triangleIndex * 3 + v) * 3;
+                        const colorOffset = (triangleIndex * 3 + v) * 4;
+
+                        // Set position with group-specific Y-plane
+                        positions[posOffset + 0] = vertex[0]; // X
+                        positions[posOffset + 1] = groupYPlane; // Y - use group-specific Y-plane
+                        positions[posOffset + 2] = vertex[2]; // Z
+
+                        // Set color (same for all 3 vertices of this triangle)
+                        colors[colorOffset + 0] = triangle.color.r;
+                        colors[colorOffset + 1] = triangle.color.g;
+                        colors[colorOffset + 2] = triangle.color.b;
+                        colors[colorOffset + 3] = triangle.color.a;
+
+                        // Set index
+                        indices[triangleIndex * 3 + v] = triangleIndex * 3 + v;
+                    }
+                });
+
+                // Set mesh data
+                mesh.setPositions(positions, 3);
+                mesh.setColors(colors);
+                mesh.setIndices(indices);
+
+                // Calculate normals
+                const normals = calculateNormals(positions, indices);
+                mesh.setNormals(normals, 3);
+                mesh.update();
+
+                // Create material
+                const material = new StandardMaterial();
+                material.useLighting = false;
+                material.emissiveVertexColor = true;
+                material.emissive = new Color(1, 1, 1);
+                material.blendType = BLEND_NORMAL;
+                material.opacityVertexColor = true;
+                material.update();
+
+                // Create entity and mesh instance
+                const entity = new Entity(`triangle-mesh-group-${groupIndex}`);
+                entity.addComponent("render", {
+                    type: 'box',
+                });
+
+                const meshInstance = new MeshInstance(mesh, material);
+                entity.render.meshInstances = [meshInstance];
+
+                // Add to scene
+                if (this.scene.app.root) {
+                    this.scene.app.root.addChild(entity);
+                }
+
+                // Store references for cleanup
+                this.triangleMeshes.push(mesh);
+                this.materials.push(material);
+                this.triangleEntities.push(entity);
+                this.meshInstances.push(meshInstance);
             });
-
-            // Set mesh data
-            this.triangleMesh.setPositions(positions, 3);
-            this.triangleMesh.setColors(colors);
-            this.triangleMesh.setIndices(indices);
-
-            // Calculate normals
-            const normals = calculateNormals(positions, indices);
-            this.triangleMesh.setNormals(normals, 3);
-            this.triangleMesh.update();
-
-            // Create material
-            this.material = new StandardMaterial();
-            this.material.useLighting = false;
-            this.material.emissiveVertexColor = true;
-            this.material.emissive = new Color(1, 1, 1);
-            //this.material.cull = CULLFACE_NONE;
-            this.material.blendType = BLEND_NORMAL;
-            this.material.opacityVertexColor = true;
-            this.material.update();
-
-            // Create entity and mesh instance
-            this.triangleEntity = new Entity('triangle-mesh');
-            this.triangleEntity.addComponent("render", {
-                type: 'box',
-            });
-
-            const meshInstance = new MeshInstance(this.triangleMesh, this.material);
-            this.triangleEntity.render.meshInstances = [meshInstance];
-
-            // Add to scene
-            if (this.scene.app.root) {
-                this.scene.app.root.addChild(this.triangleEntity);
-            }
-
-            this.meshInstance = meshInstance;
 
             // Force immediate render update so triangles appear without camera movement
             if (this.scene) {
                 this.scene.forceRender = true;
             }
 
-
         } catch (error) {
-            console.error('❌ Error in renderTriangles:', error);
+            console.error('❌ Error in renderTriangleGroups:', error);
         }
+    }
+
+    /**
+     * Legacy function to render a single array of triangles as a mesh
+     * Wraps the new renderTriangleGroups function for backward compatibility
+     */
+    private renderTriangles(triangles: TriangleData[]) {
+        this.renderTriangleGroups([triangles]);
     }
 
     /**
@@ -363,6 +398,11 @@ class MeshTriangleOverlay extends Element {
             this.renderTriangles(triangles);
         });
 
+        this.scene.events.function('meshTriangleOverlay.renderTriangleGroups', (triangleGroups: any[][]) => {
+            // Convert and render multiple groups of triangle data using the layered mesh system
+            this.renderTriangleGroups(triangleGroups);
+        });
+
         this.scene.events.function('meshTriangleOverlay.updateYPlaneFromSplats', () => {
             this.updateYPlaneFromSplats();
         });
@@ -386,14 +426,20 @@ class MeshTriangleOverlay extends Element {
      * Check if overlay is visible and has content
      */
     isVisible(): boolean {
-        return this.visible && this.triangleEntity !== null;
+        return this.visible && this.triangleEntities.length > 0;
     }
 
     /**
-     * Get current triangle count (for performance monitoring)
+     * Get current triangle count across all mesh groups (for performance monitoring)
      */
     getTriangleCount(): number {
-        return this.triangleEntity ? 20 : 0; // 20 triangles: 2 bordered quadrilaterals (10 each)
+        let totalTriangles = 0;
+        this.triangleMeshes.forEach(mesh => {
+            if (mesh && mesh.indexBuffer) {
+                totalTriangles += mesh.indexBuffer.getNumIndices() / 3;
+            }
+        });
+        return totalTriangles;
     }
 
     /**
