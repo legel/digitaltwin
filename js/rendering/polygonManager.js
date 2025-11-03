@@ -11,9 +11,6 @@ const ChangeType = {
     // Geometry changes - require full retriangulation and border recalculation
     GEOMETRY: 'geometry',
 
-    // Border changes - require border triangle recalculation but not fill triangulation
-    BORDER: 'border',
-
     // Visual changes - only require render data update (colors, alpha)
     VISUAL: 'visual',
 
@@ -118,6 +115,11 @@ class Polygon {
         this.polygonWindingClockwise = undefined;
         this.cachedTriangleCount = 0;
 
+        // Inset polygon data for proper border rendering
+        this.originalVertices = this.vertices.map(v => this.cloneVec3(v)); // Store original vertices
+        this.shrunkVertices = []; // Inset vertices for fill triangulation
+        this.shrunkPolygonValid = true; // Flag to track if shrinking was successful
+
         // Rendering data (format sent to renderer)
         this.renderTriangles = [];
         this.borderTriangles = [];
@@ -127,7 +129,8 @@ class Polygon {
         this.dirtyChangeTypes = new Set();
         this.manager = null; // Reference to parent manager for dirty notifications
 
-        // Automatically triangulate the polygon and calculate rendering data
+        // Automatically shrink polygon, triangulate, and calculate rendering data
+        this.shrinkPolygon();
         this.triangulate();
         this.generateBorderTriangles();
         this.calculateRenderingData();
@@ -164,26 +167,379 @@ class Polygon {
     }
 
     /**
-     * Triangulate the polygon into triangles using fan triangulation
-     * Marks polygon perimeter edges as visible, internal edges as invisible
+     * Shrink polygon inward by border thickness to create proper fill area
+     * This prevents fill/border overlap and ensures seamless border connections
+     */
+    shrinkPolygon() {
+        this.shrunkVertices = [];
+        this.shrunkPolygonValid = true;
+
+        if (this.vertices.length < 3 || this.outlineThickness <= 0) {
+            // No shrinking needed for invalid polygons or zero thickness
+            this.shrunkVertices = this.vertices.map(v => this.cloneVec3(v));
+            return;
+        }
+
+        // Calculate polygon centroid for scaling fallback
+        const centroid = this.calculateCentroid();
+        const originalArea = this.calculateArea();
+
+        // Calculate minimum area threshold (50% of original)
+        const minAreaThreshold = originalArea * 0.5;
+
+        try {
+            // Method 1: Try inward normal displacement
+            const insetVertices = this.calculateInsetVertices();
+
+            if (insetVertices && insetVertices.length >= 3) {
+                // Check if inset polygon is valid and not too small
+                const insetArea = this.calculateAreaFromVertices(insetVertices);
+
+                if (insetArea >= minAreaThreshold && this.isPolygonValid(insetVertices)) {
+                    this.shrunkVertices = insetVertices;
+                    return;
+                }
+            }
+
+            // Method 2: Fallback to uniform scaling from centroid
+            this.shrunkVertices = this.calculateScaledVertices(centroid, Math.sqrt(minAreaThreshold / originalArea));
+
+        } catch (error) {
+            console.warn(`⚠️ Polygon "${this.name}" shrinking failed: ${error.message}, using original vertices`);
+            this.shrunkVertices = this.vertices.map(v => this.cloneVec3(v));
+            this.shrunkPolygonValid = false;
+        }
+    }
+
+    /**
+     * Calculate polygon centroid (center point)
+     */
+    calculateCentroid() {
+        let cx = 0, cz = 0;
+        for (const vertex of this.vertices) {
+            cx += vertex.x;
+            cz += vertex.z;
+        }
+        return {
+            x: cx / this.vertices.length,
+            y: this.vertices[0].y || 0,
+            z: cz / this.vertices.length
+        };
+    }
+
+    /**
+     * Calculate area from a given set of vertices
+     */
+    calculateAreaFromVertices(vertices) {
+        if (vertices.length < 3) return 0;
+
+        let area = 0;
+        const n = vertices.length;
+
+        for (let i = 0; i < n; i++) {
+            const j = (i + 1) % n;
+            area += vertices[i].x * vertices[j].z;
+            area -= vertices[j].x * vertices[i].z;
+        }
+
+        return Math.abs(area) / 2;
+    }
+
+    /**
+     * Calculate inset vertices by moving each vertex inward along its bisector normal
+     */
+    calculateInsetVertices() {
+        const insetVertices = [];
+        const n = this.vertices.length;
+
+        if (n < 3) return null;
+
+        // Determine polygon winding if not already done
+        if (this.polygonWindingClockwise === undefined) {
+            this.determinePolygonWinding();
+        }
+
+        for (let i = 0; i < n; i++) {
+            const prev = this.vertices[(i - 1 + n) % n];
+            const curr = this.vertices[i];
+            const next = this.vertices[(i + 1) % n];
+
+            // Calculate inward bisector normal for this vertex
+            const bisectorNormal = this.calculateInwardBisectorNormal(prev, curr, next);
+
+            if (!bisectorNormal) {
+                // Fallback for degenerate cases
+                console.warn(`⚠️ Could not calculate bisector for vertex ${i} in polygon "${this.name}"`);
+                return null;
+            }
+
+            // Move vertex inward along bisector normal
+            const insetVertex = {
+                x: curr.x - bisectorNormal.x * this.outlineThickness,
+                y: curr.y || 0,
+                z: curr.z - bisectorNormal.z * this.outlineThickness
+            };
+
+            insetVertices.push(insetVertex);
+        }
+
+        // Clean up self-intersections if any
+        return this.cleanupSelfIntersections(insetVertices);
+    }
+
+    /**
+     * Calculate inward-pointing bisector normal for a vertex
+     * Takes the angle bisector of the two adjacent edges and points it inward
+     */
+    calculateInwardBisectorNormal(prevVertex, currVertex, nextVertex) {
+        // Calculate edge vectors
+        const edge1X = prevVertex.x - currVertex.x;
+        const edge1Z = prevVertex.z - currVertex.z;
+        const edge2X = nextVertex.x - currVertex.x;
+        const edge2Z = nextVertex.z - currVertex.z;
+
+        // Normalize edge vectors
+        const edge1Len = Math.sqrt(edge1X * edge1X + edge1Z * edge1Z);
+        const edge2Len = Math.sqrt(edge2X * edge2X + edge2Z * edge2Z);
+
+        if (edge1Len < 1e-10 || edge2Len < 1e-10) {
+            return null; // Degenerate edge
+        }
+
+        const norm1X = edge1X / edge1Len;
+        const norm1Z = edge1Z / edge1Len;
+        const norm2X = edge2X / edge2Len;
+        const norm2Z = edge2Z / edge2Len;
+
+        // Calculate bisector direction (average of normalized edges)
+        let bisectorX = (norm1X + norm2X) / 2;
+        let bisectorZ = (norm1Z + norm2Z) / 2;
+
+        // Handle parallel edges (bisector would be zero)
+        const bisectorLen = Math.sqrt(bisectorX * bisectorX + bisectorZ * bisectorZ);
+        if (bisectorLen < 1e-10) {
+            // Use perpendicular to one of the edges
+            bisectorX = -norm1Z;
+            bisectorZ = norm1X;
+        } else {
+            // Normalize bisector
+            bisectorX /= bisectorLen;
+            bisectorZ /= bisectorLen;
+        }
+
+        // Determine if bisector points inward or outward using cross product
+        const cross = edge1X * edge2Z - edge1Z * edge2X;
+        const isConvexVertex = this.polygonWindingClockwise ? cross < 0 : cross > 0;
+
+        // For convex vertices, bisector naturally points inward
+        // For concave vertices, we need to flip it
+        if (!isConvexVertex) {
+            bisectorX = -bisectorX;
+            bisectorZ = -bisectorZ;
+        }
+
+        // Calculate scaling factor to maintain consistent inset distance
+        // This is needed because bisector length varies with vertex angle
+        const dotProduct = norm1X * norm2X + norm1Z * norm2Z;
+        const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
+        const scaleFactor = 1 / Math.sin(angle / 2);
+
+        // Clamp scale factor to prevent extreme values at sharp angles
+        const clampedScaleFactor = Math.min(scaleFactor, 10);
+
+        return {
+            x: bisectorX * clampedScaleFactor,
+            z: bisectorZ * clampedScaleFactor
+        };
+    }
+
+    /**
+     * Clean up self-intersections in the inset polygon
+     * Detects when inward displacement causes vertices to cross and either reduces displacement or fails
+     */
+    cleanupSelfIntersections(vertices) {
+        if (vertices.length < 3) return vertices;
+
+        // Check for edge crossings in the inset polygon
+        if (this.hasEdgeCrossings(vertices)) {
+
+            // Try with reduced displacement (50% of original)
+            const reducedVertices = this.calculateInsetVerticesWithReduction(0.5);
+            if (reducedVertices && !this.hasEdgeCrossings(reducedVertices)) {
+                return reducedVertices;
+            }
+
+            // Try with further reduced displacement (25% of original)
+            const furtherReducedVertices = this.calculateInsetVerticesWithReduction(0.25);
+            if (furtherReducedVertices && !this.hasEdgeCrossings(furtherReducedVertices)) {
+                return furtherReducedVertices;
+            }
+
+            // If still problematic, return null to trigger fallback
+            return null;
+        }
+
+        return vertices;
+    }
+
+    /**
+     * Detect if any edges cross each other in the polygon (self-intersection detection)
+     */
+    hasEdgeCrossings(vertices) {
+        const n = vertices.length;
+        if (n < 4) return false; // Need at least 4 vertices to have crossing edges
+
+        // Check each edge against every other non-adjacent edge
+        for (let i = 0; i < n; i++) {
+            const edge1Start = vertices[i];
+            const edge1End = vertices[(i + 1) % n];
+
+            // Check against non-adjacent edges (skip adjacent and next-adjacent)
+            for (let j = i + 2; j < n; j++) {
+                if (j === n - 1 && i === 0) continue; // Skip wrap-around adjacent edge
+
+                const edge2Start = vertices[j];
+                const edge2End = vertices[(j + 1) % n];
+
+                if (this.edgesIntersect(edge1Start, edge1End, edge2Start, edge2End)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if two line segments intersect
+     */
+    edgesIntersect(p1, q1, p2, q2) {
+        // Using orientation method for line segment intersection
+        const o1 = this.orientation(p1, q1, p2);
+        const o2 = this.orientation(p1, q1, q2);
+        const o3 = this.orientation(p2, q2, p1);
+        const o4 = this.orientation(p2, q2, q1);
+
+        // General case - different orientations
+        if (o1 !== o2 && o3 !== o4) {
+            return true;
+        }
+
+        // Special cases for collinear points
+        if (o1 === 0 && this.onSegment(p1, p2, q1)) return true;
+        if (o2 === 0 && this.onSegment(p1, q2, q1)) return true;
+        if (o3 === 0 && this.onSegment(p2, p1, q2)) return true;
+        if (o4 === 0 && this.onSegment(p2, q1, q2)) return true;
+
+        return false;
+    }
+
+    /**
+     * Calculate orientation of ordered triplet (p, q, r)
+     * Returns 0 if collinear, 1 if clockwise, 2 if counterclockwise
+     */
+    orientation(p, q, r) {
+        const val = (q.z - p.z) * (r.x - q.x) - (q.x - p.x) * (r.z - q.z);
+        if (Math.abs(val) < 1e-10) return 0; // Collinear
+        return (val > 0) ? 1 : 2; // Clockwise or counterclockwise
+    }
+
+    /**
+     * Check if point q lies on line segment pr
+     */
+    onSegment(p, q, r) {
+        return (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+                q.z <= Math.max(p.z, r.z) && q.z >= Math.min(p.z, r.z));
+    }
+
+    /**
+     * Calculate inset vertices with reduced displacement factor
+     */
+    calculateInsetVerticesWithReduction(reductionFactor) {
+        const insetVertices = [];
+        const n = this.vertices.length;
+
+        if (n < 3) return null;
+
+        // Determine polygon winding if not already done
+        if (this.polygonWindingClockwise === undefined) {
+            this.determinePolygonWinding();
+        }
+
+        for (let i = 0; i < n; i++) {
+            const prev = this.vertices[(i - 1 + n) % n];
+            const curr = this.vertices[i];
+            const next = this.vertices[(i + 1) % n];
+
+            // Calculate inward bisector normal for this vertex
+            const bisectorNormal = this.calculateInwardBisectorNormal(prev, curr, next);
+
+            if (!bisectorNormal) {
+                return null;
+            }
+
+            // Move vertex inward along bisector normal with reduced displacement
+            const reducedThickness = this.outlineThickness * reductionFactor;
+            const insetVertex = {
+                x: curr.x - bisectorNormal.x * reducedThickness,
+                y: curr.y || 0,
+                z: curr.z - bisectorNormal.z * reducedThickness
+            };
+
+            insetVertices.push(insetVertex);
+        }
+
+        return insetVertices;
+    }
+
+    /**
+     * Calculate scaled vertices from centroid (fallback method)
+     */
+    calculateScaledVertices(centroid, scaleFactor) {
+        return this.vertices.map(vertex => ({
+            x: centroid.x + (vertex.x - centroid.x) * scaleFactor,
+            y: vertex.y || 0,
+            z: centroid.z + (vertex.z - centroid.z) * scaleFactor
+        }));
+    }
+
+    /**
+     * Check if a polygon is valid (no self-intersections, proper winding)
+     */
+    isPolygonValid(vertices) {
+        if (vertices.length < 3) return false;
+
+        // Simple validity check: ensure polygon area is positive
+        const area = this.calculateAreaFromVertices(vertices);
+        return area > 1e-10;
+    }
+
+    /**
+     * Triangulate the polygon into triangles using the shrunk vertices for fill
+     * This prevents fill/border overlap and ensures clean rendering
      */
     triangulate() {
         this.triangles = [];
         this.exteriorEdges = undefined; // Reset exterior edge set for re-triangulation
         this.polygonWindingClockwise = undefined; // Reset winding determination
 
-        if (this.vertices.length < 3) {
+        // Use shrunk vertices for triangulation if available and valid
+        const triangulationVertices = (this.shrunkVertices && this.shrunkVertices.length >= 3 && this.shrunkPolygonValid)
+            ? this.shrunkVertices
+            : this.vertices;
+
+        if (triangulationVertices.length < 3) {
             console.warn(`⚠️ Polygon "${this.name}" has less than 3 vertices - cannot triangulate`);
             this.cachedTriangleCount = 0;
             return;
         }
 
-        if (this.vertices.length === 3) {
+        if (triangulationVertices.length === 3) {
             // Already a triangle - all edges are perimeter edges
             this.triangles.push({
-                v0: this.cloneVec3(this.vertices[0]),
-                v1: this.cloneVec3(this.vertices[1]),
-                v2: this.cloneVec3(this.vertices[2]),
+                v0: this.cloneVec3(triangulationVertices[0]),
+                v1: this.cloneVec3(triangulationVertices[1]),
+                v2: this.cloneVec3(triangulationVertices[2]),
                 color: this.cloneVec3(this.color),
                 fillAlpha: this.fillAlpha,
                 outlineColor: this.cloneVec3(this.outlineColor),
@@ -198,12 +554,12 @@ class Polygon {
         }
 
         // Choose triangulation method based on polygon complexity
-        if (this.vertices.length <= 6) {
+        if (triangulationVertices.length <= 6) {
             // Simple polygon: use fast fan triangulation
-            this.triangulateWithFan();
+            this.triangulateWithFan(triangulationVertices);
         } else {
             // Complex polygon: use ear clipping for accurate triangulation
-            this.triangulateWithEarClipping();
+            this.triangulateWithEarClipping(triangulationVertices);
         }
 
         // Cache triangle count for performance
@@ -213,14 +569,14 @@ class Polygon {
     /**
      * Fan triangulation (original method) - fast but only works for convex polygons
      */
-    triangulateWithFan() {
-        const firstVertex = this.vertices[0];
-        const numVertices = this.vertices.length;
+    triangulateWithFan(vertices = this.vertices) {
+        const firstVertex = vertices[0];
+        const numVertices = vertices.length;
 
         for (let i = 1; i < numVertices - 1; i++) {
             const v0 = this.cloneVec3(firstVertex);          // Fan center (first vertex)
-            const v1 = this.cloneVec3(this.vertices[i]);     // Current vertex
-            const v2 = this.cloneVec3(this.vertices[i + 1]); // Next vertex
+            const v1 = this.cloneVec3(vertices[i]);     // Current vertex
+            const v2 = this.cloneVec3(vertices[i + 1]); // Next vertex
 
             // Ensure counterclockwise winding for PlayCanvas
             let finalV0, finalV1, finalV2;
@@ -269,9 +625,9 @@ class Polygon {
     /**
      * Ear clipping triangulation - handles complex and concave polygons correctly
      */
-    triangulateWithEarClipping() {
+    triangulateWithEarClipping(vertices = this.vertices) {
         // Create working copy of vertices with indices
-        const workingVertices = this.vertices.map((v, i) => ({
+        const workingVertices = vertices.map((v, i) => ({
             vertex: this.cloneVec3(v),
             originalIndex: i
         }));
@@ -614,13 +970,14 @@ class Polygon {
         // Track geometry changes
         if (data.vertices) {
             this.vertices = data.vertices.map(v => this.cloneVec3(v));
+            this.originalVertices = this.vertices.map(v => this.cloneVec3(v)); // Update original vertices too
             changeTypes.add(ChangeType.GEOMETRY);
         }
 
         // Track border-affecting changes
         if (data.outlineThickness !== undefined && data.outlineThickness !== this.outlineThickness) {
             this.outlineThickness = data.outlineThickness;
-            changeTypes.add(ChangeType.BORDER);
+            changeTypes.add(ChangeType.GEOMETRY); // Treat as geometry change since shrunk vertices depend on thickness
         }
 
         // Track visual changes
@@ -673,14 +1030,9 @@ class Polygon {
         // If multiple change types are present, we only need to do the most expensive operation
 
         if (this.hasChangeType(ChangeType.GEOMETRY)) {
-            // Geometry changes require full retriangulation + border recalculation + render data update
+            // Geometry changes require polygon shrinking + full retriangulation + border recalculation + render data update
+            this.shrinkPolygon();
             this.triangulate();
-            this.generateBorderTriangles();
-            this.calculateRenderingData();
-            renderDataUpdated = true;
-        }
-        else if (this.hasChangeType(ChangeType.BORDER)) {
-            // Border changes require border recalculation + render data update (but not triangulation)
             this.generateBorderTriangles();
             this.calculateRenderingData();
             renderDataUpdated = true;
@@ -769,14 +1121,29 @@ class Polygon {
     }
 
     /**
-     * Generate border triangles from polygon edges
-     * Creates quadrilateral borders (2 triangles each) for each edge of the polygon
+     * Generate border triangles using original and shrunk polygon vertices
+     * Creates seamless border quads (2 triangles each) between the original and inset edges
+     * This prevents gaps and overlaps with the fill triangulation
      */
     generateBorderTriangles() {
         this.borderTriangles = [];
 
-        if (this.vertices.length < 3 || this.outlineThickness <= 0) {
+        if (this.originalVertices.length < 3 || this.outlineThickness <= 0) {
             return; // No border for invalid polygons or zero thickness
+        }
+
+        // Use shrunk vertices if available and valid, otherwise fall back to simple inward offset
+        let innerVertices;
+        if (this.shrunkVertices && this.shrunkVertices.length >= 3 && this.shrunkPolygonValid) {
+            innerVertices = this.shrunkVertices;
+        } else {
+            // Fallback: create simple inward offset vertices
+            innerVertices = this.createSimpleInwardOffset();
+        }
+
+        if (innerVertices.length !== this.originalVertices.length) {
+            console.warn(`⚠️ Vertex count mismatch in polygon "${this.name}" - cannot generate seamless borders`);
+            return;
         }
 
         // Convert outline color to RGBA format (borders are always opaque)
@@ -787,84 +1154,47 @@ class Polygon {
             a: 1.0 // Borders are always opaque
         };
 
-        const numVertices = this.vertices.length;
+        const numVertices = this.originalVertices.length;
 
-        // Generate border quad for each edge
+        // Generate border quad for each edge using original and inner vertices
         for (let i = 0; i < numVertices; i++) {
-            const current = this.vertices[i];
-            const next = this.vertices[(i + 1) % numVertices];
+            const outerCurrent = this.originalVertices[i];
+            const outerNext = this.originalVertices[(i + 1) % numVertices];
+            const innerCurrent = innerVertices[i];
+            const innerNext = innerVertices[(i + 1) % numVertices];
 
-            // Calculate edge direction and perpendicular (outward normal)
-            const edgeX = next.x - current.x;
-            const edgeZ = next.z - current.z;
-            const edgeLength = Math.sqrt(edgeX * edgeX + edgeZ * edgeZ);
+            // Create border quad using corresponding vertices from both polygons
+            // This ensures perfect alignment and no gaps
+            let tri1Vertices, tri2Vertices;
 
-            if (edgeLength < 1e-10) {
-                continue; // Skip degenerate edges
-            }
-
-            // Normalized perpendicular vector (pointing outward from polygon)
-            const normalX = -edgeZ / edgeLength; // Perpendicular to edge
-            const normalZ = edgeX / edgeLength;
-
-            // Determine if we need to flip the normal based on polygon winding
+            // Determine triangle winding based on polygon orientation
             if (this.polygonWindingClockwise === undefined) {
                 this.determinePolygonWinding();
             }
 
-            // For clockwise polygons, flip the normal to point outward
-            const outwardNormalX = this.polygonWindingClockwise ? -normalX : normalX;
-            const outwardNormalZ = this.polygonWindingClockwise ? -normalZ : normalZ;
-
-            // Create inner and outer edge vertices
-            // Outer edge is the true polygon edge, inner edge goes inward
-            const outerStart = {
-                x: current.x,
-                y: current.y || 0,
-                z: current.z
-            };
-            const outerEnd = {
-                x: next.x,
-                y: next.y || 0,
-                z: next.z
-            };
-            const innerStart = {
-                x: current.x + outwardNormalX * this.outlineThickness,
-                y: current.y || 0,
-                z: current.z + outwardNormalZ * this.outlineThickness
-            };
-            const innerEnd = {
-                x: next.x + outwardNormalX * this.outlineThickness,
-                y: next.y || 0,
-                z: next.z + outwardNormalZ * this.outlineThickness
-            };
-
-            // Create two triangles for the border quad
-            // Apply winding correction to ensure consistent triangle orientation
-            let tri1Vertices, tri2Vertices;
             if (this.polygonWindingClockwise) {
-                // Input is clockwise, keep original order to face upward
+                // Clockwise winding: maintain order for upward-facing triangles
                 tri1Vertices = [
-                    [innerStart.x, innerStart.y, innerStart.z],
-                    [outerStart.x, outerStart.y, outerStart.z],
-                    [innerEnd.x, innerEnd.y, innerEnd.z]
+                    [innerCurrent.x, innerCurrent.y || 0, innerCurrent.z],
+                    [outerCurrent.x, outerCurrent.y || 0, outerCurrent.z],
+                    [innerNext.x, innerNext.y || 0, innerNext.z]
                 ];
                 tri2Vertices = [
-                    [innerEnd.x, innerEnd.y, innerEnd.z],
-                    [outerStart.x, outerStart.y, outerStart.z],
-                    [outerEnd.x, outerEnd.y, outerEnd.z]
+                    [innerNext.x, innerNext.y || 0, innerNext.z],
+                    [outerCurrent.x, outerCurrent.y || 0, outerCurrent.z],
+                    [outerNext.x, outerNext.y || 0, outerNext.z]
                 ];
             } else {
-                // Input is counterclockwise, reverse triangle winding to face upward
+                // Counterclockwise winding: reverse for upward-facing triangles
                 tri1Vertices = [
-                    [innerStart.x, innerStart.y, innerStart.z],
-                    [innerEnd.x, innerEnd.y, innerEnd.z],
-                    [outerStart.x, outerStart.y, outerStart.z]
+                    [innerCurrent.x, innerCurrent.y || 0, innerCurrent.z],
+                    [innerNext.x, innerNext.y || 0, innerNext.z],
+                    [outerCurrent.x, outerCurrent.y || 0, outerCurrent.z]
                 ];
                 tri2Vertices = [
-                    [innerEnd.x, innerEnd.y, innerEnd.z],
-                    [outerEnd.x, outerEnd.y, outerEnd.z],
-                    [outerStart.x, outerStart.y, outerStart.z]
+                    [innerNext.x, innerNext.y || 0, innerNext.z],
+                    [outerNext.x, outerNext.y || 0, outerNext.z],
+                    [outerCurrent.x, outerCurrent.y || 0, outerCurrent.z]
                 ];
             }
 
@@ -873,6 +1203,20 @@ class Polygon {
 
             this.borderTriangles.push(borderTriangle1, borderTriangle2);
         }
+    }
+
+    /**
+     * Create simple inward offset vertices as fallback when shrinking fails
+     */
+    createSimpleInwardOffset() {
+        const centroid = this.calculateCentroid();
+        const scaleFactor = Math.max(0.75, 1 - (this.outlineThickness / Math.sqrt(this.calculateArea())));
+
+        return this.originalVertices.map(vertex => ({
+            x: centroid.x + (vertex.x - centroid.x) * scaleFactor,
+            y: vertex.y || 0,
+            z: centroid.z + (vertex.z - centroid.z) * scaleFactor
+        }));
     }
 
     /**
@@ -996,7 +1340,6 @@ class PolygonManager {
 
         let processedCount = 0;
         const geometryPolygons = [];
-        const borderPolygons = [];
         const visualPolygons = [];
         const visibilityPolygons = [];
 
@@ -1004,8 +1347,6 @@ class PolygonManager {
         for (const [polygon, entry] of this.dirtyPolygons.entries()) {
             if (entry.hasChangeType(ChangeType.GEOMETRY)) {
                 geometryPolygons.push(polygon);
-            } else if (entry.hasChangeType(ChangeType.BORDER)) {
-                borderPolygons.push(polygon);
             } else if (entry.hasChangeType(ChangeType.VISUAL)) {
                 visualPolygons.push(polygon);
             } else if (entry.hasChangeType(ChangeType.VISIBILITY)) {
@@ -1023,12 +1364,6 @@ class PolygonManager {
             }
         });
 
-        // Process border changes
-        borderPolygons.forEach(polygon => {
-            if (polygon.processDirtyChanges()) {
-                processedCount++;
-            }
-        });
 
         // Process visual changes
         visualPolygons.forEach(polygon => {
@@ -1072,14 +1407,12 @@ class PolygonManager {
         const stats = {
             total: this.dirtyPolygons.size,
             geometry: 0,
-            border: 0,
             visual: 0,
             visibility: 0
         };
 
         for (const entry of this.dirtyPolygons.values()) {
             if (entry.hasChangeType(ChangeType.GEOMETRY)) stats.geometry++;
-            if (entry.hasChangeType(ChangeType.BORDER)) stats.border++;
             if (entry.hasChangeType(ChangeType.VISUAL)) stats.visual++;
             if (entry.hasChangeType(ChangeType.VISIBILITY)) stats.visibility++;
         }
