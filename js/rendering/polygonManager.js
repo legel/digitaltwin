@@ -1509,6 +1509,45 @@ class PolygonManager {
     }
 
     /**
+     * Get rendering triangles grouped by PA/NPA for layered rendering
+     * Returns array of triangle groups: [paTriangles, npaTriangles]
+     * Empty groups are filtered out, so result may have 0, 1, or 2 groups
+     */
+    getGroupedRenderTriangles() {
+        const paTriangles = [];
+        const npaTriangles = [];
+
+        for (const polygon of this.polygons) {
+            if (!polygon.visible) {
+                continue; // Skip invisible polygons
+            }
+
+            const renderTriangles = polygon.getRenderTriangles();
+            // Group by polygon group (PA vs NPA)
+            if (polygon.group === 'plantable-areas') {
+                paTriangles.push(...renderTriangles);
+            } else if (polygon.group === 'non-plantable-areas') {
+                npaTriangles.push(...renderTriangles);
+            } else {
+                // Default ungrouped polygons to PA group
+                console.log(polygon.group);
+                paTriangles.push(...renderTriangles);
+            }
+        }
+
+        // Return only non-empty groups
+        const groups = [];
+        if (paTriangles.length > 0) {
+            groups.push(paTriangles);
+        }
+        if (npaTriangles.length > 0) {
+            groups.push(npaTriangles);
+        }
+
+        return groups;
+    }
+
+    /**
      * Get total visible triangle count
      */
     getVisibleTriangleCount() {
@@ -1648,10 +1687,31 @@ class PolygonManager {
     }
 
     /**
-     * Send all visible polygons' rendering data to the renderer
-     * Processes dirty polygons first, then aggregates all triangles into a single array for efficient mesh rendering
+     * Send all visible polygons' rendering data to the renderer using grouped approach
+     * Processes dirty polygons first, then groups triangles by PA/NPA for layered rendering
      */
     sendToRenderer(rendererCallback) {
+        if (!rendererCallback) {
+            console.warn('⚠️ No renderer callback provided to sendToRenderer');
+            return;
+        }
+
+        // Process dirty polygons before rendering
+        this.processDirtyPolygons();
+
+        // Get grouped triangles (PA group first, NPA group second for higher Y-plane)
+        const triangleGroups = this.getGroupedRenderTriangles();
+
+        // Call renderer with grouped triangles array
+        // If no groups, pass empty array; renderer handles empty case
+        rendererCallback(triangleGroups);
+    }
+
+    /**
+     * Send all visible polygons' rendering data to the renderer using legacy single-mesh approach
+     * Processes dirty polygons first, then aggregates all triangles into a single array for efficient mesh rendering
+     */
+    sendToRendererLegacy(rendererCallback) {
         if (!rendererCallback) {
             console.warn('⚠️ No renderer callback provided to sendToRenderer');
             return;

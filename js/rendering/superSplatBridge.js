@@ -21,11 +21,11 @@ class SuperSplatBridge {
         }
 
         // Set up auto-renderer callback for immediate visual updates
-        this.polygonManager.setAutoRendererCallback((renderTriangles) => {
+        this.polygonManager.setAutoRendererCallback((triangleGroups) => {
             if (window.superSplatScene && window.superSplatScene.events) {
                 try {
-                    // Send the triangle data to SuperSplat's mesh-based renderer
-                    window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangles', renderTriangles);
+                    // Send the grouped triangle data to SuperSplat's layered mesh renderer
+                    window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangleGroups', triangleGroups);
                 } catch (error) {
                     console.warn('⚠️ Failed to auto-update SuperSplat renderer:', error);
                 }
@@ -464,11 +464,11 @@ class SuperSplatBridge {
                 this.polygonManager.sortPolygonsByArea();
 
                 // Send polygon rendering data to SuperSplat
-                this.polygonManager.sendToRenderer((renderTriangles) => {
+                this.polygonManager.sendToRenderer((triangleGroups) => {
                     if (window.superSplatScene && window.superSplatScene.events) {
                         try {
-                            // Send the aggregated triangle data to SuperSplat's mesh-based renderer
-                            window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangles', renderTriangles);
+                            // Send the grouped triangle data to SuperSplat's layered mesh renderer
+                            window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangleGroups', triangleGroups);
                         } catch (error) {
                             console.warn('⚠️ Failed to send polygon data to SuperSplat renderer:', error);
                         }
@@ -1252,11 +1252,11 @@ class SuperSplatBridge {
             this.polygonManager.setGroupVisibility('non-plantable-areas', nonPlantableVisible);
 
             // Send updated rendering data to SuperSplat
-            this.polygonManager.sendToRenderer((renderTriangles) => {
+            this.polygonManager.sendToRenderer((triangleGroups) => {
                 if (window.superSplatScene && window.superSplatScene.events) {
                     try {
-                        // Send the updated triangle data to SuperSplat's mesh-based renderer
-                        window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangles', renderTriangles);
+                        // Send the updated grouped triangle data to SuperSplat's layered mesh renderer
+                        window.superSplatScene.events.invoke('meshTriangleOverlay.renderTriangleGroups', triangleGroups);
                     } catch (error) {
                         console.warn('⚠️ Failed to update SuperSplat renderer with visibility changes:', error);
                     }
