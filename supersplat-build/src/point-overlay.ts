@@ -65,9 +65,6 @@ class MeshTriangleOverlay extends Element {
         console.log('📱 Graphics device obtained:', device ? 'SUCCESS' : 'FAILED');
 
         try {
-            // Create test triangle at center, raised 3.5 units above ground
-            // this.createTestTriangle(); // Commented out - using real polygon data now
-
             // Register event functions for terrain-3d bridge compatibility
             this.registerEventFunctions();
 
@@ -278,98 +275,6 @@ class MeshTriangleOverlay extends Element {
         this.renderTriangleGroups([triangles]);
     }
 
-    /**
-     * Create test data: quadrilaterals with borders using triangles
-     * Blue quadrilateral with thick border, red quadrilateral with thin border
-     */
-    private createTestTriangle() {
-        console.log('🔺 Generating test triangle data for bordered quadrilaterals...');
-
-        const quadSize = 2.0;
-        const blueBorderWidth = 0.15; // Thick border for blue quad
-        const redBorderWidth = 0.08;  // Thin border for red quad
-
-        const triangles: TriangleData[] = [];
-
-        // Helper function to create triangle data
-        const createTriangle = (v0: number[], v1: number[], v2: number[], color: {r: number, g: number, b: number, a: number}): TriangleData => {
-            return {
-                vertices: [v0, v1, v2],
-                color: color
-            };
-        };
-
-        // Helper function to create border quad (2 triangles)
-        const createBorderQuad = (inner0: number[], inner1: number[], outer0: number[], outer1: number[], color: {r: number, g: number, b: number, a: number}) => {
-            // First triangle: inner0, inner1, outer0
-            triangles.push(createTriangle(inner0, inner1, outer0, color));
-            // Second triangle: inner1, outer1, outer0
-            triangles.push(createTriangle(inner1, outer1, outer0, color));
-        };
-
-        const blackColor = {r: 0.0, g: 0.0, b: 0.0, a: 0.8};
-        const blueColor = {r: 0.0, g: 0.0, b: 1.0, a: 0.5};
-        const redColor = {r: 1.0, g: 0.0, b: 0.0, a: 0.7};
-
-        // === BLUE QUADRILATERAL (left side) ===
-        const blueInner = [
-            [-quadSize + blueBorderWidth, this.yPlane, -quadSize/2 + blueBorderWidth], // bottom-left
-            [-quadSize + blueBorderWidth, this.yPlane,  quadSize/2 - blueBorderWidth], // top-left
-            [-blueBorderWidth,            this.yPlane, -quadSize/2 + blueBorderWidth], // bottom-right
-            [-blueBorderWidth,            this.yPlane,  quadSize/2 - blueBorderWidth]  // top-right
-        ];
-
-        const blueOuter = [
-            [-quadSize, this.yPlane, -quadSize/2], // bottom-left
-            [-quadSize, this.yPlane,  quadSize/2], // top-left
-            [0,         this.yPlane, -quadSize/2], // bottom-right
-            [0,         this.yPlane,  quadSize/2]  // top-right
-        ];
-
-        // Blue fill triangles
-        triangles.push(createTriangle(blueInner[0], blueInner[1], blueInner[2], blueColor));
-        triangles.push(createTriangle(blueInner[1], blueInner[3], blueInner[2], blueColor));
-
-        // Blue border quads (4 sides, 2 triangles each = 8 triangles)
-        createBorderQuad(blueInner[0], blueInner[1], blueOuter[0], blueOuter[1], blackColor); // left
-        createBorderQuad(blueInner[1], blueInner[3], blueOuter[1], blueOuter[3], blackColor); // top
-        createBorderQuad(blueInner[3], blueInner[2], blueOuter[3], blueOuter[2], blackColor); // right
-        createBorderQuad(blueInner[2], blueInner[0], blueOuter[2], blueOuter[0], blackColor); // bottom
-
-        // === RED QUADRILATERAL (right side) ===
-        const redInner = [
-            [redBorderWidth,              this.yPlane, -quadSize/2 + redBorderWidth], // bottom-left
-            [redBorderWidth,              this.yPlane,  quadSize/2 - redBorderWidth], // top-left
-            [quadSize - redBorderWidth,   this.yPlane, -quadSize/2 + redBorderWidth], // bottom-right
-            [quadSize - redBorderWidth,   this.yPlane,  quadSize/2 - redBorderWidth]  // top-right
-        ];
-
-        const redOuter = [
-            [0,        this.yPlane, -quadSize/2], // bottom-left (shared with blue)
-            [0,        this.yPlane,  quadSize/2], // top-left (shared with blue)
-            [quadSize, this.yPlane, -quadSize/2], // bottom-right
-            [quadSize, this.yPlane,  quadSize/2]  // top-right
-        ];
-
-        // Red fill triangles
-        triangles.push(createTriangle(redInner[0], redInner[1], redInner[2], redColor));
-        triangles.push(createTriangle(redInner[1], redInner[3], redInner[2], redColor));
-
-        // Red border quads (4 sides, 2 triangles each = 8 triangles)
-        createBorderQuad(redInner[0], redInner[1], redOuter[0], redOuter[1], blackColor); // left
-        createBorderQuad(redInner[1], redInner[3], redOuter[1], redOuter[3], blackColor); // top
-        createBorderQuad(redInner[3], redInner[2], redOuter[3], redOuter[2], blackColor); // right
-        createBorderQuad(redInner[2], redInner[0], redOuter[2], redOuter[0], blackColor); // bottom
-
-        console.log(`📊 Generated ${triangles.length} triangles:`);
-        console.log(`🔷 Blue quad: 2 fill + 8 border (${blueBorderWidth} width)`);
-        console.log(`🔴 Red quad: 2 fill + 8 border (${redBorderWidth} width)`);
-
-        // Render the triangles using the generic rendering function
-        this.renderTriangles(triangles);
-
-        console.log('✅ Test triangle data generated and rendered');
-    }
 
     /**
      * Register test event functions for the new mesh system

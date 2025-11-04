@@ -1,12 +1,10 @@
 /**
- * SuperSplat Bridge - Connects terrain-3d layer controls to SuperSplat PolygonOverlay
+ * SuperSplat Bridge - Connects terrain-3d layer controls to SuperSplat mesh rendering system
  * Bridges the gap between the existing terrain-3d UI and the new SuperSplat rendering system
  */
 class SuperSplatBridge {
     constructor() {
         this.isInitialized = false;
-        this.polygonOverlayReady = false;
-        this.pendingUpdates = [];
         this.polygonClickHandlingSetup = false;
 
         // Cache for static polygon geometry to avoid re-uploading
@@ -42,9 +40,6 @@ class SuperSplatBridge {
         try {
             // Wait for SuperSplat to be loaded and running
             await this.waitForSuperSplat();
-
-            // Wait for PolygonOverlay to be available
-            await this.waitForPolygonOverlay();
 
             // Set up event bridging
             this.setupEventBridging();
@@ -123,42 +118,6 @@ class SuperSplatBridge {
         });
     }
 
-    /**
-     * Wait for PolygonOverlay element to be available in SuperSplat
-     */
-    async waitForPolygonOverlay() {
-        return new Promise((resolve, reject) => {
-            let attempts = 0;
-            const maxAttempts = 30;
-
-            const checkPolygonOverlay = () => {
-                attempts++;
-
-                if (window.superSplatScene && window.superSplatScene.events) {
-                    try {
-                        // Test if PolygonOverlay functions are registered
-                        const events = window.superSplatScene.events;
-                        if (events.functions.has('polygonOverlay.updateFromTerrain')) {
-                            this.polygonOverlayReady = true;
-                            resolve();
-                            return;
-                        }
-                    } catch (e) {
-                        console.warn('Error checking PolygonOverlay:', e);
-                    }
-                }
-
-                if (attempts >= maxAttempts) {
-                    reject(new Error('PolygonOverlay not ready after timeout'));
-                    return;
-                }
-
-                setTimeout(checkPolygonOverlay, 100);
-            };
-
-            checkPolygonOverlay();
-        });
-    }
 
     /**
      * Set up event bridging between terrain-3d and SuperSplat
@@ -220,7 +179,6 @@ class SuperSplatBridge {
         //     // Check if layer state has changed
         //     if (this.hasLayerStateChanged(originalLayerState)) {
         //         console.log('🔄 Layer state changed, updating SuperSplat');
-        //         this.updateLayerStateInSuperSplat(window.layerState);
         //         Object.assign(originalLayerState, window.layerState);
         //     }
         // });
@@ -241,7 +199,6 @@ class SuperSplatBridge {
         // setInterval(() => {
         //     if (this.hasLayerStateChanged(originalLayerState)) {
         //         console.log('🔄 Layer state changed (periodic check), updating SuperSplat');
-        //         this.updateLayerStateInSuperSplat(window.layerState);
         //         Object.assign(originalLayerState, window.layerState);
         //     }
         // }, 1000);
@@ -615,65 +572,8 @@ class SuperSplatBridge {
         return vertices;
     }
 
-    /**
-     * Update polygons in SuperSplat PolygonOverlay
-     */
-    updatePolygonsInSuperSplat(geoJsonData, layerState) {
-        if (!this.polygonOverlayReady) {
-            console.log('⏳ PolygonOverlay not ready, queueing update');
-            this.pendingUpdates.push({ geoJsonData, layerState });
-            return;
-        }
 
-        try {
-            const events = window.superSplatScene.events;
 
-            console.log('📡 Sending polygon data to SuperSplat:', {
-                features: geoJsonData.features?.length || 0,
-                layerState: layerState
-            });
-
-            // Call SuperSplat PolygonOverlay update function
-            events.invoke('polygonOverlay.updateFromTerrain', geoJsonData, layerState);
-
-        } catch (error) {
-            console.error('❌ Failed to update SuperSplat polygons:', error);
-        }
-    }
-
-    /**
-     * Update layer state in SuperSplat
-     */
-    updateLayerStateInSuperSplat(layerState) {
-        if (!this.polygonOverlayReady) {
-            return;
-        }
-
-        try {
-            const events = window.superSplatScene.events;
-            events.invoke('polygonOverlay.updateLayers', layerState);
-
-        } catch (error) {
-            console.error('❌ Failed to update SuperSplat layer state:', error);
-        }
-    }
-
-    /**
-     * Clear all polygons in SuperSplat
-     */
-    clearPolygonsInSuperSplat() {
-        if (!this.polygonOverlayReady) {
-            return;
-        }
-
-        try {
-            const events = window.superSplatScene.events;
-            events.invoke('polygonOverlay.clear');
-
-        } catch (error) {
-            console.error('❌ Failed to clear SuperSplat polygons:', error);
-        }
-    }
 
 
 
@@ -720,7 +620,7 @@ class SuperSplatBridge {
      * Clear all triangles
      */
     clearTriangles() {
-        if (!this.polygonOverlayReady) {
+        if (!this.isInitialized) {
             console.warn('⚠️ SuperSplat not ready, cannot clear triangles');
             return false;
         }
@@ -740,7 +640,7 @@ class SuperSplatBridge {
      * Set the Y-plane for all triangle rendering
      */
     setTriangleYPlane(yPlane) {
-        if (!this.polygonOverlayReady) {
+        if (!this.isInitialized) {
             console.warn('⚠️ SuperSplat not ready, cannot set Y-plane');
             return false;
         }
@@ -760,7 +660,7 @@ class SuperSplatBridge {
      * Get information about the SuperSplat scene bounds
      */
     getSceneBounds() {
-        if (!this.polygonOverlayReady) return null;
+        if (!this.isInitialized) return null;
 
         try {
             const scene = window.superSplatScene;
@@ -786,7 +686,7 @@ class SuperSplatBridge {
      * Get the center position of the first splat for reference positioning
      */
     getSplatCenter() {
-        if (!this.polygonOverlayReady) return null;
+        if (!this.isInitialized) return null;
 
         try {
             const scene = window.superSplatScene;
@@ -820,7 +720,7 @@ class SuperSplatBridge {
      * Returns both center and full bounding box dimensions
      */
     getSplatBoundsInSuperSplatCoordinates() {
-        if (!this.polygonOverlayReady) return null;
+        if (!this.isInitialized) return null;
 
         try {
             const scene = window.superSplatScene;
@@ -919,7 +819,7 @@ class SuperSplatBridge {
      * Check if bridge is ready for use
      */
     isReady() {
-        return this.isInitialized && this.polygonOverlayReady;
+        return this.isInitialized;
     }
 
 
