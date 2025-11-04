@@ -64,20 +64,26 @@ This document tracks the migration from a dual Cesium/SuperSplat system to a Sup
 
 ## Phase 2.5: SuperSplat PolygonOverlay Implementation
 
-### Architecture Decision: 2D Shader-Based Overlay System
-After encountering persistent GL_INVALID_ENUM errors with 3D mesh-based approaches, a **2D shader-based overlay system** was implemented following SuperSplat's grid pattern:
+### Architecture Decision: PlayCanvas Mesh-Based System (Current)
+After testing various approaches including 2D shader-based systems, a **PlayCanvas mesh-based system** was implemented using standard PlayCanvas APIs for optimal performance and maintainability:
 
-**Why 2D Shader Overlays:**
-- **Proven Pattern**: Uses same architecture as SuperSplat's InfiniteGrid
-- **GL Error-Free**: Avoids complex 3D mesh creation that caused rendering issues
-- **Performance**: QuadRender + fragment shader is highly optimized
-- **Camera-Aware**: Automatically adjusts to different viewing angles
-- **Native Integration**: Full SuperSplat Element system integration
+**Previous Approach**: 2D shader-based overlay using fragment shaders
+- ❌ Complex polygon rendering in fragment shaders proved unreliable
+- ❌ GPU architecture mismatch with shader-based polygon testing
+- ❌ Limited scalability for complex polygon geometries
+- ❌ Coordinate transformation complexity in shaders
+
+**Current Approach**: PlayCanvas Mesh-Based System
+- ✅ Uses standard PlayCanvas Mesh, MeshInstance, and StandardMaterial APIs
+- ✅ Efficient batch rendering with layered mesh groups
+- ✅ Scalable to hundreds of complex polygons
+- ✅ Native click detection and coordinate transformation
+- ✅ Utilizes PolygonManager for centralized polygon handling
 
 **Architecture Pattern:**
-1. **QuadRender**: Full-screen quad (no 3D geometry)
-2. **Fragment Shader**: Ray-plane intersection to find world positions
-3. **World Space Rendering**: Direct 2D shapes on world planes
+1. **PolygonManager**: Centralized polygon data management and triangulation
+2. **MeshTriangleOverlay**: PlayCanvas Element that renders mesh instances
+3. **Layered Rendering**: Separate layers for fills, outlines, and selection states
 4. **Distance Fading**: Performance optimization for far objects
 
 **Approaches Tried:**
@@ -476,16 +482,20 @@ for (let i = 0; i < 16; i++) {
 - ✅ **Single Render Call**: All triangles (max 8) rendered in one GPU call
 - ✅ **Verified Working**: Same orange irregular triangle renders through new multi-triangle system
 
-### Current Sprint: Dynamic Coordinate Integration
-**Objective**: Connect triangulation system coordinates to multi-triangle renderer
-**Status**: Ready to implement - both systems are complete and tested
-**Current State**:
-- ✅ Multi-triangle shader working with vec4 packing (max 8 triangles)
-- ✅ Triangulation system tested and coordinates verified
-- ✅ Single triangle test case working in new architecture
-**Next Steps**:
-1. Replace single triangle with multiple triangles from triangulation
-2. Test with 2-3 triangles to verify multiple triangle rendering
+### ✅ COMPLETED: PlayCanvas Mesh-Based System Implementation
+**Status**: ✅ **COMPLETED** - Migration from shader-based to mesh-based system successful
+
+**Completed Implementation**:
+- ✅ **MeshTriangleOverlay**: PlayCanvas Element using standard Mesh APIs
+- ✅ **PolygonManager**: Centralized JavaScript polygon management system
+- ✅ **SuperSplat Bridge**: Updated to use new mesh system (`meshTriangleOverlay.*` events)
+- ✅ **Cleanup**: Removed old shader-based system (`polygon-overlay.ts`, `point-overlay-backup.ts`)
+- ✅ **Performance**: Efficient batch rendering with layered mesh groups
+- ✅ **Scalability**: Handles hundreds of complex polygons with proper click detection
+
+**Architecture Migration**:
+- ❌ **Old**: Fragment shader-based polygon rendering with coordinate limitations
+- ✅ **New**: PlayCanvas Mesh system with PolygonManager for optimal performance
 3. Verify triangulated shapes render correctly (not as circles)
 
 ### ✅ Completed Sprint: Advanced Polygon System (September 27, 2025)
@@ -521,24 +531,24 @@ The polygon system now provides all necessary properties for GeoJSON integration
 - **Fill Transparency**: `fillAlpha` (0.0-1.0) - Controls polygon opacity
 - **Visibility Toggle**: `visible` (boolean) - Show/hide individual polygons
 
-#### ✅ Core API Methods
+#### ✅ Core API Methods (Updated for Mesh System)
 ```typescript
-// Create polygon
-scene.events.fire('triangleOverlay.addPolygon', vertices, color, fillAlpha, outlineColor, outlineThickness, name, visible);
+// Render triangle groups (main rendering function)
+scene.events.fire('meshTriangleOverlay.renderTriangleGroups', triangleGroups);
 
-// Update polygon properties
-scene.events.fire('triangleOverlay.updatePolygon', name, {
-    color: new Vec3(r, g, b),
-    fillAlpha: 0.5,
-    visible: true
-});
+// Clear all triangles
+scene.events.fire('meshTriangleOverlay.clearTriangles');
 
-// Visibility controls
-scene.events.fire('triangleOverlay.setPolygonVisibility', name, false); // Hide specific polygon
-scene.events.fire('triangleOverlay.setAllPolygonsVisibility', false);   // Hide all polygons
+// Set Y-plane for rendering
+scene.events.fire('meshTriangleOverlay.setYPlane', yPlane);
 
-// Management
-scene.events.fire('triangleOverlay.clearPolygons'); // Remove all polygons
+// Update Y-plane from splat data
+scene.events.fire('meshTriangleOverlay.updateYPlaneFromSplats');
+
+// Polygon management is now handled through PolygonManager:
+// - polygonManager.addPolygon(vertices, color, fillAlpha, outlineColor, outlineThickness, name, group)
+// - polygonManager.setGroupVisibility(groupName, visible)
+// - polygonManager.clearPolygons()
 ```
 
 #### ✅ Advanced Features
@@ -611,11 +621,11 @@ function createPolygonFromGeoJSON(feature) {
 // Bridge existing layer controls to polygon system
 function updatePolygonVisibility(layerState) {
     layerState.visibleAreas.forEach(areaName => {
-        scene.events.fire('triangleOverlay.setPolygonVisibility', areaName, true);
+        // Polygon visibility now managed through PolygonManager group visibility
     });
 
     layerState.hiddenAreas.forEach(areaName => {
-        scene.events.fire('triangleOverlay.setPolygonVisibility', areaName, false);
+        // Polygon visibility now managed through PolygonManager group visibility
     });
 }
 ```
