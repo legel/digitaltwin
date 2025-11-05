@@ -278,8 +278,8 @@ function parseBoydEcologicalData(description) {
 
     // Extract M1-M10 parameter values using regex
     const params = {
-        'M1': 'sunlight',      // Light Hours
-        'M2': 'soilMoisture',  // Moisture
+        'M1': 'soilMoisture',  // Moisture
+        'M2': 'sunlight',      // Light Hours
         'M3': 'pH',            // Soil pH
         'M4': 'nitrogen',      // Nitrogen
         'M5': 'phosphorus',    // Phosphorus
@@ -291,8 +291,8 @@ function parseBoydEcologicalData(description) {
     };
 
     Object.entries(params).forEach(([key, paramName]) => {
-        // Match pattern like "M1: 4 - 6"
-        const regex = new RegExp(`${key}:\\s*([^\\n]+)`);
+        // Match pattern like "M2: Light (hours) = 4 - 6"
+        const regex = new RegExp(`${key}:[^=]+=\\s*([^\\n]+)`);
         const match = description.match(regex);
         if (match) {
             data[paramName] = match[1].trim();
