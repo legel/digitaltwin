@@ -1080,6 +1080,19 @@ function populatePACategories(categories, categorizedPAs) {
                     return;
                 }
 
+                // Auto zoom-to feature: Set camera to top-down view and position on polygons (only for dropdown button clicks)
+                if (!window.isPolygonTriggeredClick && window.superSplatManager) {
+                    window.superSplatManager.setTopDownView();
+
+                    // Position camera on the selected PA polygons after a brief delay for top-down to complete
+                    setTimeout(() => {
+                        const selectedPolygons = findPolygonsForPAArea(name, window.currentSiteData);
+                        if (selectedPolygons && selectedPolygons.length > 0) {
+                            window.superSplatManager.positionCameraOnPolygons(selectedPolygons);
+                        }
+                    }, 100);
+                }
+
                 // New selection: clear all previous selections first
                 clearAllPolygonSelections();
                 window.uiToggleState.currentSelectedGroup = this.value;
@@ -1126,8 +1139,6 @@ function populatePACategories(categories, categorizedPAs) {
                 }
 
                 // Skip reRenderPolygons() to preserve SuperSplat polygon selection state
-                // Zoom to the selected PA
-                zoomToFeature(name, 'PA');
 
             });
             
@@ -1296,6 +1307,19 @@ function populateNPACategories(categories) {
                 return;
             }
 
+            // Auto zoom-to feature: Set camera to top-down view and position on polygons (only for dropdown button clicks)
+            if (!window.isPolygonTriggeredClick && window.superSplatManager) {
+                window.superSplatManager.setTopDownView();
+
+                // Position camera on the selected NPA polygons after a brief delay for top-down to complete
+                setTimeout(() => {
+                    const selectedPolygons = findPolygonsForNPACategory(category, window.currentSiteData);
+                    if (selectedPolygons && selectedPolygons.length > 0) {
+                        window.superSplatManager.positionCameraOnPolygons(selectedPolygons);
+                    }
+                }, 100);
+            }
+
             // New selection: clear all previous selections first
             clearAllPolygonSelections();
             window.uiToggleState.currentSelectedGroup = this.value;
@@ -1338,8 +1362,6 @@ function populateNPACategories(categories) {
             }
 
 
-            // Zoom to all features in this NPA category
-            zoomToNPACategory(category);
         });
         
         container.appendChild(label);
@@ -1411,167 +1433,10 @@ function initializeLayerControlsForSite(geoJsonFormat) {
     }
 }
 
-/**
- * Calculate polygon center and bounding information for camera positioning
- * @param {string} featureName - Name of the feature to analyze
- * @param {string} featureType - 'PA' or 'NPA'
- * @returns {Object|null} - Object with center coordinates and radius, or null if not found
- */
-function calculatePolygonBounds(featureName, featureType) {
-    if (!window.currentSiteData) {
-        console.warn('⚠️ No site data available for polygon bounds calculation');
-        return null;
-    }
 
-    // Find the feature in the GeoJSON data
-    const feature = window.currentSiteData.features.find(f => {
-        if (!f.properties.name) return false;
-        const parsed = parseBoydName(f.properties.name);
-        const name = parsed.description || parsed.id;
-        return name === featureName;
-    });
 
-    if (!feature || feature.geometry.type !== 'Polygon') {
-        console.warn(`⚠️ Feature "${featureName}" not found or not a polygon`);
-        return null;
-    }
 
-    return calculatePolygonCenterAndRadius(feature.geometry.coordinates[0]);
-}
 
-/**
- * Calculate center point and radius for a set of coordinates using geographic calculations
- * @param {Array} coords - Array of [lng, lat] coordinate pairs
- * @returns {Object} - Object with centerLat, centerLng, and radius properties
- */
-function calculatePolygonCenterAndRadius(coords) {
-    // Calculate polygon center (centroid)
-    let sumLat = 0, sumLng = 0;
-    coords.forEach(coord => {
-        const [lng, lat] = coord;
-        sumLat += lat;
-        sumLng += lng;
-    });
-    const centerLat = sumLat / coords.length;
-    const centerLng = sumLng / coords.length;
-
-    // Calculate maximum distance between any two vertices using Haversine formula
-    let maxDistance = 0;
-    for (let i = 0; i < coords.length; i++) {
-        for (let j = i + 1; j < coords.length; j++) {
-            const distance = calculateHaversineDistance(coords[i], coords[j]);
-            maxDistance = Math.max(maxDistance, distance);
-        }
-    }
-    const radius = maxDistance / 2;
-
-    return {
-        centerLat,
-        centerLng,
-        radius,
-        vertexCount: coords.length
-    };
-}
-
-/**
- * Calculate great circle distance between two lat/lng points using Haversine formula
- * @param {Array} coord1 - [lng, lat] of first point
- * @param {Array} coord2 - [lng, lat] of second point
- * @returns {number} - Distance in meters
- */
-function calculateHaversineDistance(coord1, coord2) {
-    const [lng1, lat1] = coord1;
-    const [lng2, lat2] = coord2;
-
-    const R = 6371000; // Earth's radius in meters
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lng2 - lng1) * Math.PI / 180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
-}
-
-// TODO: Implement SuperSplat camera positioning
-// This function previously used Cesium for camera control - needs SuperSplat integration
-function zoomToFeature(featureName, featureType) {
-    const bounds = calculatePolygonBounds(featureName, featureType);
-    if (!bounds) return;
-
-    console.log(`🎯 [TODO] SuperSplat zoom to feature "${featureName}":`, {
-        center: { lat: bounds.centerLat, lng: bounds.centerLng },
-        radius: bounds.radius
-    });
-
-    // TODO: Integrate with SuperSplat camera controls
-    // See SUPERSPLAT_REFACTOR.md for implementation details
-}
-
-/**
- * Calculate bounds for all features in an NPA category
- * @param {string} categoryName - Name of the NPA category to analyze
- * @returns {Object|null} - Object with center coordinates and radius, or null if not found
- */
-function calculateNPACategoryBounds(categoryName) {
-    if (!window.currentSiteData) {
-        console.warn('⚠️ No site data available for NPA category bounds calculation');
-        return null;
-    }
-
-    // Find all features that belong to this NPA category
-    const npaFeatures = window.currentSiteData.features.filter(f => {
-        if (!f.properties.name || !f.properties.name.includes('NPA')) return false;
-        const category = extractNPACategory(f.properties.name);
-        return category === categoryName;
-    });
-
-    if (npaFeatures.length === 0) {
-        console.warn(`⚠️ No features found for NPA category "${categoryName}"`);
-        return null;
-    }
-
-    // Collect all coordinates from all features
-    const allCoords = [];
-    npaFeatures.forEach(feature => {
-        if (feature.geometry.type === 'Polygon') {
-            feature.geometry.coordinates[0].forEach(coord => {
-                allCoords.push(coord);
-            });
-        }
-    });
-
-    if (allCoords.length === 0) {
-        console.warn(`⚠️ No valid polygon coordinates found for NPA category "${categoryName}"`);
-        return null;
-    }
-
-    const bounds = calculatePolygonCenterAndRadius(allCoords);
-    return {
-        ...bounds,
-        featureCount: npaFeatures.length
-    };
-}
-
-// TODO: Implement SuperSplat camera positioning for NPA categories
-// This function previously used Cesium for camera control - needs SuperSplat integration
-function zoomToNPACategory(categoryName) {
-    const bounds = calculateNPACategoryBounds(categoryName);
-    if (!bounds) return;
-
-    console.log(`🎯 [TODO] SuperSplat zoom to NPA category "${categoryName}":`, {
-        center: { lat: bounds.centerLat, lng: bounds.centerLng },
-        radius: bounds.radius,
-        features: bounds.featureCount
-    });
-
-    // TODO: Integrate with SuperSplat camera controls
-    // See SUPERSPLAT_REFACTOR.md for implementation details
-}
 
 // Expose layer controls initialization function globally
 window.initializeLayerControlsForSite = initializeLayerControlsForSite;
@@ -2099,6 +1964,64 @@ function clearPAConnection() {
     }
 }
 
+/**
+ * Utility function to manually trigger camera rotation to top-down view
+ * Useful for testing and debugging the auto zoom-to feature
+ */
+function setCameraTopDown() {
+    if (window.superSplatManager) {
+        const success = window.superSplatManager.setTopDownView();
+        if (success) {
+            console.log('✅ Camera successfully set to top-down view');
+        } else {
+            console.warn('⚠️ Failed to set camera to top-down view');
+        }
+        return success;
+    } else {
+        console.error('❌ SuperSplatManager not available');
+        return false;
+    }
+}
+
+/**
+ * Utility function to check if camera is currently in top-down view
+ */
+function isCameraTopDown() {
+    if (window.superSplatManager) {
+        return window.superSplatManager.isTopDownView();
+    }
+    return false;
+}
+
+/**
+ * Utility function to manually position camera on current selected polygons
+ * Useful for testing and debugging the auto zoom-to feature
+ */
+function positionCameraOnSelected() {
+    if (!window.superSplatManager) {
+        console.error('❌ SuperSplatManager not available');
+        return false;
+    }
+
+    const selectedPolygons = window.layerState?.selectedPolygons;
+    if (!selectedPolygons || selectedPolygons.length === 0) {
+        console.warn('⚠️ No polygons currently selected');
+        return false;
+    }
+
+    console.log(`📍 Positioning camera on ${selectedPolygons.length} selected polygons:`, selectedPolygons);
+    const success = window.superSplatManager.positionCameraOnPolygons(selectedPolygons);
+
+    if (success) {
+        console.log('✅ Camera successfully positioned on selected polygons');
+    } else {
+        console.warn('⚠️ Failed to position camera on selected polygons');
+    }
+
+    return success;
+}
+
+
 // Expose functions globally
 window.autoLoadSiteData = autoLoadSiteData;
 window.initializeLayerControls = initializeLayerControls;
@@ -2111,6 +2034,10 @@ window.clearPAConnection = clearPAConnection;
 window.orchestrateFocusAnimation = orchestrateFocusAnimation;
 window.updateVisibilityButtonIcons = updateVisibilityButtonIcons;
 
+// Expose camera utility functions globally
+window.setCameraTopDown = setCameraTopDown;
+window.isCameraTopDown = isCameraTopDown;
+window.positionCameraOnSelected = positionCameraOnSelected;
 
 // Expose new functions globally
 window.setSelection = setSelection;
