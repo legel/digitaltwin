@@ -1,199 +1,217 @@
 # Terrain 3D
 
+
+
 **Ecological Digital Twin Platform for Landscape Design**
 
-Terrain 3D is a sophisticated 3D visualization platform that enables landscape designers to create photorealistic digital twins of landscapes and design native plant-based solutions that maximize ecosystem services. Part of Ecodash's computational ecology mission.
+
+
+Terrain 3D is a 3D visualization platform for landscape designers working with photorealistic digital twins. The platform integrates 3D Gaussian Splatting with ecological modeling to support native plant-based landscape design decisions.
+
+
 
 ## 🦋 Platform Overview
 
-### Ecological Focus
-- **Native Plant Emphasis**: Prioritizes native species for maximum ecosystem function
-- **Scientific Integration**: Visualizes soil chemistry, microclimates, and ecological models as interactive 3D layers
-- **Pollinator Habitat**: Optimizes designs for bee and butterfly habitat across seasons
-- **Ecosystem Services**: Quantifies environmental benefits like carbon sequestration and stormwater management
+
 
 ### Photorealistic Precision
-- **"Enter the Matrix"**: Minimal visual difference between digital interface and reality
-- **3D Gaussian Splatting**: Advanced neural network reconstruction for lifelike rendering
-- **RTK Photography & LiDAR**: Geospatially accurate capture from drone and ground surveys
-- **Real-time Performance**: Zero-lag interaction for immersive design experience
 
-## 🌺 Core Capabilities
+* 3D Gaussian Splatting uses advanced neural network reconstruction for lifelike rendering
+* Geospatially accurate capture from drone and ground surveys
+* Minimal visual difference between digital interface and reality
 
-### 3D Digital Twin Visualization
-- **Existing Landscapes**: Photorealistic 3D models of current site conditions
-- **Design Scenarios**: Interactive simulation of proposed landscape changes
-- **Plant Placement**: 3D models of native plants with seasonal growth simulation
-- **Export Tools**: High-resolution renders and technical documentation for implementation
 
-### Scientific Model Integration
-- **Soil Analysis**: pH, nitrogen, phosphorus, potassium mapping
-- **Microclimate**: Sunlight hours, moisture, wind exposure analysis  
-- **Risk Assessment**: Drought, flood, and extreme weather probability zones
-- **Habitat Quality**: Native plant compatibility and ecosystem service potential
 
-### Commercial Integration
-- **Native Plant Explorer**: Connect with local nursery inventory and availability
-- **Growth Contracting**: Custom plant production timelines and volumes
-- **One-Click Ordering**: Streamlined purchasing from native plant growers
-- **Supply Chain**: Logistics coordination for planting schedules
+![3D Gaussian Splat Digital Twin](docs/Digital%20Twin.png)
 
-## 📁 Documentation
 
-- **[TECHNICAL.md](TECHNICAL.md)**: Architecture, implementation details, and AI agent guide
-- **[CLAUDE.md](CLAUDE.md)**: AI development guidelines with critical gotchas
-- **[REQUIREMENTS.md](REQUIREMENTS.md)**: Functional specifications and future roadmap
-- **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)**: Active bugs and limitations
 
-## 🛠 Quick Start
+### Landscape Design Tool
+
+* Visualize landscape design proposals through interactive polygon overlays on photorealistic digital twins
+* Zero-lag interaction for immersive design experience
+
+
+
+![Layer Controls Interface](docs/Dropdown%20UI.png)
+
+
+
+### Scientific Model Integration: View ecological metrics as color coded UI overlays
+
+- **Soil Chemistry**: pH, nutrient levels (NPK), and composition analysis
+- **Microclimate Mapping**: Solar exposure, moisture gradients, and wind patterns
+- **Environmental Risk**: Drought, flood, and extreme weather vulnerability assessment
+
+
+
+![Ecological Metrics Visualization](docs/Ecological%20Metrics.png)
+
+
+
+## 🛠 Installation
+
+
 
 ### 1. Clone and Setup Terrain 3D
-**Requirements**: Node.js 18+ and npm
+
+**Requirements**: Python 3.7+, Node.js 18+ and npm
+
+
 
 ```bash
+
 git clone https://github.com/legel/terrain-3d.git
+
 cd terrain-3d
+
 pip install -r requirements.txt
+
 ```
 
-### 2. Build Cesium Dependencies
-```bash
-# Clone Cesium repository
-git clone https://github.com/CesiumGS/cesium.git
-cd cesium
 
-# Use tested version (optional - can use latest)
-git checkout 7103190
 
-# Build Cesium
-npm install
-npm run build
+### 2. Build SuperSplat Dependencies
 
-# Copy build to terrain-3d (create directory first)
-mkdir -p ../terrain-3d/cesium
-cp -r Build/CesiumUnminified/* ../terrain-3d/cesium/
-cd ../terrain-3d
-```
-
-### 3. Build SuperSplat Dependencies
 SuperSplat is fully integrated as local files in the `supersplat-build/` directory:
 
+
+
 ```bash
+
 # One-command setup for SuperSplat (installs dependencies, builds, and deploys)
+
 npm run setup:supersplat
+
 ```
+
+
 
 Or run individual steps:
+
 ```bash
+
 # Install SuperSplat dependencies
+
 npm run install:supersplat
 
+
+
 # Build SuperSplat
+
 npm run build:supersplat  
 
+
+
 # Deploy built files to serving directory
+
 npm run deploy:supersplat
+
 ```
+
+
 
 **Fully Decoupled**: All SuperSplat source code is maintained locally in the `supersplat-build/` directory. The SuperSplat application files are built in `supersplat-build/dist/` and copied to `supersplat/` where they are served by the terrain-3d server. No external repositories or complex dependency management required.
 
-### 4. Server File Serving (Already Configured)
+
+
+### 3. Server File Serving (Already Configured)
+
 The terrain-3d `server.py` serves SuperSplat files through its generic static file route:
 
+
+
 ```python
+
 # Serve static files (CSS, JS, images) - includes SuperSplat files in supersplat/ directory
+
 @app.route('/<path:path>')
+
 def serve_static(path):
+
     return send_from_directory('.', path)
+
 ```
+
+
 
 This automatically serves SuperSplat files from the `supersplat/` directory, allowing the terrain-3d interface to load SuperSplat in iframe mode at `/supersplat/index.html`.
 
-### 5. Start Development Server
+
+
+### 4. Start Development Server
+
 ```bash
+
 python server.py
+
 # Open http://localhost:5001
+
 ```
 
-**No build system** - Edit files, refresh browser. API keys hardcoded (security issue for production).
+
+
+**Development Environment**: Direct file editing with browser refresh. No complex build pipeline required.
+
+
 
 ### Troubleshooting
 
-**Cesium Build Issues:**
-- If `npm install` shows vulnerabilities, they can be ignored for development
-- If `git checkout 7103190` fails, ensure you're in the cesium directory
-- If Cesium files return 404 errors, verify the `cesium/` directory exists and contains `Cesium.js` and `Widgets/widgets.css`
-- Build size warnings (⚠️) are normal and can be ignored
-
-**SuperSplat Build Issues:**
 - Requires Node.js 18+ and npm for building from source
-- **Cross-Platform Compatible**: Windows-specific dependencies have been removed - `npm install` works on Linux/macOS/Windows
-- **Integrated Build**: Use `npm run setup:supersplat` for complete one-command setup
-- If `npm install` shows vulnerabilities, they can be ignored for development
-- **TypeScript Warnings**: Build may show TS2345/TS2769 warnings about ArrayBuffer types - these can be ignored, build will complete successfully
-- **Missing CSS/HTML Files**: The rollup config has been fixed to automatically copy `index.css` and `index.html` to the `dist/` directory during build. If you encounter build errors about missing files in `dist/`, the build system now handles this automatically.
-- **File Serving**: Files are served from `supersplat/` directory via the generic static file route in `server.py`
-- **Update Workflow**: Use `npm run build:supersplat && npm run deploy:supersplat` to rebuild and deploy changes
+- Files are served from `supersplat/` directory, make sure to copy the contents of 'supersplat-build/dist/' there after building
+- If a Gaussian Splat is not loading, the server hosting it may be down
 
-## 🏗 Architecture
 
-**Key Files** (see TECHNICAL.md for details):
-- `utilities.js` - Core logic (1700+ lines, handle with care)
-- `layerControls.js` - Complex UI state management
-- `CesiumManager.js` - 3D rendering + polygon clicks
-- `focusPanel.js` - Ecological metrics display
-- Everything on `window` object (no modules)
 
 ## 🔬 Technical Specifications
 
-- **Rendering Engine**: Cesium.js (local build from commit 7103190) with 3D Gaussian Splatting support
-- **Data Sources**: PIX4Dmatic mesh tiles, .spz files, GIS layers
-- **Coordinate System**: WGS84 (EPSG:4326) with RTK precision
-- **Performance**: Optimized for 60+fps with **advanced Gaussian Splat prioritization**
-- **Compatibility**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
 
-### 🚀 Performance Optimizations
 
-**Gaussian Splat Rendering Performance**: The platform implements advanced performance optimizations specifically targeting smooth 60+fps Gaussian Splat rendering during camera transformations:
+- Built on PlayCanvas rendering engine with integrated SuperSplat for 3D Gaussian Splatting
+- Uses .ply format for Gaussian splat data and GeoJSON for polygon geometry
+- Hardware-accelerated polygon rendering with the PlayCanvas API
+- Modular JavaScript architecture with manager-based pattern for state management and event coordination
 
-- **Adaptive Motion Mode**: Dynamic quality reduction during camera movement with progressive restoration
-- **Resource Prioritization**: Google Photorealistic tiles heavily deprioritized to maximize Gaussian Splat resources
-- **High-Frequency Rendering**: 120fps render pipeline during camera movement
-- **GPU Optimization**: WebGL context optimized for high-performance rendering with dynamic resolution scaling
-- **Zero-Allocation Processing**: Memory-optimized camera movement detection to prevent garbage collection pauses
 
-**Key Performance Results**:
-- **Maximum Gaussian Splat render frequency** during camera transformations
-- **8ms response time** for mouse interactions (improved from 100ms)
-- **16-21 SSE quality maintained** during motion (vs 32-96 SSE before optimization)
-- **Ultra-sensitive motion detection** with 0.5m/0.05 radian thresholds
-- **0.25s quality restoration** when movement stops (4x faster than before)
-
-See `PERFORMANCE.md` for detailed technical implementation of these optimizations.
 
 ## 🌍 Mission Alignment
 
+
+
 Terrain 3D directly supports Ecodash's mission to **"Cultivate thriving ecosystems across the planet through computational ecology and human creativity"** by providing:
+
+
 
 - **Design Intelligence**: Tools that translate ecological science into actionable landscape design
 - **3D Ecological Digital Twins**: Photorealistic simulations showing landscapes across seasons
-- **Native Plant Network**: Connections between ecological knowledge and commercial availability
 
-## 🤝 Contributing
 
-1. **Read Documentation**: Start with [TECHNICAL.md](TECHNICAL.md) for technical details
-2. **Fork Repository**: Create your feature branch
-3. **Follow Principles**: Maintain ecological focus and visual fidelity standards
-4. **Test Thoroughly**: Verify across different devices and use cases
-5. **Submit PR**: Include clear description of ecological benefits
+
+## 🚀 Future Work
+
+
+
+Active development continues to enhance the ecological digital twin platform for landscape professionals. Key priorities include:
+
+* **Supply Chain Integration**: Direct connectivity with native plant nurseries, enabling designers to specify plants based on ecological suitability and verify real-time availability
+* **Design Annotation System**: Interactive markup tools for polygon overlays, allowing landscape architects to document design rationale and visualize implementation phases
+* **Enhanced Photorealism**: Higher resolution Gaussian splat reconstruction pipelines for improved visual fidelity and design precision
+
+
 
 ## 📄 License
 
+
+
 Copyright Ecological Intelligence, Inc.
+
+
 
 ## 🙏 Acknowledgments
 
-- **[Cesium](https://cesium.com/)**: 3D globe rendering and geospatial accuracy
-- **[Google Maps Platform](https://developers.google.com/maps)**: Satellite imagery and mapping
+
+
+- **[SuperSplat](https://github.com/playcanvas/supersplat)**: Advanced 3D Gaussian Splat rendering and visualization
 - **Native Plant Community**: Growers, researchers, and designers preserving genetic heritage
 - **Landscape Professionals**: Practitioners shaping millions of acres annually for ecological function
+

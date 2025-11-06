@@ -6,7 +6,7 @@
 /* Main focus panel container */
 .focus-panel {
     position: fixed;
-    right: 310px; /* 20px gap from control panel at 290px */
+    left: -450px; /* Start off-screen left to prevent flash */
     top: 100px; /* Align with layer controls accounting for border radius */
     bottom: 100px; /* Mirror top alignment */
     width: 420px; /* Standard width */
@@ -21,7 +21,7 @@
         inset 0 0 80px rgba(255, 255, 255, 0.05);
     overflow: hidden;
     opacity: 0;
-    z-index: 998; /* Slightly below layer controls to appear behind */
+    z-index: 1001; /* Above SuperSplat container (1000) and layer controls (1000) */
     
     /* Soft diffuse light effect */
     background-image: 
@@ -37,9 +37,12 @@
 }
 
 /* Visible state - for programmatic animation */
+.focus-panel.visible {
+    opacity: 1 !important;
+}
+
 .focus-panel.visible:not(.animating-in):not(.animating-out) {
     transform: translateX(0);
-    opacity: 1;
 }
 
 /* Animation states controlled by JavaScript */
@@ -54,7 +57,7 @@
     height: 2px;
     background: white;
     opacity: 0;
-    z-index: 1002; /* Higher than both panels (layer controls at 1000, focus panel at 998) */
+    z-index: 1003; /* Higher than focus panel (1001) and SuperSplat container (1000) */
     pointer-events: none;
     box-shadow: 0 0 4px rgba(255, 255, 255, 0.5); /* Add glow for visibility */
 }

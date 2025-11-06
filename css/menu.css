@@ -14,6 +14,22 @@
     pointer-events: none; /* Allow click-through except on actual controls */
 }
 
+/* Control panel positioning to avoid SuperSplat view cube (SuperSplat-only app) */
+.control-panel {
+    top: 115px; /* Additional clearance to fully avoid viewcube overlap */
+}
+
+/* Layer controls max-height adjustment for lower positioning */
+.layer-controls {
+    max-height: calc(100vh - 220px); /* Adjust for lower positioning */
+}
+
+/* Focus panel positioning to avoid SuperSplat view cube */
+.focus-panel {
+    top: 115px; /* Match control panel positioning */
+    bottom: 115px; /* Adjust bottom to maintain panel height */
+}
+
 /* Control groups */
 .control-group {
     display: flex;
@@ -22,17 +38,10 @@
     pointer-events: auto; /* Re-enable pointer events for controls */
 }
 
-/* View controls specific styling - buttons in a row */
-.view-controls {
+/* Main controls styling - single row with buttons, site selector, and layer controls */
+.main-controls {
     justify-content: flex-end;
-}
-
-/* Data controls specific styling - parameter filter positioned below site selector */
-.data-controls {
-    position: relative;
-    justify-content: flex-end;
-    margin-left: auto; /* Push to right side */
-    width: 290px; /* Match expanded layer controls width */
+    align-items: flex-start; /* Allow layer controls to expand downward */
 }
 
 /* Base control item styling */
@@ -170,7 +179,7 @@
 
 /* New mode toggle buttons with Unicode icons */
 .globe-icon-button,
-.lab-icon-button {
+.supersplat-icon-button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -186,7 +195,7 @@
     display: inline-block;
 }
 
-.lab-icon-button::before {
+.supersplat-icon-button::before {
     content: '🧪';
     display: inline-block;
 }
@@ -194,14 +203,14 @@
 /* Responsive icon sizes */
 @media screen and (max-width: 767px) {
     .globe-icon-button,
-    .lab-icon-button {
+    .supersplat-icon-button {
         font-size: 20px;
     }
 }
 
 @media screen and (max-width: 480px) {
     .globe-icon-button,
-    .lab-icon-button {
+    .supersplat-icon-button {
         font-size: 18px;
     }
 }
@@ -438,6 +447,46 @@
     background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Container for visibility button and dropdown arrow */
+.layer-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Visibility toggle button */
+.visibility-toggle-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    /* Prevent event bubbling conflicts */
+    z-index: 10;
+    position: relative;
+}
+
+.visibility-toggle-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.visibility-toggle-button img {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.visibility-toggle-button:hover img {
+    opacity: 1;
+}
+
 .layer-toggle-arrow {
     width: 0;
     height: 0;
@@ -445,7 +494,6 @@
     border-right: 5px solid transparent;
     border-top: 5px solid white;
     transition: transform 0.2s;
-    margin-left: 10px;
 }
 
 .layer-toggle.expanded .layer-toggle-arrow {

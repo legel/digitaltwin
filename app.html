@@ -8,15 +8,12 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap" rel="stylesheet"> 
 
-    <!-- Cesium libraries (local build) -->
-    <link href="/cesium/Widgets/widgets.css" rel="stylesheet">
-    <script src="/cesium/Cesium.js"></script>
+    <!-- Cesium libraries removed - SuperSplat-only mode -->
     
     <!-- Proj4js for proper coordinate conversion -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"></script>
     
-    <!-- Two.js for 2D graphics and canvas manipulation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/two.js/0.8.10/two.min.js"></script>
+    <!-- Two.js removed - SuperSplat-only mode -->
 
     <!-- 3D View CSS library -->
     <link href="/css/styles.css" rel="stylesheet">
@@ -30,7 +27,7 @@
     <link href="/css/focusPanel.css" rel="stylesheet">
     
     <!-- Configuration (must load first) -->
-    <script src="/js/config.js"></script>
+    <script src="/js/core/config.js"></script>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -92,14 +89,10 @@
                 font-weight: bold;
             ">0%</div>
             <script>
-                // Log when loading screen first becomes visible
-                // Loading screen display logging removed for cleaner console output
             </script>
         </div>
     </div>
 
-    <!-- Cesium 3D Container -->
-    <div id="cesiumContainer"></div>
 
     <!-- SuperSplat Editor Container -->
     <div id="superSplatContainer" style="
@@ -122,8 +115,8 @@
 
     <!-- Unified Control Panel -->
     <div id="controlPanel" class="control-panel">
-        <!-- Top row: buttons + site selector -->
-        <div class="control-group view-controls">
+        <!-- Main control row: buttons + site selector + layer controls -->
+        <div class="control-group main-controls">
             <!-- Tilt Controls - COMMENTED OUT -->
             <!-- <button id="tilt0Button" class="control-button icon-button tilt-0-button" title="Top-down view"></button>
             <button id="tilt45Button" class="control-button icon-button tilt-45-button" title="Angled view"></button> -->
@@ -135,25 +128,26 @@
             <!-- Navigation Controls -->
             <!-- <button id="homeButton" class="control-button icon-button home-button" title="Go to my location"></button>
             <button id="terrainToggleButton" class="control-button text-button terrain-toggle" title="Switch between high quality and performance modes">HQ</button> -->
-            <button id="superSplatButton" class="control-button icon-button globe-icon-button" title="Switch to Cesium 3D view" style="display: inline-block;"></button>
-            <button id="viewSwitchButton" class="control-button text-button view-switch" title="Switch to 2D top-down view" style="display: none;">2D</button>
+            <!-- SuperSplat button removed - SuperSplat-only mode -->
 
-            <!-- Site Selector (inline with buttons) -->
-            <div id="siteSelector" class="control-item site-selector">
+            <!-- Site Selector hidden - SuperSplat-only mode -->
+            <div id="siteSelector" class="control-item site-selector" style="display: none;">
                 <select id="siteDropdown">
                     <!-- Options populated by JavaScript -->
                 </select>
             </div>
-        </div>
 
-        <!-- Bottom row: layer controls -->
-        <div class="control-group data-controls">
-            <!-- Layer Controls -->
+            <!-- Layer Controls (moved from bottom row) -->
             <div id="layerControls" class="layer-controls" style="display: none;">
                 <div class="layer-section">
                     <div class="layer-toggle" id="plantableAreasToggle">
                         <span>Plantable Areas</span>
-                        <div class="layer-toggle-arrow"></div>
+                        <div class="layer-controls-right">
+                            <button id="paVisibilityToggle" class="visibility-toggle-button" title="Toggle PA visibility">
+                                <img src="/images/visible.png" alt="Toggle Visibility">
+                            </button>
+                            <div class="layer-toggle-arrow"></div>
+                        </div>
                     </div>
                     <div id="plantableSubOptions" class="sub-options" style="display: none;">
                         <!-- Dynamically populated PA categories -->
@@ -162,7 +156,12 @@
                 <div class="layer-section">
                     <div class="layer-toggle" id="nonPlantableAreasToggle">
                         <span>Non-Plantable Areas</span>
-                        <div class="layer-toggle-arrow"></div>
+                        <div class="layer-controls-right">
+                            <button id="npaVisibilityToggle" class="visibility-toggle-button" title="Toggle NPA visibility">
+                                <img src="/images/visible.png" alt="Toggle Visibility">
+                            </button>
+                            <div class="layer-toggle-arrow"></div>
+                        </div>
                     </div>
                     <div id="nonPlantableSubOptions" class="sub-options" style="display: none;">
                         <!-- Dynamically populated NPA categories -->
@@ -174,16 +173,16 @@
                         <div class="layer-toggle-arrow"></div>
                     </div>
                     <div id="metricsOptions" class="metrics-options" style="display: none;">
-                        <label class="metric-radio"><input type="radio" name="metric" value="moisture"> Moisture Level</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="lightHours"> Light Hours</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="soilMoisture"> Moisture Level</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="sunlight"> Light Hours</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="pH"> Soil pH</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="nitrogen"> Nitrogen (N)</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="phosphorus"> Phosphorus (P)</label>
                         <label class="metric-radio"><input type="radio" name="metric" value="potassium"> Potassium (K)</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="organic"> Organic Matter</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="drought"> Drought Risk</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="flood"> Flood Risk</label>
-                        <label class="metric-radio"><input type="radio" name="metric" value="wind"> Wind Exposure</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="organicMatter"> Organic Matter</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="droughtRisk"> Drought Risk</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="floodRisk"> Flood Risk</label>
+                        <label class="metric-radio"><input type="radio" name="metric" value="windExposure"> Wind Exposure</label>
                     </div>
                 </div>
             </div>
@@ -193,38 +192,29 @@
     <!-- Core Application Scripts -->
     <script>
         // Log the very first moment scripts start loading
-        // HTML parsing logging removed for cleaner console output
     </script>
-    <script type="module" src="/js/utilities.js"></script>
-    <script src="/js/main.js"></script>
+    <script src="/js/core/siteDataManager.js"></script>
+    <script src="/js/core/applicationBootstrap.js"></script>
+    <script type="module" src="/js/core/utilities.js"></script>
+    <script src="/js/core/main.js"></script>
 
     <!-- Map Managers -->
-    <script src="/js/CesiumManager.js"></script>
-    <!-- GoogleMaps2DManager.js removed to improve performance -->
-    <script src="/js/UnifiedLODManager.js"></script>
-    <script src="/js/UserManager.js"></script>
-    <script src="/js/GaussianSplatManager.js"></script>
-    <script src="/js/SuperSplatManager.js"></script>
+    <script src="/js/managers/userManager.js"></script>
+    <script src="/js/rendering/superSplatManager.js"></script>
+    <script src="/js/rendering/coordinateTransform.js"></script>
+    <!-- Polygon Manager - Must load before SuperSplat Bridge -->
+    <script src="/js/rendering/polygonManager.js"></script>
+    <script src="/js/rendering/superSplatBridge.js"></script>
 
-    <!-- Navigation and Tours -->
-    <script src="/js/navigation.js"></script>
-    <script src="/js/narratives.js"></script>
+    <!-- Navigation and Tours - Removed: Cesium-dependent flyTo system -->
 
     <!-- View Controls -->
-    <script src="/js/tilt.js"></script>
-    <script src="/js/orbit.js"></script>
-    <script src="/js/home.js"></script>
-    <script src="/js/viewTransform.js"></script>
-    <script src="/js/view2D.js"></script>
-    <script src="/js/two2D.js"></script>
-    <script src="/js/transitionAnimation.js"></script>
+    <!-- View control files removed - SuperSplat-only mode -->
     
     <!-- Data Visualization -->
-    <script src="/js/layerControls.js"></script>
-    <script src="/js/metricChart.js"></script>
-    <script src="/js/focusPanel.js"></script>
-    
-    <!-- Development Tools -->
-    <script src="/js/debugControls.js"></script>
+    <script src="/js/data/ecologicalMetrics.js"></script>
+    <script src="/js/ui/layerControls.js"></script>
+    <script src="/js/data/metricChart.js"></script>
+    <script src="/js/ui/focusPanel.js"></script>
 </body>
 </html>

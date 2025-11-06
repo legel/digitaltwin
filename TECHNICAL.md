@@ -5,19 +5,19 @@
 - **Global state**: Everything on `window` object (e.g., `window.map3D`, `window.layerState`)
 - **Key entry point**: `main.js` → `allSystemsGo()` → manager initialization
 - **Data flow**: Site selection → GeoJSON load → Format detection → Layer controls → Visualization
-- **Critical files**: `utilities.js` (1700+ lines core logic), `layerControls.js` (UI state), `focusPanel.js` (metrics)
+- **Critical files**: `utilities.js` (core logic), `layerControls.js` (UI state), `SuperSplatBridge.js` (polygon rendering), `ecologicalMetrics.js` (color mapping & metrics)
 
 ## Project Overview
 
-Terrain 3D is a web-based 3D ecological visualization platform that transforms landscape survey data into interactive digital twins. Built with vanilla JavaScript and a manager-based architecture, it visualizes plantable/non-plantable areas with scientific parameters (M1-M10) for landscape designers.
+Terrain 3D is a web-based SuperSplat-only 3D ecological visualization platform that transforms landscape survey data into interactive digital twins. Built with vanilla JavaScript and a manager-based architecture, it visualizes plantable/non-plantable areas with scientific parameters (M1-M10) for landscape designers using SuperSplat's advanced 3D Gaussian Splat rendering.
 
 ## Technology Stack
 
 ### Frontend
 - **Core**: Vanilla JavaScript (ES6+), no framework or build process
-- **3D Engine**: Cesium (local build from commit 7103190) with Google Photorealistic 3D Tiles and Gaussian Splat support
-- **2D Maps**: Google Maps JavaScript API v3 (satellite view)
-- **Coordinates**: Proj4js 2.9.0 for UTM→WGS84 conversion
+- **3D Engine**: SuperSplat with native 3D Gaussian Splat rendering
+- **Polygon Overlays**: Custom shader-based polygon rendering system
+- **Coordinates**: Geographic to SuperSplat world space transformation
 - **Styling**: Plain CSS with Oxygen font family
 - **3D Content**: Gaussian Splat digital twins (.spz compression)
 
@@ -57,7 +57,6 @@ PORT=8000 python server.py
 ### External APIs
 - **Cesium Ion**: 3D terrain and imagery tiles (token hardcoded)
 - **Google Maps**: 2D satellite imagery (key in code)
-- **ipgeolocation.io**: User location by IP (key exposed)
 
 ## Architecture
 
@@ -72,17 +71,20 @@ Window Object (Global State)
 ├── gaussianSplatManager         → Gaussian splat loading/management
 ├── currentLayerSelection        → Active layer (PA/NPA/M1-M10)
 ├── currentSiteData              → Loaded GeoJSON
-└── Tour flags                   → stopFlyThrough, etc.
+└── Removed legacy tour system   → Previously stopFlyThrough, etc.
 ```
 
 ### Key Files & Responsibilities
 | File | Purpose | Key Functions | Global Vars |
 |------|---------|---------------|-------------|
-| `utilities.js` | Core logic, GeoJSON viz | `visualizeGeoJsonPolygons()`, `initializeSiteSelector()` | `currentSiteData`, `currentHeightOffset` |
+| `utilities.js` | Core logic, GeoJSON viz | `visualizeGeoJsonPolygons()`, `initializeSiteSelector()` | `currentSiteData` |
 | `layerControls.js` | Layer UI & state | `initializeLayerControls()`, `updateVisualization()` | `layerState` |
-| `CesiumManager.js` | 3D rendering | Cesium setup, polygon click handling | `map3D` |
+| `ecologicalMetrics.js` | Color mapping & metrics | `parseParameterValue()`, `viridisColormap()`, `createColorLegend()` | `currentParameterFilter` |
+| `SuperSplatBridge.js` | Polygon rendering | SuperSplat polygon system, event bridge | `superSplatBridge` |
+| `SuperSplatManager.js` | SuperSplat lifecycle | SuperSplat iframe initialization | `superSplatManager` |
 | `GaussianSplatManager.js` | 3D digital twins | `loadGaussianSplat()`, `removeAllSplats()` | `gaussianSplatManager` |
 | `focusPanel.js` | Metrics display | `show()`, creates DOM dynamically | `focusPanel` |
+| `metricChart.js` | Gaussian curve rendering | `drawGaussian()`, uses `ecologicalMetrics.js` | - |
 | `main.js` | Bootstrap | `allSystemsGo()` | - |
 
 ### Critical Flows
@@ -158,11 +160,11 @@ Layer Selection → {
 ```
 
 ### Script Loading Order
-1. External libraries (Cesium, Proj4js)
-2. Core managers and utilities
-3. Additional managers
-4. Tour content
-5. UI interaction handlers
+1. External libraries (Proj4js)
+2. Configuration (config.js)
+3. Core utilities (utilities.js, main.js)
+4. Managers (UserManager.js, SuperSplatManager.js, etc.)
+5. Data visualization (ecologicalMetrics.js, layerControls.js, metricChart.js, focusPanel.js)
 
 ### Key Elements and IDs
 - **Containers**: cesiumContainer, map2D, messageBox, controlPanel, focusPanel
@@ -241,7 +243,7 @@ window.layerState = {
   showPlantableAreas: boolean,     // PA visibility
   showNonPlantableAreas: boolean,  // NPA visibility
   showEcologicalMetrics: boolean,  // M1-M10 metrics active
-  selectedMetric: string|null,     // 'moisture', 'pH', etc.
+  selectedMetric: string|null,     // 'soilMoisture', 'pH', etc.
   selectedPA: string|null,         // Selected PA name
   selectedNPA: string|null,        // Selected NPA category
   paCategories: Map,               // PA name → {number, category}
@@ -252,9 +254,9 @@ window.layerState = {
 
 #### Key Functions
 - `initializeLayerControls()`: Sets up all event handlers, analyzes categories
-- `updateVisualization()`: Re-renders based on layerState
-- `zoomToFeature()`: Positions polygon at 25% from left screen edge
-- `createPAConnection()`: Visual line between PA and focus panel
+- `reRenderPolygons()`: Re-renders polygons based on current layer state
+- `zoomToFeature()`: Geographic coordinate calculations for camera positioning (SuperSplat integration pending)
+- `orchestrateFocusAnimation()`: Animated visual connection between PA selection and focus panel
 
 ### GeoJSON Data Formats
 
@@ -280,8 +282,7 @@ window.map2D                  // GoogleMaps2DManager instance
 window.user                   // UserManager instance
 window.currentLayerSelection  // Active layer
 window.currentSiteData        // Loaded GeoJSON
-window.currentHeightOffset    // Polygon height adjustment
-window.stopFlyThrough         // Tour interruption flag
+// Removed: window.stopFlyThrough - Legacy tour system removed
 ```
 
 ### Manager Classes
@@ -328,15 +329,6 @@ class UserManager {
 - Smart axis labels with project-wide ranges
 - Simplified interpretations for landscape architects
 
-#### Height Adjustment System
-```javascript
-// Manual height adjustment
-adjustHeightOffset(5);   // Raise by 5m
-adjustHeightOffset(-3);  // Lower by 3m
-
-// Check current offset
-console.log(window.currentHeightOffset);
-```
 
 ## Data System
 
@@ -381,7 +373,6 @@ terrain-3d/
 - Console logging throughout
 - Global state accessible via window object
 - Camera position: `debug()` function
-- Height adjustment: `adjustHeightOffset()`
 
 ## Performance Considerations
 
