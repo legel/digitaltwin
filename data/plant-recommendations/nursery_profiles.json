@@ -1,0 +1,2738 @@
+{
+  "Coastal Botanics": {
+    "name": "Coastal Botanics",
+    "species_count": 5,
+    "total_skus": 29,
+    "species_list": [
+      {
+        "name": "Rhapidophyllum hystrix",
+        "sku_count": 6,
+        "gbif_key": 5293826
+      },
+      {
+        "name": "Sabal minor",
+        "sku_count": 4,
+        "gbif_key": 2732511
+      },
+      {
+        "name": "Sabal palmetto",
+        "sku_count": 6,
+        "gbif_key": 4925538
+      },
+      {
+        "name": "Serenoa repens",
+        "sku_count": 11,
+        "gbif_key": 2735055
+      },
+      {
+        "name": "Zamia integrifolia",
+        "sku_count": 2,
+        "gbif_key": 5284049
+      }
+    ]
+  },
+  "EarthBalance / Green Seasons": {
+    "name": "EarthBalance / Green Seasons",
+    "species_count": 169,
+    "total_skus": 433,
+    "species_list": [
+      {
+        "name": "Acer rubrum",
+        "sku_count": 1,
+        "gbif_key": 3189883
+      },
+      {
+        "name": "Acrostichum danaeifolium",
+        "sku_count": 1,
+        "gbif_key": 2651707
+      },
+      {
+        "name": "Ageratum littorale",
+        "sku_count": 3,
+        "gbif_key": 8044285
+      },
+      {
+        "name": "Andropogon glomeratus",
+        "sku_count": 3,
+        "gbif_key": 2706097
+      },
+      {
+        "name": "Andropogon virginicus",
+        "sku_count": 2,
+        "gbif_key": 2706080
+      },
+      {
+        "name": "Annona glabra",
+        "sku_count": 2,
+        "gbif_key": 5407100
+      },
+      {
+        "name": "Ardisia escallonioides",
+        "sku_count": 4,
+        "gbif_key": 5558603
+      },
+      {
+        "name": "Asclepias incarnata",
+        "sku_count": 3,
+        "gbif_key": 3170266
+      },
+      {
+        "name": "Asclepias perennis",
+        "sku_count": 1,
+        "gbif_key": 3170346
+      },
+      {
+        "name": "Asclepias tuberosa",
+        "sku_count": 1,
+        "gbif_key": 3170305
+      },
+      {
+        "name": "Asclepias verticillata",
+        "sku_count": 3,
+        "gbif_key": 3170235
+      },
+      {
+        "name": "Avicennia germinans",
+        "sku_count": 2,
+        "gbif_key": 2925400
+      },
+      {
+        "name": "Baccharis dioica",
+        "sku_count": 1,
+        "gbif_key": 3129751
+      },
+      {
+        "name": "Baccharis halimifolia",
+        "sku_count": 1,
+        "gbif_key": 3129663
+      },
+      {
+        "name": "Bacopa caroliniana",
+        "sku_count": 1,
+        "gbif_key": 3171189
+      },
+      {
+        "name": "Bacopa monnieri",
+        "sku_count": 2,
+        "gbif_key": 3171169
+      },
+      {
+        "name": "Batis maritima",
+        "sku_count": 2,
+        "gbif_key": 5414196
+      },
+      {
+        "name": "Berlandiera subacaulis",
+        "sku_count": 1,
+        "gbif_key": 3148287
+      },
+      {
+        "name": "Bignonia capreolata",
+        "sku_count": 4,
+        "gbif_key": 3172516
+      },
+      {
+        "name": "Blutaparon vermiculare",
+        "sku_count": 1,
+        "gbif_key": 3085046
+      },
+      {
+        "name": "Borrichia arborescens",
+        "sku_count": 2,
+        "gbif_key": 3087127
+      },
+      {
+        "name": "Borrichia frutescens",
+        "sku_count": 6,
+        "gbif_key": 3087136
+      },
+      {
+        "name": "Bourreria succulenta",
+        "sku_count": 1,
+        "gbif_key": 2926102
+      },
+      {
+        "name": "Calamintha georgiana",
+        "sku_count": 1,
+        "gbif_key": 5341441
+      },
+      {
+        "name": "Callicarpa americana",
+        "sku_count": 4,
+        "gbif_key": 5341129
+      },
+      {
+        "name": "Canavalia rosea",
+        "sku_count": 4,
+        "gbif_key": 2962021
+      },
+      {
+        "name": "Canna flaccida",
+        "sku_count": 2,
+        "gbif_key": 5303151
+      },
+      {
+        "name": "Cephalanthus occidentalis",
+        "sku_count": 2,
+        "gbif_key": 2923947
+      },
+      {
+        "name": "Chiococca alba",
+        "sku_count": 2,
+        "gbif_key": 2907406
+      },
+      {
+        "name": "Chrysobalanus icaco",
+        "sku_count": 5,
+        "gbif_key": 2985082
+      },
+      {
+        "name": "Chrysopsis floridana",
+        "sku_count": 1,
+        "gbif_key": 5385919
+      },
+      {
+        "name": "Cladium jamaicense",
+        "sku_count": 1,
+        "gbif_key": 2731343
+      },
+      {
+        "name": "Coccoloba uvifera",
+        "sku_count": 4,
+        "gbif_key": 2888831
+      },
+      {
+        "name": "Conocarpus erectus",
+        "sku_count": 3,
+        "gbif_key": 5421045
+      },
+      {
+        "name": "Conradina canescens",
+        "sku_count": 2,
+        "gbif_key": 2927107
+      },
+      {
+        "name": "Conradina grandiflora",
+        "sku_count": 1,
+        "gbif_key": 2927106
+      },
+      {
+        "name": "Coreopsis lanceolata",
+        "sku_count": 2,
+        "gbif_key": 3133938
+      },
+      {
+        "name": "Coreopsis leavenworthii",
+        "sku_count": 2,
+        "gbif_key": 3133918
+      },
+      {
+        "name": "Crossopetalum ilicifolium",
+        "sku_count": 3,
+        "gbif_key": 5414288
+      },
+      {
+        "name": "Distichlis spicata",
+        "sku_count": 5,
+        "gbif_key": 2704509
+      },
+      {
+        "name": "Dyschoriste humistrata",
+        "sku_count": 2,
+        "gbif_key": 3173055
+      },
+      {
+        "name": "Dyschoriste oblongifolia",
+        "sku_count": 2,
+        "gbif_key": 3173062
+      },
+      {
+        "name": "Eleocharis cellulosa",
+        "sku_count": 1,
+        "gbif_key": 2717763
+      },
+      {
+        "name": "Eleocharis interstincta",
+        "sku_count": 1,
+        "gbif_key": 2716972
+      },
+      {
+        "name": "Eragrostis elliottii",
+        "sku_count": 4,
+        "gbif_key": 2705344
+      },
+      {
+        "name": "Eragrostis spectabilis",
+        "sku_count": 4,
+        "gbif_key": 2705413
+      },
+      {
+        "name": "Ernodea littoralis",
+        "sku_count": 3,
+        "gbif_key": 2893696
+      },
+      {
+        "name": "Erythrina herbacea",
+        "sku_count": 4,
+        "gbif_key": 5349731
+      },
+      {
+        "name": "Eugenia axillaris",
+        "sku_count": 2,
+        "gbif_key": 5416259
+      },
+      {
+        "name": "Eugenia foetida",
+        "sku_count": 3,
+        "gbif_key": 5417751
+      },
+      {
+        "name": "Euploca polyphylla",
+        "sku_count": 3,
+        "gbif_key": 7477922
+      },
+      {
+        "name": "Flaveria linearis",
+        "sku_count": 4,
+        "gbif_key": 3086837
+      },
+      {
+        "name": "Forestiera segregata",
+        "sku_count": 3,
+        "gbif_key": 3172384
+      },
+      {
+        "name": "Fraxinus caroliniana",
+        "sku_count": 1,
+        "gbif_key": 3172339
+      },
+      {
+        "name": "Gaillardia pulchella",
+        "sku_count": 3,
+        "gbif_key": 5387821
+      },
+      {
+        "name": "Gelsemium sempervirens",
+        "sku_count": 4,
+        "gbif_key": 3169513
+      },
+      {
+        "name": "Geobalanus oblongifolius",
+        "sku_count": 1,
+        "gbif_key": 2985320
+      },
+      {
+        "name": "Glandularia maritima",
+        "sku_count": 2,
+        "gbif_key": 5341156
+      },
+      {
+        "name": "Guapira discolor",
+        "sku_count": 1,
+        "gbif_key": 3086055
+      },
+      {
+        "name": "Hamelia patens",
+        "sku_count": 6,
+        "gbif_key": 2902066
+      },
+      {
+        "name": "Helianthus angustifolius",
+        "sku_count": 1,
+        "gbif_key": 3119144
+      },
+      {
+        "name": "Helianthus debilis",
+        "sku_count": 7,
+        "gbif_key": 3119191
+      },
+      {
+        "name": "Heliotropium angiospermum",
+        "sku_count": 2,
+        "gbif_key": 2925809
+      },
+      {
+        "name": "Heliotropium gnaphalodes",
+        "sku_count": 2,
+        "gbif_key": 4065517
+      },
+      {
+        "name": "Hibiscus aculeatus",
+        "sku_count": 1,
+        "gbif_key": 3152544
+      },
+      {
+        "name": "Hibiscus coccineus",
+        "sku_count": 1,
+        "gbif_key": 3152566
+      },
+      {
+        "name": "Hypericum fasciculatum",
+        "sku_count": 1,
+        "gbif_key": 3189454
+      },
+      {
+        "name": "Ilex glabra",
+        "sku_count": 3,
+        "gbif_key": 5414266
+      },
+      {
+        "name": "Ilex vomitoria",
+        "sku_count": 3,
+        "gbif_key": 5414250
+      },
+      {
+        "name": "Ipomoea imperati",
+        "sku_count": 4,
+        "gbif_key": 2928596
+      },
+      {
+        "name": "Ipomoea microdactyla",
+        "sku_count": 5,
+        "gbif_key": 2928573
+      },
+      {
+        "name": "Ipomoea pes-caprae",
+        "sku_count": 5,
+        "gbif_key": 7999386
+      },
+      {
+        "name": "Iris savannarum",
+        "sku_count": 2,
+        "gbif_key": 5298369
+      },
+      {
+        "name": "Iva frutescens",
+        "sku_count": 1,
+        "gbif_key": 5402625
+      },
+      {
+        "name": "Iva imbricata",
+        "sku_count": 4,
+        "gbif_key": 5402626
+      },
+      {
+        "name": "Juncus effusus",
+        "sku_count": 1,
+        "gbif_key": 2701311
+      },
+      {
+        "name": "Juncus roemerianus",
+        "sku_count": 3,
+        "gbif_key": 2701817
+      },
+      {
+        "name": "Kosteletzkya pentacarpos",
+        "sku_count": 1,
+        "gbif_key": 4939647
+      },
+      {
+        "name": "Lachnanthes caroliana",
+        "sku_count": 2,
+        "gbif_key": 3715422
+      },
+      {
+        "name": "Laguncularia racemosa",
+        "sku_count": 2,
+        "gbif_key": 3189382
+      },
+      {
+        "name": "Lantana involucrata",
+        "sku_count": 3,
+        "gbif_key": 2925313
+      },
+      {
+        "name": "Liatris spicata",
+        "sku_count": 2,
+        "gbif_key": 3104314
+      },
+      {
+        "name": "Liatris tenuifolia",
+        "sku_count": 1,
+        "gbif_key": 3104337
+      },
+      {
+        "name": "Lobelia cardinalis",
+        "sku_count": 1,
+        "gbif_key": 5408269
+      },
+      {
+        "name": "Lonicera sempervirens",
+        "sku_count": 4,
+        "gbif_key": 5334239
+      },
+      {
+        "name": "Lycium carolinianum",
+        "sku_count": 2,
+        "gbif_key": 2928830
+      },
+      {
+        "name": "Lyonia lucida",
+        "sku_count": 2,
+        "gbif_key": 5333386
+      },
+      {
+        "name": "Melochia tomentosa",
+        "sku_count": 2,
+        "gbif_key": 6686267
+      },
+      {
+        "name": "Mimosa strigillosa",
+        "sku_count": 4,
+        "gbif_key": 2969657
+      },
+      {
+        "name": "Monarda punctata",
+        "sku_count": 3,
+        "gbif_key": 5341413
+      },
+      {
+        "name": "Morella cerifera",
+        "sku_count": 1,
+        "gbif_key": 3168995
+      },
+      {
+        "name": "Muhlenbergia capillaris",
+        "sku_count": 8,
+        "gbif_key": 2704016
+      },
+      {
+        "name": "Myrcianthes fragrans",
+        "sku_count": 10,
+        "gbif_key": 9920389
+      },
+      {
+        "name": "Myrsine cubana",
+        "sku_count": 3,
+        "gbif_key": 3721881
+      },
+      {
+        "name": "Nephrolepis exaltata",
+        "sku_count": 1,
+        "gbif_key": 2650927
+      },
+      {
+        "name": "Neptunia pubescens",
+        "sku_count": 1,
+        "gbif_key": 5353554
+      },
+      {
+        "name": "Opuntia abjecta",
+        "sku_count": 1,
+        "gbif_key": 5384090
+      },
+      {
+        "name": "Opuntia stricta",
+        "sku_count": 3,
+        "gbif_key": 5384075
+      },
+      {
+        "name": "Panicum amarum",
+        "sku_count": 6,
+        "gbif_key": 2705089
+      },
+      {
+        "name": "Panicum hemitomon",
+        "sku_count": 2,
+        "gbif_key": 2705124
+      },
+      {
+        "name": "Panicum virgatum",
+        "sku_count": 1,
+        "gbif_key": 2705081
+      },
+      {
+        "name": "Paspalum monostachyum",
+        "sku_count": 1,
+        "gbif_key": 2705600
+      },
+      {
+        "name": "Paspalum vaginatum",
+        "sku_count": 4,
+        "gbif_key": 8100050
+      },
+      {
+        "name": "Passiflora incarnata",
+        "sku_count": 2,
+        "gbif_key": 2874218
+      },
+      {
+        "name": "Passiflora suberosa",
+        "sku_count": 3,
+        "gbif_key": 2874173
+      },
+      {
+        "name": "Persicaria punctata",
+        "sku_count": 1,
+        "gbif_key": 6390957
+      },
+      {
+        "name": "Phyla nodiflora",
+        "sku_count": 1,
+        "gbif_key": 5341112
+      },
+      {
+        "name": "Piloblephis rigida",
+        "sku_count": 2,
+        "gbif_key": 2927334
+      },
+      {
+        "name": "Pinus elliottii",
+        "sku_count": 1,
+        "gbif_key": 5285777
+      },
+      {
+        "name": "Pityopsis graminifolia",
+        "sku_count": 1,
+        "gbif_key": 3094306
+      },
+      {
+        "name": "Pityopsis tracyi",
+        "sku_count": 1,
+        "gbif_key": 4227395
+      },
+      {
+        "name": "Pontederia cordata",
+        "sku_count": 2,
+        "gbif_key": 2766030
+      },
+      {
+        "name": "Prunus caroliniana",
+        "sku_count": 1,
+        "gbif_key": 3023558
+      },
+      {
+        "name": "Psychotria ligustrifolia",
+        "sku_count": 2,
+        "gbif_key": 2920615
+      },
+      {
+        "name": "Psychotria nervosa",
+        "sku_count": 4,
+        "gbif_key": 2920385
+      },
+      {
+        "name": "Quadrella jamaicensis",
+        "sku_count": 4,
+        "gbif_key": 5601701
+      },
+      {
+        "name": "Quercus laurifolia",
+        "sku_count": 2,
+        "gbif_key": 2877708
+      },
+      {
+        "name": "Quercus nigra",
+        "sku_count": 1,
+        "gbif_key": 2879328
+      },
+      {
+        "name": "Randia aculeata",
+        "sku_count": 3,
+        "gbif_key": 5339488
+      },
+      {
+        "name": "Rhizophora mangle",
+        "sku_count": 3,
+        "gbif_key": 3086528
+      },
+      {
+        "name": "Rivina humilis",
+        "sku_count": 2,
+        "gbif_key": 3084027
+      },
+      {
+        "name": "Rudbeckia hirta",
+        "sku_count": 5,
+        "gbif_key": 3114225
+      },
+      {
+        "name": "Rudbeckia laciniata",
+        "sku_count": 2,
+        "gbif_key": 3114229
+      },
+      {
+        "name": "Rudbeckia mollis",
+        "sku_count": 3,
+        "gbif_key": 4934247
+      },
+      {
+        "name": "Ruellia caroliniensis",
+        "sku_count": 2,
+        "gbif_key": 5415376
+      },
+      {
+        "name": "Saccharum giganteum",
+        "sku_count": 3,
+        "gbif_key": 7842638
+      },
+      {
+        "name": "Sagittaria lancifolia",
+        "sku_count": 2,
+        "gbif_key": 5328895
+      },
+      {
+        "name": "Sagittaria latifolia",
+        "sku_count": 1,
+        "gbif_key": 5328909
+      },
+      {
+        "name": "Salvia azurea",
+        "sku_count": 2,
+        "gbif_key": 8283204
+      },
+      {
+        "name": "Salvia coccinea",
+        "sku_count": 1,
+        "gbif_key": 9278365
+      },
+      {
+        "name": "Salvia misella",
+        "sku_count": 2,
+        "gbif_key": 2927058
+      },
+      {
+        "name": "Saururus cernuus",
+        "sku_count": 1,
+        "gbif_key": 5384932
+      },
+      {
+        "name": "Scaevola plumieri",
+        "sku_count": 2,
+        "gbif_key": 5407597
+      },
+      {
+        "name": "Schizachyrium scoparium",
+        "sku_count": 2,
+        "gbif_key": 2704432
+      },
+      {
+        "name": "Schoenoplectus tabernaemontani",
+        "sku_count": 1,
+        "gbif_key": 2711157
+      },
+      {
+        "name": "Senna mexicana",
+        "sku_count": 3,
+        "gbif_key": 2957605
+      },
+      {
+        "name": "Serenoa repens",
+        "sku_count": 5,
+        "gbif_key": 2735055
+      },
+      {
+        "name": "Sesuvium portulacastrum",
+        "sku_count": 5,
+        "gbif_key": 3084883
+      },
+      {
+        "name": "Sideroxylon tenax",
+        "sku_count": 2,
+        "gbif_key": 2887241
+      },
+      {
+        "name": "Silphium asteriscus",
+        "sku_count": 2,
+        "gbif_key": 3092582
+      },
+      {
+        "name": "Sisyrinchium angustifolium",
+        "sku_count": 3,
+        "gbif_key": 5296015
+      },
+      {
+        "name": "Solidago canadensis",
+        "sku_count": 1,
+        "gbif_key": 5389029
+      },
+      {
+        "name": "Solidago sempervirens",
+        "sku_count": 3,
+        "gbif_key": 5388927
+      },
+      {
+        "name": "Sophora tomentosa",
+        "sku_count": 3,
+        "gbif_key": 2958970
+      },
+      {
+        "name": "Sorghastrum secundum",
+        "sku_count": 1,
+        "gbif_key": 2704421
+      },
+      {
+        "name": "Spartina alterniflora",
+        "sku_count": 2,
+        "gbif_key": 5290035
+      },
+      {
+        "name": "Spartina bakeri",
+        "sku_count": 8,
+        "gbif_key": 5290039
+      },
+      {
+        "name": "Spartina patens",
+        "sku_count": 6,
+        "gbif_key": 5290026
+      },
+      {
+        "name": "Spartina spartinae",
+        "sku_count": 2,
+        "gbif_key": 5290040
+      },
+      {
+        "name": "Sporobolus junceus",
+        "sku_count": 2,
+        "gbif_key": 2704776
+      },
+      {
+        "name": "Sporobolus virginicus",
+        "sku_count": 4,
+        "gbif_key": 2704745
+      },
+      {
+        "name": "Stachytarpheta jamaicensis",
+        "sku_count": 2,
+        "gbif_key": 2925463
+      },
+      {
+        "name": "Stokesia laevis",
+        "sku_count": 2,
+        "gbif_key": 5403935
+      },
+      {
+        "name": "Suriana maritima",
+        "sku_count": 2,
+        "gbif_key": 2986073
+      },
+      {
+        "name": "Symphyotrichum carolinianum",
+        "sku_count": 1,
+        "gbif_key": 3104917
+      },
+      {
+        "name": "Taxodium distichum",
+        "sku_count": 3,
+        "gbif_key": 2684191
+      },
+      {
+        "name": "Telmatoblechnum serrulatum",
+        "sku_count": 1,
+        "gbif_key": 7633685
+      },
+      {
+        "name": "Thalia geniculata",
+        "sku_count": 1,
+        "gbif_key": 5303044
+      },
+      {
+        "name": "Tradescantia ohiensis",
+        "sku_count": 1,
+        "gbif_key": 2765175
+      },
+      {
+        "name": "Trichostema dichotomum",
+        "sku_count": 2,
+        "gbif_key": 2926665
+      },
+      {
+        "name": "Tripsacum dactyloides",
+        "sku_count": 5,
+        "gbif_key": 2705536
+      },
+      {
+        "name": "Tripsacum floridanum",
+        "sku_count": 4,
+        "gbif_key": 2705534
+      },
+      {
+        "name": "Uniola paniculata",
+        "sku_count": 7,
+        "gbif_key": 2702847
+      },
+      {
+        "name": "Vaccinium darrowii",
+        "sku_count": 1,
+        "gbif_key": 2882908
+      },
+      {
+        "name": "Vaccinium myrsinites",
+        "sku_count": 1,
+        "gbif_key": 2882937
+      },
+      {
+        "name": "Varronia globosa",
+        "sku_count": 1,
+        "gbif_key": 7131431
+      },
+      {
+        "name": "Viburnum obovatum",
+        "sku_count": 13,
+        "gbif_key": 2888620
+      },
+      {
+        "name": "Yucca aloifolia",
+        "sku_count": 3,
+        "gbif_key": 2775744
+      },
+      {
+        "name": "Zamia integrifolia",
+        "sku_count": 3,
+        "gbif_key": 5284049
+      }
+    ]
+  },
+  "Green Isle Gardens": {
+    "name": "Green Isle Gardens",
+    "species_count": 144,
+    "total_skus": 187,
+    "species_list": [
+      {
+        "name": "Amorpha fruticosa",
+        "sku_count": 1,
+        "gbif_key": 5357407
+      },
+      {
+        "name": "Andropogon virginicus",
+        "sku_count": 1,
+        "gbif_key": 2706080
+      },
+      {
+        "name": "Aristida stricta",
+        "sku_count": 3,
+        "gbif_key": 2706263
+      },
+      {
+        "name": "Arnoglossum ovatum",
+        "sku_count": 1,
+        "gbif_key": 5390058
+      },
+      {
+        "name": "Asclepias incarnata",
+        "sku_count": 2,
+        "gbif_key": 3170266
+      },
+      {
+        "name": "Asclepias perennis",
+        "sku_count": 3,
+        "gbif_key": 3170346
+      },
+      {
+        "name": "Asclepias tuberosa",
+        "sku_count": 2,
+        "gbif_key": 3170305
+      },
+      {
+        "name": "Asclepias verticillata",
+        "sku_count": 2,
+        "gbif_key": 3170235
+      },
+      {
+        "name": "Asimina obovata",
+        "sku_count": 1,
+        "gbif_key": 3158034
+      },
+      {
+        "name": "Asimina pygmaea",
+        "sku_count": 1,
+        "gbif_key": 3158054
+      },
+      {
+        "name": "Balduina angustifolia",
+        "sku_count": 1,
+        "gbif_key": 3104988
+      },
+      {
+        "name": "Bejaria racemosa",
+        "sku_count": 1,
+        "gbif_key": 2882722
+      },
+      {
+        "name": "Berlandiera subacaulis",
+        "sku_count": 1,
+        "gbif_key": 3148287
+      },
+      {
+        "name": "Bignonia capreolata",
+        "sku_count": 1,
+        "gbif_key": 3172516
+      },
+      {
+        "name": "Callicarpa americana",
+        "sku_count": 1,
+        "gbif_key": 5341129
+      },
+      {
+        "name": "Callisia ornata",
+        "sku_count": 1,
+        "gbif_key": 5303438
+      },
+      {
+        "name": "Carphephorus corymbosus",
+        "sku_count": 1,
+        "gbif_key": 3112048
+      },
+      {
+        "name": "Carphephorus odoratissimus",
+        "sku_count": 1,
+        "gbif_key": 7795803
+      },
+      {
+        "name": "Carphephorus paniculatus",
+        "sku_count": 1,
+        "gbif_key": 3112034
+      },
+      {
+        "name": "Carya floridana",
+        "sku_count": 1,
+        "gbif_key": 3054348
+      },
+      {
+        "name": "Carya glabra",
+        "sku_count": 1,
+        "gbif_key": 3054325
+      },
+      {
+        "name": "Chamaecrista fasciculata",
+        "sku_count": 1,
+        "gbif_key": 2949728
+      },
+      {
+        "name": "Chasmanthium latifolium",
+        "sku_count": 1,
+        "gbif_key": 2703077
+      },
+      {
+        "name": "Chionanthus virginicus",
+        "sku_count": 2,
+        "gbif_key": 3172303
+      },
+      {
+        "name": "Chrysopsis mariana",
+        "sku_count": 1,
+        "gbif_key": 5385923
+      },
+      {
+        "name": "Chrysopsis subulata",
+        "sku_count": 1,
+        "gbif_key": 5385915
+      },
+      {
+        "name": "Conradina canescens",
+        "sku_count": 1,
+        "gbif_key": 2927107
+      },
+      {
+        "name": "Conradina grandiflora",
+        "sku_count": 1,
+        "gbif_key": 2927106
+      },
+      {
+        "name": "Coreopsis lanceolata",
+        "sku_count": 2,
+        "gbif_key": 3133938
+      },
+      {
+        "name": "Coreopsis leavenworthii",
+        "sku_count": 2,
+        "gbif_key": 3133918
+      },
+      {
+        "name": "Crataegus flava",
+        "sku_count": 2,
+        "gbif_key": 7855454
+      },
+      {
+        "name": "Dalea adenopoda",
+        "sku_count": 1,
+        "gbif_key": 5353454
+      },
+      {
+        "name": "Dyschoriste humistrata",
+        "sku_count": 1,
+        "gbif_key": 3173055
+      },
+      {
+        "name": "Dyschoriste oblongifolia",
+        "sku_count": 1,
+        "gbif_key": 3173062
+      },
+      {
+        "name": "Echinacea purpurea",
+        "sku_count": 1,
+        "gbif_key": 3150935
+      },
+      {
+        "name": "Eragrostis elliottii",
+        "sku_count": 2,
+        "gbif_key": 2705344
+      },
+      {
+        "name": "Eragrostis spectabilis",
+        "sku_count": 2,
+        "gbif_key": 2705413
+      },
+      {
+        "name": "Erigeron quercifolius",
+        "sku_count": 1,
+        "gbif_key": 7363888
+      },
+      {
+        "name": "Eryngium yuccifolium",
+        "sku_count": 1,
+        "gbif_key": 3034408
+      },
+      {
+        "name": "Erythrina herbacea",
+        "sku_count": 2,
+        "gbif_key": 5349731
+      },
+      {
+        "name": "Euploca polyphylla",
+        "sku_count": 1,
+        "gbif_key": 7477922
+      },
+      {
+        "name": "Flaveria linearis",
+        "sku_count": 1,
+        "gbif_key": 3086837
+      },
+      {
+        "name": "Forestiera segregata",
+        "sku_count": 2,
+        "gbif_key": 3172384
+      },
+      {
+        "name": "Gaillardia pulchella",
+        "sku_count": 2,
+        "gbif_key": 5387821
+      },
+      {
+        "name": "Garberia heterophylla",
+        "sku_count": 1,
+        "gbif_key": 3118103
+      },
+      {
+        "name": "Gelsemium sempervirens",
+        "sku_count": 2,
+        "gbif_key": 3169513
+      },
+      {
+        "name": "Geobalanus oblongifolius",
+        "sku_count": 2,
+        "gbif_key": 2985320
+      },
+      {
+        "name": "Glandularia maritima",
+        "sku_count": 1,
+        "gbif_key": 5341156
+      },
+      {
+        "name": "Glandularia tampensis",
+        "sku_count": 1,
+        "gbif_key": 5341144
+      },
+      {
+        "name": "Hamelia patens",
+        "sku_count": 1,
+        "gbif_key": 2902066
+      },
+      {
+        "name": "Helenium amarum",
+        "sku_count": 1,
+        "gbif_key": 5401836
+      },
+      {
+        "name": "Helianthus angustifolius",
+        "sku_count": 1,
+        "gbif_key": 3119144
+      },
+      {
+        "name": "Helianthus carnosus",
+        "sku_count": 1,
+        "gbif_key": 3119193
+      },
+      {
+        "name": "Helianthus radula",
+        "sku_count": 1,
+        "gbif_key": 3119165
+      },
+      {
+        "name": "Heliotropium angiospermum",
+        "sku_count": 1,
+        "gbif_key": 2925809
+      },
+      {
+        "name": "Hibiscus aculeatus",
+        "sku_count": 1,
+        "gbif_key": 3152544
+      },
+      {
+        "name": "Hibiscus coccineus",
+        "sku_count": 1,
+        "gbif_key": 3152566
+      },
+      {
+        "name": "Hydrangea quercifolia",
+        "sku_count": 1,
+        "gbif_key": 2985993
+      },
+      {
+        "name": "Hypericum tenuifolium",
+        "sku_count": 1,
+        "gbif_key": 3710846
+      },
+      {
+        "name": "Ilex glabra",
+        "sku_count": 2,
+        "gbif_key": 5414266
+      },
+      {
+        "name": "Ilex vomitoria",
+        "sku_count": 1,
+        "gbif_key": 5414250
+      },
+      {
+        "name": "Juniperus virginiana",
+        "sku_count": 1,
+        "gbif_key": 2684391
+      },
+      {
+        "name": "Justicia pringlei",
+        "sku_count": 1,
+        "gbif_key": 3771277
+      },
+      {
+        "name": "Lantana involucrata",
+        "sku_count": 1,
+        "gbif_key": 2925313
+      },
+      {
+        "name": "Liatris chapmanii",
+        "sku_count": 1,
+        "gbif_key": 3104307
+      },
+      {
+        "name": "Liatris gracilis",
+        "sku_count": 1,
+        "gbif_key": 3104338
+      },
+      {
+        "name": "Liatris spicata",
+        "sku_count": 1,
+        "gbif_key": 3104314
+      },
+      {
+        "name": "Liatris tenuifolia",
+        "sku_count": 1,
+        "gbif_key": 3104337
+      },
+      {
+        "name": "Lonicera sempervirens",
+        "sku_count": 2,
+        "gbif_key": 5334239
+      },
+      {
+        "name": "Lyonia ferruginea",
+        "sku_count": 1,
+        "gbif_key": 5333387
+      },
+      {
+        "name": "Lyonia lucida",
+        "sku_count": 2,
+        "gbif_key": 5333386
+      },
+      {
+        "name": "Mimosa strigillosa",
+        "sku_count": 2,
+        "gbif_key": 2969657
+      },
+      {
+        "name": "Monarda punctata",
+        "sku_count": 1,
+        "gbif_key": 5341413
+      },
+      {
+        "name": "Morus rubra",
+        "sku_count": 1,
+        "gbif_key": 5361886
+      },
+      {
+        "name": "Muhlenbergia capillaris",
+        "sku_count": 2,
+        "gbif_key": 2704016
+      },
+      {
+        "name": "Myrcianthes fragrans",
+        "sku_count": 2,
+        "gbif_key": 9920389
+      },
+      {
+        "name": "Nolina brittoniana",
+        "sku_count": 1,
+        "gbif_key": 2776991
+      },
+      {
+        "name": "Opuntia humifusa",
+        "sku_count": 1,
+        "gbif_key": 5384047
+      },
+      {
+        "name": "Palafoxia feayi",
+        "sku_count": 1,
+        "gbif_key": 3121715
+      },
+      {
+        "name": "Palafoxia integrifolia",
+        "sku_count": 1,
+        "gbif_key": 3121709
+      },
+      {
+        "name": "Passiflora incarnata",
+        "sku_count": 2,
+        "gbif_key": 2874218
+      },
+      {
+        "name": "Passiflora suberosa",
+        "sku_count": 2,
+        "gbif_key": 2874173
+      },
+      {
+        "name": "Penstemon australis",
+        "sku_count": 1,
+        "gbif_key": 3171553
+      },
+      {
+        "name": "Penstemon laevigatus",
+        "sku_count": 1,
+        "gbif_key": 3171542
+      },
+      {
+        "name": "Penstemon multiflorus",
+        "sku_count": 1,
+        "gbif_key": 3171348
+      },
+      {
+        "name": "Phlox divaricata",
+        "sku_count": 1,
+        "gbif_key": 2927730
+      },
+      {
+        "name": "Phyla nodiflora",
+        "sku_count": 1,
+        "gbif_key": 5341112
+      },
+      {
+        "name": "Piloblephis rigida",
+        "sku_count": 1,
+        "gbif_key": 2927334
+      },
+      {
+        "name": "Pinus palustris",
+        "sku_count": 3,
+        "gbif_key": 5285816
+      },
+      {
+        "name": "Pityopsis tracyi",
+        "sku_count": 1,
+        "gbif_key": 4227395
+      },
+      {
+        "name": "Polygonum nesomii",
+        "sku_count": 1,
+        "gbif_key": 7566501
+      },
+      {
+        "name": "Prunus angustifolia",
+        "sku_count": 1,
+        "gbif_key": 3021368
+      },
+      {
+        "name": "Prunus umbellata",
+        "sku_count": 1,
+        "gbif_key": 3022674
+      },
+      {
+        "name": "Psychotria nervosa",
+        "sku_count": 3,
+        "gbif_key": 2920385
+      },
+      {
+        "name": "Quercus chapmanii",
+        "sku_count": 1,
+        "gbif_key": 2879533
+      },
+      {
+        "name": "Quercus geminata",
+        "sku_count": 1,
+        "gbif_key": 2878250
+      },
+      {
+        "name": "Quercus incana",
+        "sku_count": 1,
+        "gbif_key": 2878060
+      },
+      {
+        "name": "Quercus laevis",
+        "sku_count": 1,
+        "gbif_key": 2878626
+      },
+      {
+        "name": "Quercus myrtifolia",
+        "sku_count": 1,
+        "gbif_key": 2878545
+      },
+      {
+        "name": "Quercus pumila",
+        "sku_count": 1,
+        "gbif_key": 2878192
+      },
+      {
+        "name": "Rhexia mariana",
+        "sku_count": 1,
+        "gbif_key": 6370240
+      },
+      {
+        "name": "Rhynchospora colorata",
+        "sku_count": 1,
+        "gbif_key": 2721618
+      },
+      {
+        "name": "Rivina humilis",
+        "sku_count": 1,
+        "gbif_key": 3084027
+      },
+      {
+        "name": "Rudbeckia hirta",
+        "sku_count": 1,
+        "gbif_key": 3114225
+      },
+      {
+        "name": "Rudbeckia laciniata",
+        "sku_count": 1,
+        "gbif_key": 3114229
+      },
+      {
+        "name": "Ruellia caroliniensis",
+        "sku_count": 2,
+        "gbif_key": 5415376
+      },
+      {
+        "name": "Sabal etonia",
+        "sku_count": 1,
+        "gbif_key": 2732552
+      },
+      {
+        "name": "Sabal minor",
+        "sku_count": 1,
+        "gbif_key": 2732511
+      },
+      {
+        "name": "Salvia coccinea",
+        "sku_count": 1,
+        "gbif_key": 9278365
+      },
+      {
+        "name": "Salvia lyrata",
+        "sku_count": 1,
+        "gbif_key": 2927027
+      },
+      {
+        "name": "Salvia misella",
+        "sku_count": 1,
+        "gbif_key": 2927058
+      },
+      {
+        "name": "Sambucus nigra",
+        "sku_count": 1,
+        "gbif_key": 2888728
+      },
+      {
+        "name": "Scutellaria integrifolia",
+        "sku_count": 1,
+        "gbif_key": 5341355
+      },
+      {
+        "name": "Senna ligustrina",
+        "sku_count": 1,
+        "gbif_key": 2957907
+      },
+      {
+        "name": "Senna mexicana",
+        "sku_count": 1,
+        "gbif_key": 2957605
+      },
+      {
+        "name": "Serenoa repens",
+        "sku_count": 4,
+        "gbif_key": 2735055
+      },
+      {
+        "name": "Sideroxylon tenax",
+        "sku_count": 1,
+        "gbif_key": 2887241
+      },
+      {
+        "name": "Silphium asteriscus",
+        "sku_count": 1,
+        "gbif_key": 3092582
+      },
+      {
+        "name": "Silphium compositum",
+        "sku_count": 1,
+        "gbif_key": 3092567
+      },
+      {
+        "name": "Sisyrinchium angustifolium",
+        "sku_count": 1,
+        "gbif_key": 5296015
+      },
+      {
+        "name": "Solidago odora",
+        "sku_count": 1,
+        "gbif_key": 5388923
+      },
+      {
+        "name": "Solidago sempervirens",
+        "sku_count": 1,
+        "gbif_key": 5388927
+      },
+      {
+        "name": "Solidago stricta",
+        "sku_count": 1,
+        "gbif_key": 5388869
+      },
+      {
+        "name": "Sorghastrum secundum",
+        "sku_count": 2,
+        "gbif_key": 2704421
+      },
+      {
+        "name": "Spartina bakeri",
+        "sku_count": 2,
+        "gbif_key": 5290039
+      },
+      {
+        "name": "Sporobolus junceus",
+        "sku_count": 1,
+        "gbif_key": 2704776
+      },
+      {
+        "name": "Sporobolus virginicus",
+        "sku_count": 1,
+        "gbif_key": 2704745
+      },
+      {
+        "name": "Stachytarpheta jamaicensis",
+        "sku_count": 1,
+        "gbif_key": 2925463
+      },
+      {
+        "name": "Stokesia laevis",
+        "sku_count": 1,
+        "gbif_key": 5403935
+      },
+      {
+        "name": "Tradescantia ohiensis",
+        "sku_count": 1,
+        "gbif_key": 2765175
+      },
+      {
+        "name": "Trichostema dichotomum",
+        "sku_count": 1,
+        "gbif_key": 2926665
+      },
+      {
+        "name": "Tripsacum dactyloides",
+        "sku_count": 2,
+        "gbif_key": 2705536
+      },
+      {
+        "name": "Tripsacum floridanum",
+        "sku_count": 2,
+        "gbif_key": 2705534
+      },
+      {
+        "name": "Vaccinium arboreum",
+        "sku_count": 1,
+        "gbif_key": 2882828
+      },
+      {
+        "name": "Vaccinium darrowii",
+        "sku_count": 1,
+        "gbif_key": 2882908
+      },
+      {
+        "name": "Vaccinium myrsinites",
+        "sku_count": 2,
+        "gbif_key": 2882937
+      },
+      {
+        "name": "Vernonia angustifolia",
+        "sku_count": 1,
+        "gbif_key": 7725720
+      },
+      {
+        "name": "Vernonia gigantea",
+        "sku_count": 1,
+        "gbif_key": 5397391
+      },
+      {
+        "name": "Viburnum obovatum",
+        "sku_count": 4,
+        "gbif_key": 2888620
+      },
+      {
+        "name": "Viola sororia",
+        "sku_count": 1,
+        "gbif_key": 5331238
+      },
+      {
+        "name": "Ximenia americana",
+        "sku_count": 1,
+        "gbif_key": 2889811
+      },
+      {
+        "name": "Yucca filamentosa",
+        "sku_count": 1,
+        "gbif_key": 2775561
+      },
+      {
+        "name": "Zamia integrifolia",
+        "sku_count": 2,
+        "gbif_key": 5284049
+      },
+      {
+        "name": "Zephyranthes atamasca",
+        "sku_count": 1,
+        "gbif_key": 4270323
+      }
+    ]
+  },
+  "Cherrylake": {
+    "name": "Cherrylake",
+    "species_count": 21,
+    "total_skus": 44,
+    "species_list": [
+      {
+        "name": "Acer rubrum",
+        "sku_count": 1,
+        "gbif_key": 3189883
+      },
+      {
+        "name": "Acoelorraphe wrightii",
+        "sku_count": 2,
+        "gbif_key": 6418688
+      },
+      {
+        "name": "Andropogon ternarius",
+        "sku_count": 1,
+        "gbif_key": 2706082
+      },
+      {
+        "name": "Dyschoriste humistrata",
+        "sku_count": 1,
+        "gbif_key": 3173055
+      },
+      {
+        "name": "Ilex cassine",
+        "sku_count": 1,
+        "gbif_key": 5414255
+      },
+      {
+        "name": "Juniperus virginiana",
+        "sku_count": 1,
+        "gbif_key": 2684391
+      },
+      {
+        "name": "Muhlenbergia capillaris",
+        "sku_count": 2,
+        "gbif_key": 2704016
+      },
+      {
+        "name": "Pinus elliottii",
+        "sku_count": 6,
+        "gbif_key": 5285777
+      },
+      {
+        "name": "Pinus palustris",
+        "sku_count": 2,
+        "gbif_key": 5285816
+      },
+      {
+        "name": "Quercus austrina",
+        "sku_count": 1,
+        "gbif_key": 2879818
+      },
+      {
+        "name": "Quercus phellos",
+        "sku_count": 3,
+        "gbif_key": 2880652
+      },
+      {
+        "name": "Quercus virginiana",
+        "sku_count": 8,
+        "gbif_key": 2878092
+      },
+      {
+        "name": "Rhapidophyllum hystrix",
+        "sku_count": 3,
+        "gbif_key": 5293826
+      },
+      {
+        "name": "Sabal minor",
+        "sku_count": 3,
+        "gbif_key": 2732511
+      },
+      {
+        "name": "Sabal palmetto",
+        "sku_count": 1,
+        "gbif_key": 4925538
+      },
+      {
+        "name": "Serenoa repens",
+        "sku_count": 2,
+        "gbif_key": 2735055
+      },
+      {
+        "name": "Spartina bakeri",
+        "sku_count": 1,
+        "gbif_key": 5290039
+      },
+      {
+        "name": "Taxodium distichum",
+        "sku_count": 1,
+        "gbif_key": 2684191
+      },
+      {
+        "name": "Tripsacum floridanum",
+        "sku_count": 1,
+        "gbif_key": 2705534
+      },
+      {
+        "name": "Ulmus alata",
+        "sku_count": 2,
+        "gbif_key": 5361878
+      },
+      {
+        "name": "Zamia integrifolia",
+        "sku_count": 1,
+        "gbif_key": 5284049
+      }
+    ]
+  },
+  "The Natives": {
+    "name": "The Natives",
+    "species_count": 123,
+    "total_skus": 168,
+    "species_list": [
+      {
+        "name": "Ageratina jucunda",
+        "sku_count": 2,
+        "gbif_key": 5400763
+      },
+      {
+        "name": "Andropogon brachystachyus",
+        "sku_count": 2,
+        "gbif_key": 2706113
+      },
+      {
+        "name": "Andropogon glomeratus",
+        "sku_count": 2,
+        "gbif_key": 2706097
+      },
+      {
+        "name": "Andropogon ternarius",
+        "sku_count": 2,
+        "gbif_key": 2706082
+      },
+      {
+        "name": "Andropogon virginicus",
+        "sku_count": 3,
+        "gbif_key": 2706080
+      },
+      {
+        "name": "Aristida stricta",
+        "sku_count": 2,
+        "gbif_key": 2706263
+      },
+      {
+        "name": "Aronia arbutifolia",
+        "sku_count": 2,
+        "gbif_key": 5363629
+      },
+      {
+        "name": "Asclepias incarnata",
+        "sku_count": 1,
+        "gbif_key": 3170266
+      },
+      {
+        "name": "Asclepias tuberosa",
+        "sku_count": 1,
+        "gbif_key": 3170305
+      },
+      {
+        "name": "Asimina obovata",
+        "sku_count": 1,
+        "gbif_key": 3158034
+      },
+      {
+        "name": "Balduina angustifolia",
+        "sku_count": 1,
+        "gbif_key": 3104988
+      },
+      {
+        "name": "Bejaria racemosa",
+        "sku_count": 1,
+        "gbif_key": 2882722
+      },
+      {
+        "name": "Berlandiera subacaulis",
+        "sku_count": 1,
+        "gbif_key": 3148287
+      },
+      {
+        "name": "Callicarpa americana",
+        "sku_count": 2,
+        "gbif_key": 5341129
+      },
+      {
+        "name": "Campsis radicans",
+        "sku_count": 1,
+        "gbif_key": 3172549
+      },
+      {
+        "name": "Carphephorus corymbosus",
+        "sku_count": 1,
+        "gbif_key": 3112048
+      },
+      {
+        "name": "Carphephorus odoratissimus",
+        "sku_count": 2,
+        "gbif_key": 7795803
+      },
+      {
+        "name": "Carya floridana",
+        "sku_count": 1,
+        "gbif_key": 3054348
+      },
+      {
+        "name": "Carya glabra",
+        "sku_count": 2,
+        "gbif_key": 3054325
+      },
+      {
+        "name": "Chamaecrista fasciculata",
+        "sku_count": 1,
+        "gbif_key": 2949728
+      },
+      {
+        "name": "Chrysopsis mariana",
+        "sku_count": 2,
+        "gbif_key": 5385923
+      },
+      {
+        "name": "Coleataenia anceps",
+        "sku_count": 1,
+        "gbif_key": 4932975
+      },
+      {
+        "name": "Conoclinium coelestinum",
+        "sku_count": 2,
+        "gbif_key": 3090343
+      },
+      {
+        "name": "Conradina brevifolia",
+        "sku_count": 1,
+        "gbif_key": 2927110
+      },
+      {
+        "name": "Conradina grandiflora",
+        "sku_count": 1,
+        "gbif_key": 2927106
+      },
+      {
+        "name": "Coreopsis floridana",
+        "sku_count": 1,
+        "gbif_key": 3133876
+      },
+      {
+        "name": "Coreopsis lanceolata",
+        "sku_count": 1,
+        "gbif_key": 3133938
+      },
+      {
+        "name": "Coreopsis leavenworthii",
+        "sku_count": 2,
+        "gbif_key": 3133918
+      },
+      {
+        "name": "Cornus foemina",
+        "sku_count": 2,
+        "gbif_key": 3082230
+      },
+      {
+        "name": "Crataegus flava",
+        "sku_count": 2,
+        "gbif_key": 7855454
+      },
+      {
+        "name": "Ctenium aromaticum",
+        "sku_count": 1,
+        "gbif_key": 5290066
+      },
+      {
+        "name": "Diospyros virginiana",
+        "sku_count": 1,
+        "gbif_key": 3032986
+      },
+      {
+        "name": "Dyschoriste oblongifolia",
+        "sku_count": 1,
+        "gbif_key": 3173062
+      },
+      {
+        "name": "Elephantopus elatus",
+        "sku_count": 1,
+        "gbif_key": 5395893
+      },
+      {
+        "name": "Eragrostis elliottii",
+        "sku_count": 2,
+        "gbif_key": 2705344
+      },
+      {
+        "name": "Eragrostis spectabilis",
+        "sku_count": 2,
+        "gbif_key": 2705413
+      },
+      {
+        "name": "Eryngium yuccifolium",
+        "sku_count": 1,
+        "gbif_key": 3034408
+      },
+      {
+        "name": "Erythrina herbacea",
+        "sku_count": 2,
+        "gbif_key": 5349731
+      },
+      {
+        "name": "Forestiera segregata",
+        "sku_count": 2,
+        "gbif_key": 3172384
+      },
+      {
+        "name": "Garberia heterophylla",
+        "sku_count": 1,
+        "gbif_key": 3118103
+      },
+      {
+        "name": "Gelsemium sempervirens",
+        "sku_count": 1,
+        "gbif_key": 3169513
+      },
+      {
+        "name": "Geobalanus oblongifolius",
+        "sku_count": 1,
+        "gbif_key": 2985320
+      },
+      {
+        "name": "Gordonia lasianthus",
+        "sku_count": 1,
+        "gbif_key": 5421090
+      },
+      {
+        "name": "Hamelia patens",
+        "sku_count": 2,
+        "gbif_key": 2902066
+      },
+      {
+        "name": "Helianthus angustifolius",
+        "sku_count": 1,
+        "gbif_key": 3119144
+      },
+      {
+        "name": "Helianthus carnosus",
+        "sku_count": 1,
+        "gbif_key": 3119193
+      },
+      {
+        "name": "Helianthus radula",
+        "sku_count": 1,
+        "gbif_key": 3119165
+      },
+      {
+        "name": "Hydrolea corymbosa",
+        "sku_count": 1,
+        "gbif_key": 2928287
+      },
+      {
+        "name": "Hypericum tenuifolium",
+        "sku_count": 1,
+        "gbif_key": 3710846
+      },
+      {
+        "name": "Ilex cassine",
+        "sku_count": 1,
+        "gbif_key": 5414255
+      },
+      {
+        "name": "Ilex glabra",
+        "sku_count": 1,
+        "gbif_key": 5414266
+      },
+      {
+        "name": "Ilex vomitoria",
+        "sku_count": 2,
+        "gbif_key": 5414250
+      },
+      {
+        "name": "Illicium parviflorum",
+        "sku_count": 2,
+        "gbif_key": 7826434
+      },
+      {
+        "name": "Itea virginica",
+        "sku_count": 1,
+        "gbif_key": 5362113
+      },
+      {
+        "name": "Justicia pringlei",
+        "sku_count": 1,
+        "gbif_key": 3771277
+      },
+      {
+        "name": "Lechea deckertii",
+        "sku_count": 1,
+        "gbif_key": 5331130
+      },
+      {
+        "name": "Liatris spicata",
+        "sku_count": 2,
+        "gbif_key": 3104314
+      },
+      {
+        "name": "Liatris tenuifolia",
+        "sku_count": 1,
+        "gbif_key": 3104337
+      },
+      {
+        "name": "Lonicera sempervirens",
+        "sku_count": 1,
+        "gbif_key": 5334239
+      },
+      {
+        "name": "Lyonia ferruginea",
+        "sku_count": 2,
+        "gbif_key": 5333387
+      },
+      {
+        "name": "Lyonia lucida",
+        "sku_count": 2,
+        "gbif_key": 5333386
+      },
+      {
+        "name": "Magnolia virginiana",
+        "sku_count": 1,
+        "gbif_key": 3153639
+      },
+      {
+        "name": "Mimosa strigillosa",
+        "sku_count": 1,
+        "gbif_key": 2969657
+      },
+      {
+        "name": "Monarda punctata",
+        "sku_count": 1,
+        "gbif_key": 5341413
+      },
+      {
+        "name": "Morella cerifera",
+        "sku_count": 2,
+        "gbif_key": 3168995
+      },
+      {
+        "name": "Muhlenbergia capillaris",
+        "sku_count": 2,
+        "gbif_key": 2704016
+      },
+      {
+        "name": "Myrcianthes fragrans",
+        "sku_count": 2,
+        "gbif_key": 9920389
+      },
+      {
+        "name": "Nyssa biflora",
+        "sku_count": 1,
+        "gbif_key": 5383713
+      },
+      {
+        "name": "Palafoxia feayi",
+        "sku_count": 1,
+        "gbif_key": 3121715
+      },
+      {
+        "name": "Palafoxia integrifolia",
+        "sku_count": 1,
+        "gbif_key": 3121709
+      },
+      {
+        "name": "Panicum longifolium",
+        "sku_count": 1,
+        "gbif_key": 3073
+      },
+      {
+        "name": "Passiflora incarnata",
+        "sku_count": 1,
+        "gbif_key": 2874218
+      },
+      {
+        "name": "Passiflora suberosa",
+        "sku_count": 1,
+        "gbif_key": 2874173
+      },
+      {
+        "name": "Penstemon multiflorus",
+        "sku_count": 1,
+        "gbif_key": 3171348
+      },
+      {
+        "name": "Peperomia humilis",
+        "sku_count": 1,
+        "gbif_key": 3086370
+      },
+      {
+        "name": "Pinus clausa",
+        "sku_count": 1,
+        "gbif_key": 5285768
+      },
+      {
+        "name": "Pinus elliottii",
+        "sku_count": 3,
+        "gbif_key": 5285777
+      },
+      {
+        "name": "Pinus palustris",
+        "sku_count": 3,
+        "gbif_key": 5285816
+      },
+      {
+        "name": "Pityopsis graminifolia",
+        "sku_count": 2,
+        "gbif_key": 3094306
+      },
+      {
+        "name": "Polygonum nesomii",
+        "sku_count": 1,
+        "gbif_key": 7566501
+      },
+      {
+        "name": "Polygonum polygamum",
+        "sku_count": 1,
+        "gbif_key": 5334493
+      },
+      {
+        "name": "Prunus umbellata",
+        "sku_count": 1,
+        "gbif_key": 3022674
+      },
+      {
+        "name": "Psychotria nervosa",
+        "sku_count": 1,
+        "gbif_key": 2920385
+      },
+      {
+        "name": "Quercus chapmanii",
+        "sku_count": 1,
+        "gbif_key": 2879533
+      },
+      {
+        "name": "Quercus geminata",
+        "sku_count": 3,
+        "gbif_key": 2878250
+      },
+      {
+        "name": "Quercus incana",
+        "sku_count": 2,
+        "gbif_key": 2878060
+      },
+      {
+        "name": "Quercus inopina",
+        "sku_count": 1,
+        "gbif_key": 2880834
+      },
+      {
+        "name": "Quercus laevis",
+        "sku_count": 1,
+        "gbif_key": 2878626
+      },
+      {
+        "name": "Quercus myrtifolia",
+        "sku_count": 3,
+        "gbif_key": 2878545
+      },
+      {
+        "name": "Quercus nigra",
+        "sku_count": 1,
+        "gbif_key": 2879328
+      },
+      {
+        "name": "Rhus copallinum",
+        "sku_count": 1,
+        "gbif_key": null
+      },
+      {
+        "name": "Rosa palustris",
+        "sku_count": 1,
+        "gbif_key": 3004297
+      },
+      {
+        "name": "Rudbeckia hirta",
+        "sku_count": 1,
+        "gbif_key": 3114225
+      },
+      {
+        "name": "Sabal etonia",
+        "sku_count": 1,
+        "gbif_key": 2732552
+      },
+      {
+        "name": "Saccharum giganteum",
+        "sku_count": 1,
+        "gbif_key": 7842638
+      },
+      {
+        "name": "Salvia coccinea",
+        "sku_count": 1,
+        "gbif_key": 9278365
+      },
+      {
+        "name": "Salvia misella",
+        "sku_count": 1,
+        "gbif_key": 2927058
+      },
+      {
+        "name": "Scutellaria integrifolia",
+        "sku_count": 1,
+        "gbif_key": 5341355
+      },
+      {
+        "name": "Senna mexicana",
+        "sku_count": 1,
+        "gbif_key": 2957605
+      },
+      {
+        "name": "Serenoa repens",
+        "sku_count": 2,
+        "gbif_key": 2735055
+      },
+      {
+        "name": "Sericocarpus tortifolius",
+        "sku_count": 1,
+        "gbif_key": 3088845
+      },
+      {
+        "name": "Sideroxylon tenax",
+        "sku_count": 1,
+        "gbif_key": 2887241
+      },
+      {
+        "name": "Silphium asteriscus",
+        "sku_count": 1,
+        "gbif_key": 3092582
+      },
+      {
+        "name": "Sisyrinchium angustifolium",
+        "sku_count": 1,
+        "gbif_key": 5296015
+      },
+      {
+        "name": "Solidago odora",
+        "sku_count": 2,
+        "gbif_key": 5388923
+      },
+      {
+        "name": "Solidago stricta",
+        "sku_count": 1,
+        "gbif_key": 5388869
+      },
+      {
+        "name": "Sorghastrum secundum",
+        "sku_count": 1,
+        "gbif_key": 2704421
+      },
+      {
+        "name": "Spartina bakeri",
+        "sku_count": 1,
+        "gbif_key": 5290039
+      },
+      {
+        "name": "Stokesia laevis",
+        "sku_count": 1,
+        "gbif_key": 5403935
+      },
+      {
+        "name": "Styrax americanus",
+        "sku_count": 1,
+        "gbif_key": 5371669
+      },
+      {
+        "name": "Symphyotrichum carolinianum",
+        "sku_count": 1,
+        "gbif_key": 3104917
+      },
+      {
+        "name": "Symphyotrichum elliottii",
+        "sku_count": 1,
+        "gbif_key": 3151747
+      },
+      {
+        "name": "Tiedemannia filiformis",
+        "sku_count": 1,
+        "gbif_key": 7535786
+      },
+      {
+        "name": "Trichostema dichotomum",
+        "sku_count": 2,
+        "gbif_key": 2926665
+      },
+      {
+        "name": "Tripsacum dactyloides",
+        "sku_count": 1,
+        "gbif_key": 2705536
+      },
+      {
+        "name": "Tripsacum floridanum",
+        "sku_count": 1,
+        "gbif_key": 2705534
+      },
+      {
+        "name": "Ulmus americana",
+        "sku_count": 1,
+        "gbif_key": 5361872
+      },
+      {
+        "name": "Vaccinium corymbosum",
+        "sku_count": 2,
+        "gbif_key": 2882849
+      },
+      {
+        "name": "Vaccinium darrowii",
+        "sku_count": 2,
+        "gbif_key": 2882908
+      },
+      {
+        "name": "Vaccinium myrsinites",
+        "sku_count": 1,
+        "gbif_key": 2882937
+      },
+      {
+        "name": "Viburnum obovatum",
+        "sku_count": 2,
+        "gbif_key": 2888620
+      },
+      {
+        "name": "Yucca filamentosa",
+        "sku_count": 1,
+        "gbif_key": 2775561
+      },
+      {
+        "name": "Zamia integrifolia",
+        "sku_count": 1,
+        "gbif_key": 5284049
+      }
+    ]
+  },
+  "Marshall Tree Farm": {
+    "name": "Marshall Tree Farm",
+    "species_count": 15,
+    "total_skus": 54,
+    "species_list": [
+      {
+        "name": "Acer rubrum",
+        "sku_count": 4,
+        "gbif_key": 3189883
+      },
+      {
+        "name": "Betula nigra",
+        "sku_count": 3,
+        "gbif_key": 5331532
+      },
+      {
+        "name": "Ilex attenuata",
+        "sku_count": 1,
+        "gbif_key": 5414253
+      },
+      {
+        "name": "Ilex cassine",
+        "sku_count": 3,
+        "gbif_key": 5414255
+      },
+      {
+        "name": "Ilex vomitoria",
+        "sku_count": 3,
+        "gbif_key": 5414250
+      },
+      {
+        "name": "Juniperus silicicola",
+        "sku_count": 2,
+        "gbif_key": 2684402
+      },
+      {
+        "name": "Liquidambar styraciflua",
+        "sku_count": 4,
+        "gbif_key": 3152824
+      },
+      {
+        "name": "Magnolia grandiflora",
+        "sku_count": 2,
+        "gbif_key": 9605163
+      },
+      {
+        "name": "Magnolia virginiana",
+        "sku_count": 2,
+        "gbif_key": 3153639
+      },
+      {
+        "name": "Pinus elliottii",
+        "sku_count": 5,
+        "gbif_key": 5285777
+      },
+      {
+        "name": "Platanus occidentalis",
+        "sku_count": 2,
+        "gbif_key": 3152820
+      },
+      {
+        "name": "Quercus shumardii",
+        "sku_count": 4,
+        "gbif_key": 2878289
+      },
+      {
+        "name": "Quercus virginiana",
+        "sku_count": 13,
+        "gbif_key": 2878092
+      },
+      {
+        "name": "Taxodium distichum",
+        "sku_count": 3,
+        "gbif_key": 2684191
+      },
+      {
+        "name": "Ulmus alata",
+        "sku_count": 3,
+        "gbif_key": 5361878
+      }
+    ]
+  },
+  "McKeithen Growers": {
+    "name": "McKeithen Growers",
+    "species_count": 35,
+    "total_skus": 69,
+    "species_list": [
+      {
+        "name": "Acer rubrum",
+        "sku_count": 3,
+        "gbif_key": 3189883
+      },
+      {
+        "name": "Carya glabra",
+        "sku_count": 1,
+        "gbif_key": 3054325
+      },
+      {
+        "name": "Cercis canadensis",
+        "sku_count": 1,
+        "gbif_key": 5353583
+      },
+      {
+        "name": "Coccoloba uvifera",
+        "sku_count": 1,
+        "gbif_key": 2888831
+      },
+      {
+        "name": "Fraxinus caroliniana",
+        "sku_count": 3,
+        "gbif_key": 3172339
+      },
+      {
+        "name": "Gordonia lasianthus",
+        "sku_count": 2,
+        "gbif_key": 5421090
+      },
+      {
+        "name": "Ilex cassine",
+        "sku_count": 5,
+        "gbif_key": 5414255
+      },
+      {
+        "name": "Ilex glabra",
+        "sku_count": 1,
+        "gbif_key": 5414266
+      },
+      {
+        "name": "Ilex vomitoria",
+        "sku_count": 2,
+        "gbif_key": 5414250
+      },
+      {
+        "name": "Juniperus silicicola",
+        "sku_count": 5,
+        "gbif_key": 2684402
+      },
+      {
+        "name": "Liquidambar styraciflua",
+        "sku_count": 6,
+        "gbif_key": 3152824
+      },
+      {
+        "name": "Magnolia grandiflora",
+        "sku_count": 3,
+        "gbif_key": 9605163
+      },
+      {
+        "name": "Magnolia virginiana",
+        "sku_count": 2,
+        "gbif_key": 3153639
+      },
+      {
+        "name": "Morella cerifera",
+        "sku_count": 2,
+        "gbif_key": 3168995
+      },
+      {
+        "name": "Myrcianthes fragrans",
+        "sku_count": 1,
+        "gbif_key": 9920389
+      },
+      {
+        "name": "Nyssa sylvatica",
+        "sku_count": 1,
+        "gbif_key": 5383717
+      },
+      {
+        "name": "Persea borbonia",
+        "sku_count": 1,
+        "gbif_key": 3034048
+      },
+      {
+        "name": "Pinus elliottii",
+        "sku_count": 4,
+        "gbif_key": 5285777
+      },
+      {
+        "name": "Pinus palustris",
+        "sku_count": 2,
+        "gbif_key": 5285816
+      },
+      {
+        "name": "Pinus serotina",
+        "sku_count": 1,
+        "gbif_key": 5285602
+      },
+      {
+        "name": "Platanus occidentalis",
+        "sku_count": 2,
+        "gbif_key": 3152820
+      },
+      {
+        "name": "Prunus angustifolia",
+        "sku_count": 1,
+        "gbif_key": 3021368
+      },
+      {
+        "name": "Quercus geminata",
+        "sku_count": 1,
+        "gbif_key": 2878250
+      },
+      {
+        "name": "Quercus laevis",
+        "sku_count": 1,
+        "gbif_key": 2878626
+      },
+      {
+        "name": "Quercus laurifolia",
+        "sku_count": 1,
+        "gbif_key": 2877708
+      },
+      {
+        "name": "Quercus nigra",
+        "sku_count": 1,
+        "gbif_key": 2879328
+      },
+      {
+        "name": "Quercus shumardii",
+        "sku_count": 1,
+        "gbif_key": 2878289
+      },
+      {
+        "name": "Quercus virginiana",
+        "sku_count": 2,
+        "gbif_key": 2878092
+      },
+      {
+        "name": "Rhapidophyllum hystrix",
+        "sku_count": 1,
+        "gbif_key": 5293826
+      },
+      {
+        "name": "Sabal palmetto",
+        "sku_count": 1,
+        "gbif_key": 4925538
+      },
+      {
+        "name": "Taxodium ascendens",
+        "sku_count": 2,
+        "gbif_key": 2684203
+      },
+      {
+        "name": "Taxodium distichum",
+        "sku_count": 2,
+        "gbif_key": 2684191
+      },
+      {
+        "name": "Ulmus alata",
+        "sku_count": 2,
+        "gbif_key": 5361878
+      },
+      {
+        "name": "Ulmus americana",
+        "sku_count": 3,
+        "gbif_key": 5361872
+      },
+      {
+        "name": "Viburnum obovatum",
+        "sku_count": 1,
+        "gbif_key": 2888620
+      }
+    ]
+  },
+  "Beeman's Nursery": {
+    "name": "Beeman's Nursery",
+    "species_count": 24,
+    "total_skus": 27,
+    "species_list": [
+      {
+        "name": "Andropogon virginicus",
+        "sku_count": 1,
+        "gbif_key": 2706080
+      },
+      {
+        "name": "Canna flaccida",
+        "sku_count": 1,
+        "gbif_key": 5303151
+      },
+      {
+        "name": "Distichlis spicata",
+        "sku_count": 1,
+        "gbif_key": 2704509
+      },
+      {
+        "name": "Eleocharis cellulosa",
+        "sku_count": 1,
+        "gbif_key": 2717763
+      },
+      {
+        "name": "Eleocharis montana",
+        "sku_count": 1,
+        "gbif_key": 2717236
+      },
+      {
+        "name": "Eragrostis elliottii",
+        "sku_count": 1,
+        "gbif_key": 2705344
+      },
+      {
+        "name": "Ipomoea pes-caprae",
+        "sku_count": 1,
+        "gbif_key": 7999386
+      },
+      {
+        "name": "Iris virginica",
+        "sku_count": 1,
+        "gbif_key": 5298008
+      },
+      {
+        "name": "Juncus effusus",
+        "sku_count": 1,
+        "gbif_key": 2701311
+      },
+      {
+        "name": "Juncus roemerianus",
+        "sku_count": 1,
+        "gbif_key": 2701817
+      },
+      {
+        "name": "Morella cerifera",
+        "sku_count": 1,
+        "gbif_key": 3168995
+      },
+      {
+        "name": "Muhlenbergia capillaris",
+        "sku_count": 3,
+        "gbif_key": 2704016
+      },
+      {
+        "name": "Paspalum vaginatum",
+        "sku_count": 1,
+        "gbif_key": 8100050
+      },
+      {
+        "name": "Pontederia cordata",
+        "sku_count": 1,
+        "gbif_key": 2766030
+      },
+      {
+        "name": "Sagittaria lancifolia",
+        "sku_count": 1,
+        "gbif_key": 5328895
+      },
+      {
+        "name": "Schoenoplectus tabernaemontani",
+        "sku_count": 1,
+        "gbif_key": 2711157
+      },
+      {
+        "name": "Sesuvium portulacastrum",
+        "sku_count": 1,
+        "gbif_key": 3084883
+      },
+      {
+        "name": "Spartina bakeri",
+        "sku_count": 2,
+        "gbif_key": 5290039
+      },
+      {
+        "name": "Spartina patens",
+        "sku_count": 1,
+        "gbif_key": 5290026
+      },
+      {
+        "name": "Sporobolus virginicus",
+        "sku_count": 1,
+        "gbif_key": 2704745
+      },
+      {
+        "name": "Thalia geniculata",
+        "sku_count": 1,
+        "gbif_key": 5303044
+      },
+      {
+        "name": "Tripsacum dactyloides",
+        "sku_count": 1,
+        "gbif_key": 2705536
+      },
+      {
+        "name": "Tripsacum floridanum",
+        "sku_count": 1,
+        "gbif_key": 2705534
+      },
+      {
+        "name": "Uniola paniculata",
+        "sku_count": 1,
+        "gbif_key": 2702847
+      }
+    ]
+  }
+}

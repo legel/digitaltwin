@@ -1,0 +1,2033 @@
+[
+
+    {
+        "official_name": "Plant",
+        "name": "Plant",
+        "type": "parameter",
+        "parent": null ,
+	"open": "true"
+    },
+    {
+        "official_name": "Growth Habit",
+        "name": "Structure",
+        "type": "header",
+        "parent": "Plant",
+	"open": "true" 
+    },
+    {
+        "official_name": "Tree",
+        "name": "Tree",
+        "type": "selector",
+        "parent": "Structure",
+        "matrix_column_index": 0
+    },
+    {
+        "official_name": "Bush",
+        "name": "Shrub",
+        "type": "selector",
+        "parent": "Structure",
+        "matrix_column_index": 1
+    },
+    {
+        "official_name": "Ground Cover",
+        "name": "Ground Cover",
+        "type": "selector",
+        "parent": "Structure",
+        "matrix_column_index": 3
+    },
+    {
+        "official_name": "Forb",
+        "name": "Herb",
+        "type": "selector",
+        "parent": "Structure",
+        "matrix_column_index": 2
+    },
+    {
+        "official_name": "Grass",
+        "name": "Grass",
+        "type": "selector",
+        "parent": "Structure",
+        "matrix_column_index": 4
+    },
+    {
+        "official_name": "Vine",
+        "name": "Vine",
+        "type": "selector",
+        "parent": "Structure",
+        "matrix_column_index": 5
+    },
+    {
+        "name": "Mature Size",
+        "type": "header",
+        "parent": "Plant",
+	"open": "true"
+    },
+    {
+        "official_name": "Mature Height",
+        "name": "Height",
+        "type": "parameter",
+        "parent": "Mature Size"
+    },
+    {
+        "official_name": "Less Than 1 Foot",
+        "name": "< 1 ft.",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 8
+    },
+    {
+        "official_name": "Between 1 And 3 Feet",
+        "name": "1 - 3 ft.",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 9
+    },
+    {
+        "official_name": "Between 3 And 5 Feet",
+        "name": "3 - 5 ft.",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 10
+    },
+    {
+        "official_name": "Between 5 And 10 Feet",
+        "name": "5 - 10 ft.",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 11
+    },
+    {
+        "official_name": "Between 10 And 40 Feet Tall",
+        "name": "10 - 40 ft.",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 12
+    },
+    {
+        "official_name": "Between 40 And 100 Feet Tall",
+        "name": "40 - 100 ft.",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 13
+    },
+    {
+        "official_name": "Between 100 And 400 Feet Tall",
+        "name": "100 - 400 ft.",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 14
+    },
+    {
+        "official_name": "Vine Or Climber Possibly Infinite",
+        "name": "∞",
+        "type": "selector",
+        "parent": "Height",
+        "matrix_column_index": 15
+    },
+    {
+        "official_name": "Extent Of Spreading",
+        "name": "Spread",
+        "type": "parameter",
+        "parent": "Mature Size"
+    },
+    {
+        "official_name": "Less Than 1 Foot",
+        "name": "< 1 ft.",
+        "type": "selector",
+        "parent": "Spread",
+        "matrix_column_index": 16
+    },
+    {
+        "official_name": "Between 1 And 3 Feet",
+        "name": "1 - 3 ft.",
+        "type": "selector",
+        "parent": "Spread",
+        "matrix_column_index": 17
+    },
+    {
+        "official_name": "Between 3 And 5 Feet",
+        "name": "3 - 5 ft.",
+        "type": "selector",
+        "parent": "Spread",
+        "matrix_column_index": 18
+    },
+    {
+        "official_name": "Between 5 And 10 Feet",
+        "name": "5 - 10 ft.",
+        "type": "selector",
+        "parent": "Spread",
+        "matrix_column_index": 19
+    },
+    {
+        "official_name": "Between 10 And 40 Feet Wide",
+        "name": "10 - 40 ft.",
+        "type": "selector",
+        "parent": "Spread",
+        "matrix_column_index": 20
+    },
+    {
+        "official_name": "Between 40 And 100 Feet Wide",
+        "name": "40 - 100 ft.",
+        "type": "selector",
+        "parent": "Spread",
+        "matrix_column_index": 21
+    },
+    {
+        "official_name": "Creeper Or Spreader Or Climber With Unknown Extent",
+        "name": "∞",
+        "type": "selector",
+        "parent": "Spread",
+        "matrix_column_index": 22
+    },
+    {
+        "official_name": "Longevity",
+        "name": "Longevity",
+        "type": "parameter",
+        "parent": "Plant"
+    },
+    {
+        "official_name": "Long Lived",
+        "name": "Long Lived",
+        "type": "selector",
+        "parent": "Longevity",
+        "matrix_column_index": 23
+    },
+    {
+        "official_name": "Perennial",
+        "name": "Perennial",
+        "type": "selector",
+        "parent": "Longevity",
+        "matrix_column_index": 24
+    },
+    {
+        "official_name": "Biennial",
+        "name": "Biennial",
+        "type": "selector",
+        "parent": "Longevity",
+        "matrix_column_index": 25
+    },
+    {
+        "official_name": "Annual",
+        "name": "Annual",
+        "type": "selector",
+        "parent": "Longevity",
+        "matrix_column_index": 26
+    },
+    {
+        "official_name": "Short Lived",
+        "name": "Short Lived",
+        "type": "selector",
+        "parent": "Longevity",
+        "matrix_column_index": 27
+    },
+    {
+        "official_name": "Environment",
+        "name": "Site Conditions",
+        "type": "header",
+        "parent": null,
+	"open": "true"
+    },
+    {
+        "official_name": "Microclimate",
+        "name": "Microclimate",
+        "type": "header",
+        "parent": "Site Conditions",
+	"open": "true"
+    },
+    {
+        "official_name": "Sunlight Requirements",
+        "name": "Sunlight",
+        "type": "parameter",
+        "parent": "Microclimate"
+    },
+    {
+        "official_name": "Shaded",
+        "name": "Shaded",
+        "type": "selector",
+        "parent": "Sunlight",
+        "matrix_column_index": 125
+    },
+    {
+        "official_name": "Partial Shade / Partial Sun",
+        "name": "Partial Shade / Sun",
+        "type": "selector",
+        "parent": "Sunlight",
+        "matrix_column_index": 126
+    },
+    {
+        "official_name": "Full Sun",
+        "name": "Full Sun",
+        "type": "selector",
+        "parent": "Sunlight",
+        "matrix_column_index": 127
+    },
+    {
+        "name": "Soil",
+        "type": "header",
+        "parent": "Microclimate"
+    },
+    {
+        "official_name": "Soil Moisture Preferences",
+        "name": "Moisture",
+        "type": "parameter",
+        "parent": "Soil"
+    },
+    {
+        "official_name": "Dry",
+        "name": "Dry",
+        "type": "selector",
+        "parent": "Moisture",
+        "matrix_column_index": 128
+    },
+    {
+        "official_name": "Well Drained",
+        "name": "Well Drained",
+        "type": "selector",
+        "parent": "Moisture",
+        "matrix_column_index": 129
+    },
+    {
+        "official_name": "Moist",
+        "name": "Moist",
+        "type": "selector",
+        "parent": "Moisture",
+        "matrix_column_index": 130
+    },
+    {
+        "official_name": "Wet",
+        "name": "Wet",
+        "type": "selector",
+        "parent": "Moisture",
+        "matrix_column_index": 131
+    },
+    {
+        "official_name": "Soil Type Requirements",
+        "name": "Type",
+        "type": "parameter",
+        "parent": "Soil"
+    },
+    {
+        "official_name": "Sandy",
+        "name": "Sandy",
+        "type": "selector",
+        "parent": "Type",
+        "matrix_column_index": 136
+    },
+    {
+        "official_name": "Chalky",
+        "name": "Chalky",
+        "type": "selector",
+        "parent": "Type",
+        "matrix_column_index": 137
+    },
+    {
+        "official_name": "Rocky",
+        "name": "Rocky",
+        "type": "selector",
+        "parent": "Type",
+        "matrix_column_index": 138
+    },
+    {
+        "official_name": "Silty",
+        "name": "Silty",
+        "type": "selector",
+        "parent": "Type",
+        "matrix_column_index": 135
+    },
+    {
+        "official_name": "Peaty",
+        "name": "Peaty",
+        "type": "selector",
+        "parent": "Type",
+        "matrix_column_index": 134
+    },
+    {
+        "official_name": "Loamy",
+        "name": "Loamy",
+        "type": "selector",
+        "parent": "Type",
+        "matrix_column_index": 133
+    },
+    {
+        "official_name": "Clay",
+        "name": "Clay",
+        "type": "selector",
+        "parent": "Type",
+        "matrix_column_index": 132
+    },
+    {
+        "official_name": "Soil Ph Requirements",
+        "name": "pH",
+        "type": "parameter",
+        "parent": "Soil"
+    },
+    {
+        "official_name": "Alkaline",
+        "name": "Alkaline",
+        "type": "selector",
+        "parent": "pH",
+        "matrix_column_index": 141
+    },
+    {
+        "official_name": "Neutral",
+        "name": "Neutral",
+        "type": "selector",
+        "parent": "pH",
+        "matrix_column_index": 140
+    },
+    {
+        "official_name": "Acidic",
+        "name": "Acidic",
+        "type": "selector",
+        "parent": "pH",
+        "matrix_column_index": 139
+    },
+    {
+        "official_name": "Nutrient Requirements",
+        "name": "Nutrients",
+        "type": "parameter",
+        "parent": "Soil"
+    },
+    {
+        "official_name": "Low Nutrients",
+        "name": "Low",
+        "type": "selector",
+        "parent": "Nutrients",
+        "matrix_column_index": 39
+    },
+    {
+        "official_name": "Moderate Nutrients",
+        "name": "Moderate",
+        "type": "selector",
+        "parent": "Nutrients",
+        "matrix_column_index": 40
+    },
+    {
+        "official_name": "High Nutrients",
+        "name": "High",
+        "type": "selector",
+        "parent": "Nutrients",
+        "matrix_column_index": 41
+    },
+    {
+        "official_name": "Watering Frequency Requirements",
+        "name": "Irrigation",
+        "type": "parameter",
+        "parent": "Microclimate"
+    },
+    {
+        "official_name": "Infrequent Watering",
+        "name": "Infrequent",
+        "type": "selector",
+        "parent": "Irrigation",
+        "matrix_column_index": 36
+    },
+    {
+        "official_name": "Moderate Watering",
+        "name": "Moderate",
+        "type": "selector",
+        "parent": "Irrigation",
+        "matrix_column_index": 37
+    },
+    {
+        "official_name": "Frequent Watering",
+        "name": "Frequent",
+        "type": "selector",
+        "parent": "Irrigation",
+        "matrix_column_index": 38
+    },
+    {
+        "name": "Hostile Threats",
+        "type": "header",
+        "parent": "Site Conditions",
+	"open": "true"
+    },
+    {
+        "name": "Extreme Weather",
+        "type": "header",
+        "parent": "Hostile Threats"
+    },
+    {
+        "official_name": "Drought Tolerant",
+        "name": "Drought",
+        "type": "selector",
+        "parent": "Extreme Weather",
+        "matrix_column_index": 142
+    },
+    {
+        "official_name": "Flood Tolerant",
+        "name": "Flood",
+        "type": "selector",
+        "parent": "Extreme Weather",
+        "matrix_column_index": 143
+    },
+    {
+        "official_name": "Wind Tolerant",
+        "name": "Wind",
+        "type": "selector",
+        "parent": "Extreme Weather",
+        "matrix_column_index": 144
+    },
+    {
+        "official_name": "Salt Tolerant",
+        "name": "Salt",
+        "type": "selector",
+        "parent": "Extreme Weather",
+        "matrix_column_index": 145
+    },
+    {
+        "official_name": "Freeze Tolerant",
+        "name": "Freeze",
+        "type": "selector",
+        "parent": "Extreme Weather",
+        "matrix_column_index": 146
+    },
+    {
+        "official_name": "Heat Tolerant",
+        "name": "Extreme Heat",
+        "type": "selector",
+        "parent": "Extreme Weather",
+        "matrix_column_index": 147
+    },
+    {
+        "name": "Infestation",
+        "type": "header",
+        "parent": "Hostile Threats"
+    },
+    {
+        "official_name": "Pest Resistant",
+        "name": "Pests",
+        "type": "selector",
+        "parent": "Infestation",
+        "matrix_column_index": 148
+    },
+    {
+        "official_name": "Disease Resistant",
+        "name": "Diseases",
+        "type": "selector",
+        "parent": "Infestation",
+        "matrix_column_index": 149
+    },
+    {
+        "official_name": "Natural Habitat",
+        "name": "Habitat",
+        "type": "parameter",
+        "parent": "Site Conditions"
+    },
+    {
+        "official_name": "Deserts",
+        "name": "Desert",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 150
+    },
+    {
+        "official_name": "Tundra",
+        "name": "Tundra",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 151
+    },
+    {
+        "official_name": "Alpine Meadows",
+        "name": "Alpine Meadow",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 152
+    },
+    {
+        "official_name": "Temperate Deciduous Forests",
+        "name": "Temperate Deciduous Forest",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 153
+    },
+    {
+        "official_name": "Boreal Forests",
+        "name": "Boreal Forest",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 154
+    },
+    {
+        "official_name": "Temperate Rainforests",
+        "name": "Temperate Rainforest",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 155
+    },
+    {
+        "official_name": "Tropical Rainforests",
+        "name": "Tropical Rainforest",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 156
+    },
+    {
+        "official_name": "Woodlands",
+        "name": "Woodland",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 157
+    },
+    {
+        "official_name": "Mediterranean Forests",
+        "name": "Mediterranean Forest",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 158
+    },
+    {
+        "official_name": "Epiphyte",
+        "name": "Epiphyte Canopy",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 6
+    },
+    {
+        "official_name": "Shrublands",
+        "name": "Shrubland",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 159
+    },
+    {
+        "official_name": "Heathlands",
+        "name": "Heathland",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 160
+    },
+    {
+        "official_name": "Grasslands",
+        "name": "Grassland",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 161
+    },
+    {
+        "official_name": "Savannahs",
+        "name": "Savannah",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 162
+    },
+    {
+        "official_name": "Coral Reefs",
+        "name": "Coral Reef",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 163
+    },
+    {
+        "official_name": "Kelp Forests",
+        "name": "Kelp Forest",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 164
+    },
+    {
+        "official_name": "Seagrass Beds",
+        "name": "Seagrass Bed",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 165
+    },
+    {
+        "official_name": "Coastal Beaches",
+        "name": "Coastal Beach",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 166
+    },
+    {
+        "official_name": "Mangroves",
+        "name": "Mangrove",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 167
+    },
+    {
+        "official_name": "Salt Marshes",
+        "name": "Salt Marsh",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 168
+    },
+    {
+        "official_name": "Freshwater Marshes",
+        "name": "Freshwater Marsh",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 169
+    },
+    {
+        "official_name": "Wetlands",
+        "name": "Wetland",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 170
+    },
+    {
+        "official_name": "Swamps",
+        "name": "Swamp",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 171
+    },
+    {
+        "official_name": "Floodplains",
+        "name": "Floodplain",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 172
+    },
+    {
+        "official_name": "Riparian Zones",
+        "name": "Riverside",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 173
+    },
+    {
+        "official_name": "Peatlands",
+        "name": "Peatland",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 174
+    },
+    {
+        "official_name": "Aquatic",
+        "name": "Aquatic Environment",
+        "type": "selector",
+        "parent": "Habitat",
+        "matrix_column_index": 7
+    },
+    {
+        "name": "Objectives",
+        "type": "header",
+        "parent": null,
+	"open": "true"
+
+    },
+    {
+        "name": "Landscape Design",
+        "type": "header",
+        "parent": "Objectives",
+	"open": "true"
+
+    },
+    {
+        "name": "Applications",
+        "type": "header",
+        "parent": "Landscape Design"
+    },
+    {
+        "official_name": "Provides Beneficial Wind Protection",
+        "name": "Blocks Wind",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 238
+    },
+    {
+        "official_name": "Storm Surge Protection",
+        "name": "Reduces Storm Surge",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 239
+    },
+    {
+        "official_name": "Flood Mitigation",
+        "name": "Mitigates Floods",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 240
+    },
+    {
+        "official_name": "Hedge Barrier",
+        "name": "Hedge Barrier",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 175
+    },
+    {
+        "official_name": "Vertical Gardening",
+        "name": "Vertical Garden",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 176
+    },
+    {
+        "official_name": "Groundcover",
+        "name": "Ground Cover",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 177
+    },
+    {
+        "official_name": "Green Roof",
+        "name": "Green Roof",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 178
+    },
+    {
+        "official_name": "Pathway Edging",
+        "name": "Pathway Edge",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 179
+    },
+    {
+        "official_name": "Fragrance Can Be Pleasing",
+        "name": "Fragrant Garden",
+        "type": "selector",
+        "parent": "Applications",
+        "matrix_column_index": 180
+    },
+    {
+        "official_name": "Aesthetics",
+        "name": "Design Palette",
+        "type": "header",
+        "parent": "Landscape Design"
+    },
+    {
+      "official_name": "Dense Plant Communities",
+      "name": "Planting Guidance",
+      "type": "header",
+      "parent": "Design Palette"
+    },
+    {
+        "official_name": "Companion Planting Requirements",
+        "name": "Companion Planting",
+        "type": "parameter",
+        "parent": "Planting Guidance"
+    },
+    {
+        "official_name": "General Compatibility",
+        "name": "Not Antagonistic",
+        "type": "selector",
+        "parent": "Companion Planting",
+        "matrix_column_index": 32
+    },
+    {
+        "official_name": "Generally Symbiotic With Other Plants",
+        "name": "Symbiotic",
+        "type": "selector",
+        "parent": "Companion Planting",
+        "matrix_column_index": 33
+    },
+    {
+        "official_name": "Planting Density",
+        "name": "Planting Density",
+        "type": "parameter",
+        "parent": "Planting Guidance"
+    },
+    {
+        "official_name": "Very Dense Planting",
+        "name": "Dense",
+        "type": "selector",
+        "parent": "Planting Density",
+        "matrix_column_index": 31
+    },
+    {
+        "official_name": "Moderately Dense Planting",
+        "name": "Moderate",
+        "type": "selector",
+        "parent": "Planting Density",
+        "matrix_column_index": 30
+    },
+    {
+        "official_name": "Moderately Sparse Planting",
+        "name": "Sparse",
+        "type": "selector",
+        "parent": "Planting Density",
+        "matrix_column_index": 29
+    },
+    {
+        "official_name": "Growth Rate",
+        "name": "Growth Rate",
+        "type": "parameter",
+        "parent": "Planting Guidance" 
+    },
+    {
+        "official_name": "Slow Growing",
+        "name": "Slow",
+        "type": "selector",
+        "parent": "Growth Rate",
+        "matrix_column_index": 43
+    },
+    {
+        "official_name": "Moderate Growing",
+        "name": "Moderate",
+        "type": "selector",
+        "parent": "Growth Rate",
+        "matrix_column_index": 44
+    },
+    {
+        "official_name": "Fast Growing",
+        "name": "Fast",
+        "type": "selector",
+        "parent": "Growth Rate",
+        "matrix_column_index": 45
+    },
+    {
+        "official_name": "Root Type",
+        "name": "Root System",
+        "type": "parameter",
+        "parent": "Planting Guidance"
+    },
+    {
+        "official_name": "Shallow Roots",
+        "name": "Shallow",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 253
+    },
+    {
+        "official_name": "Lateral Roots",
+        "name": "Lateral",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 254
+    },
+    {
+        "official_name": "Branching Roots",
+        "name": "Branching",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 255
+    },
+    {
+        "official_name": "Fibrous Roots",
+        "name": "Fibrous",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 256
+    },
+    {
+        "official_name": "Adventitious Roots",
+        "name": "Adventitious",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 257
+    },
+    {
+        "official_name": "Thick Roots",
+        "name": "Thick",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 258
+    },
+    {
+        "official_name": "Taproot",
+        "name": "Taproot",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 259
+    },
+    {
+        "official_name": "Deep Roots",
+        "name": "Deep",
+        "type": "selector",
+        "parent": "Root System",
+        "matrix_column_index": 260
+    },
+    {
+        "official_name": "Toxicity From Eating",
+        "name": "Toxicity",
+        "type": "parameter",
+        "parent": "Planting Guidance"
+    },
+    {
+        "official_name": "Non Toxic",
+        "name": "Non Toxic",
+        "type": "selector",
+        "parent": "Toxicity",
+        "matrix_column_index": 35
+    },
+    {
+        "official_name": "Aesthetics",
+        "name": "Aesthetics",
+        "type": "header",
+        "parent": "Design Palette"
+    },
+    {
+        "name": "Multi-Season Interest",
+        "type": "header",
+        "parent": "Aesthetics"
+    },
+    {
+        "name": "Leaf Retention",
+        "type": "header",
+        "parent": "Multi-Season Interest"
+    },
+    {
+        "official_name": "Semi Evergreen",
+        "name": "Semi Evergreen",
+        "type": "selector",
+        "parent": "Leaf Retention",
+        "matrix_column_index": 59
+    },
+    {
+        "official_name": "Evergreen",
+        "name": "Evergreen",
+        "type": "selector",
+        "parent": "Leaf Retention",
+        "matrix_column_index": 60
+    },
+    {
+        "official_name": "Flowering Season",
+        "name": "Flowering Season",
+        "type": "parameter",
+        "parent": "Multi-Season Interest"
+    },
+    {
+        "official_name": "Spring Bloom",
+        "name": "Spring",
+        "type": "selector",
+        "parent": "Flowering Season",
+        "matrix_column_index": 46
+    },
+    {
+        "official_name": "Summer Bloom",
+        "name": "Summer",
+        "type": "selector",
+        "parent": "Flowering Season",
+        "matrix_column_index": 47
+    },
+    {
+        "official_name": "Fall Bloom",
+        "name": "Fall",
+        "type": "selector",
+        "parent": "Flowering Season",
+        "matrix_column_index": 48
+    },
+    {
+        "official_name": "Winter Bloom",
+        "name": "Winter",
+        "type": "selector",
+        "parent": "Flowering Season",
+        "matrix_column_index": 49
+    },
+    {
+        "official_name": "Year Round Bloom",
+        "name": "Year Round",
+        "type": "selector",
+        "parent": "Flowering Season",
+        "matrix_column_index": 50
+    },
+    {
+        "official_name": "Fruiting Season",
+        "name": "Fruiting Season",
+        "type": "parameter",
+        "parent": "Multi-Season Interest"
+    },
+    {
+        "official_name": "Spring Fruiting",
+        "name": "Spring",
+        "type": "selector",
+        "parent": "Fruiting Season",
+        "matrix_column_index": 51
+    },
+    {
+        "official_name": "Summer Fruiting",
+        "name": "Summer",
+        "type": "selector",
+        "parent": "Fruiting Season",
+        "matrix_column_index": 52
+    },
+    {
+        "official_name": "Fall Fruiting",
+        "name": "Fall",
+        "type": "selector",
+        "parent": "Fruiting Season",
+        "matrix_column_index": 53
+    },
+    {
+        "official_name": "Winter Fruiting",
+        "name": "Winter",
+        "type": "selector",
+        "parent": "Fruiting Season",
+        "matrix_column_index": 54
+    },
+    {
+        "official_name": "Year Round Fruiting",
+        "name": "Year Round",
+        "type": "selector",
+        "parent": "Fruiting Season",
+        "matrix_column_index": 55
+    },
+    {
+        "official_name": "Sources Of Aesthetic Beauty",
+        "name": "Beautiful Parts",
+        "type": "parameter",
+        "parent": "Aesthetics"
+    },
+    {
+        "official_name": "Leaves",
+        "name": "Leaves",
+        "type": "selector",
+        "parent": "Beautiful Parts",
+        "matrix_column_index": 70
+    },
+    {
+        "official_name": "Flowers",
+        "name": "Flowers",
+        "type": "selector",
+        "parent": "Beautiful Parts",
+        "matrix_column_index": 71
+    },
+    {
+        "official_name": "Fruits",
+        "name": "Fruits",
+        "type": "selector",
+        "parent": "Beautiful Parts",
+        "matrix_column_index": 72
+    },
+    {
+        "official_name": "Structural Form",
+        "name": "Structural Form",
+        "type": "selector",
+        "parent": "Beautiful Parts",
+        "matrix_column_index": 73
+    },
+    {
+        "official_name": "Flowers Overall",
+        "name": "Flowers",
+        "type": "header",
+        "parent": "Aesthetics"
+    },
+    {
+        "official_name": "Flower Color",
+        "name": "Flower Color",
+        "type": "parameter",
+        "parent": "Flowers"
+    },
+    {
+        "official_name": "White",
+        "name": "White",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 102
+    },
+    {
+        "official_name": "Green",
+        "name": "Green",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 103
+    },
+    {
+        "official_name": "Yellow",
+        "name": "Yellow",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 104
+    },
+    {
+        "official_name": "Orange",
+        "name": "Orange",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 105
+    },
+    {
+        "official_name": "Red",
+        "name": "Red",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 106
+    },
+    {
+        "official_name": "Pink",
+        "name": "Pink",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 107
+    },
+    {
+        "official_name": "Peach",
+        "name": "Peach",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 108
+    },
+    {
+        "official_name": "Lavender",
+        "name": "Lavender",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 109
+    },
+    {
+        "official_name": "Violet",
+        "name": "Violet",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 110
+    },
+    {
+        "official_name": "Purple",
+        "name": "Purple",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 111
+    },
+    {
+        "official_name": "Magenta",
+        "name": "Magenta",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 112
+    },
+    {
+        "official_name": "Blue",
+        "name": "Blue",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 113
+    },
+    {
+        "official_name": "Multi Colored",
+        "name": "Multi Colored",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 114
+    },
+    {
+        "official_name": "Gray",
+        "name": "Gray",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 115
+    },
+    {
+        "official_name": "Brown",
+        "name": "Brown",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 116
+    },
+    {
+        "official_name": "Black",
+        "name": "Black",
+        "type": "selector",
+        "parent": "Flower Color",
+        "matrix_column_index": 117
+    },
+    {
+        "name": "Leaves",
+        "type": "header",
+        "parent": "Aesthetics"
+    },
+    {
+        "official_name": "Leaf Size",
+        "name": "Size",
+        "type": "parameter",
+        "parent": "Leaves"
+    },
+    {
+        "official_name": "Small Leaves",
+        "name": "Small",
+        "type": "selector",
+        "parent": "Size",
+        "matrix_column_index": 74
+    },
+    {
+        "official_name": "Medium Leaves",
+        "name": "Medium",
+        "type": "selector",
+        "parent": "Size",
+        "matrix_column_index": 75
+    },
+    {
+        "official_name": "Large Leaves",
+        "name": "Large",
+        "type": "selector",
+        "parent": "Size",
+        "matrix_column_index": 76
+    },
+    {
+        "official_name": "Leaf Shape",
+        "name": "Shape",
+        "type": "parameter",
+        "parent": "Leaves"
+    },
+    {
+        "official_name": "Needle Like",
+        "name": "Needle Like",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 77
+    },
+    {
+        "official_name": "Linear",
+        "name": "Linear",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 78
+    },
+    {
+        "official_name": "Lance Shaped",
+        "name": "Lance Shaped",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 79
+    },
+    {
+        "official_name": "Pinnate",
+        "name": "Pinnate",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 80
+    },
+    {
+        "official_name": "Bipinnate",
+        "name": "Bipinnate",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 81
+    },
+    {
+        "official_name": "Lobed",
+        "name": "Lobed",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 82
+    },
+    {
+        "official_name": "Saw Edged",
+        "name": "Saw Edged",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 83
+    },
+    {
+        "official_name": "Toothed",
+        "name": "Toothed",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 84
+    },
+    {
+        "official_name": "Spatulate",
+        "name": "Spatulate",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 85
+    },
+    {
+        "official_name": "Oblong",
+        "name": "Oblong",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 86
+    },
+    {
+        "official_name": "Oval",
+        "name": "Oval",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 87
+    },
+    {
+        "official_name": "Round",
+        "name": "Round",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 88
+    },
+    {
+        "official_name": "Triangular",
+        "name": "Triangular",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 89
+    },
+    {
+        "official_name": "Heart Shaped",
+        "name": "Heart Shaped",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 90
+    },
+    {
+        "official_name": "Kidney Shaped",
+        "name": "Kidney Shaped",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 91
+    },
+    {
+        "official_name": "Fan Shaped",
+        "name": "Fan Shaped",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 92
+    },
+    {
+        "official_name": "Palm Shaped",
+        "name": "Palm Shaped",
+        "type": "selector",
+        "parent": "Shape",
+        "matrix_column_index": 93
+    },
+    {
+        "official_name": "Leaf Color",
+        "name": "Color",
+        "type": "parameter",
+        "parent": "Leaves",
+        "open": true
+    },
+    {
+        "official_name": "Brown",
+        "name": "Brown",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 94
+    },
+    {
+        "official_name": "Red",
+        "name": "Red",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 95
+    },
+    {
+        "official_name": "Orange",
+        "name": "Orange",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 96
+    },
+    {
+        "official_name": "Yellow",
+        "name": "Yellow",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 97
+    },
+    {
+        "official_name": "Light Green",
+        "name": "Light Green",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 98
+    },
+    {
+        "official_name": "Dark Green",
+        "name": "Dark Green",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 99
+    },
+    {
+        "official_name": "Purple",
+        "name": "Purple",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 100
+    },
+    {
+        "official_name": "Variegated",
+        "name": "Variegated",
+        "type": "selector",
+        "parent": "Color",
+        "matrix_column_index": 101
+    },
+    {
+        "official_name": "Foliage Density",
+        "name": "Foliage",
+        "type": "parameter",
+        "parent": "Aesthetics"
+    },
+    {
+        "official_name": "Very Sparse Foliage",
+        "name": "Very Sparse",
+        "type": "selector",
+        "parent": "Foliage",
+        "matrix_column_index": 66
+    },
+    {
+        "official_name": "Moderately Sparse Foliage",
+        "name": "Moderately Sparse",
+        "type": "selector",
+        "parent": "Foliage",
+        "matrix_column_index": 67
+    },
+    {
+        "official_name": "Moderately Dense Foliage",
+        "name": "Moderately Dense",
+        "type": "selector",
+        "parent": "Foliage",
+        "matrix_column_index": 68
+    },
+    {
+        "official_name": "Very Dense Foliage",
+        "name": "Very Dense",
+        "type": "selector",
+        "parent": "Foliage",
+        "matrix_column_index": 69
+    },
+    {
+        "official_name": "Cultural Significance",
+        "name": "Cultural Significance",
+        "type": "parameter",
+        "parent": "Design Palette"
+    },
+    {
+        "official_name": "Cultural Emblem",
+        "name": "Cultural Emblem",
+        "type": "selector",
+        "parent": "Cultural Significance",
+        "matrix_column_index": 118
+    },
+    {
+        "official_name": "Symbolic Of Lifestyle",
+        "name": "Lifestyle Symbol",
+        "type": "selector",
+        "parent": "Cultural Significance",
+        "matrix_column_index": 119
+    },
+    {
+        "official_name": "Social Significance",
+        "name": "Social Status",
+        "type": "selector",
+        "parent": "Cultural Significance",
+        "matrix_column_index": 120
+    },
+    {
+        "official_name": "Beloved By Many",
+        "name": "Popular & Beloved",
+        "type": "selector",
+        "parent": "Cultural Significance",
+        "matrix_column_index": 121
+    },
+    {
+        "official_name": "Cultural Heritage",
+        "name": "Cultural Heritage",
+        "type": "selector",
+        "parent": "Cultural Significance",
+        "matrix_column_index": 122
+    },
+    {
+        "official_name": "Traditional Practices",
+        "name": "Traditional Uses",
+        "type": "selector",
+        "parent": "Cultural Significance",
+        "matrix_column_index": 123
+    },
+    {
+        "official_name": "Ceremonial Use",
+        "name": "Ceremonial Uses",
+        "type": "selector",
+        "parent": "Societal",
+        "matrix_column_index": 124
+    },
+    {
+        "name": "Environmental Restoration",
+        "type": "header",
+        "parent": "Objectives",
+	"open": "true"
+    },
+    {
+        "name": "Supports Pollinators",
+        "type": "header",
+        "parent": "Environmental Restoration"
+    },
+    {
+        "official_name": "Hummingbird Attraction",
+        "name": "Hummingbirds",
+        "type": "selector",
+        "parent": "Supports Pollinators",
+        "matrix_column_index": 229
+    },
+    {
+        "official_name": "Songbird Attraction",
+        "name": "Songbirds",
+        "type": "selector",
+        "parent": "Supports Pollinators",
+        "matrix_column_index": 230
+    },
+    {
+        "official_name": "Butterfly Attraction",
+        "name": "Butterflies",
+        "type": "selector",
+        "parent": "Supports Pollinators",
+        "matrix_column_index": 232
+    },
+    {
+        "official_name": "Dragonfly Attraction",
+        "name": "Dragonflies",
+        "type": "selector",
+        "parent": "Supports Pollinators",
+        "matrix_column_index": 233
+    },
+    {
+        "official_name": "Bee Attraction",
+        "name": "Bees",
+        "type": "selector",
+        "parent": "Supports Pollinators",
+        "matrix_column_index": 234
+    },
+    {
+        "official_name": "Supports Pollinators",
+        "name": "Other Pollinators",
+        "type": "selector",
+        "parent": "Supports Pollinators",
+        "matrix_column_index": 228
+    },
+    {
+        "name": "Purification & Enrichment",
+        "type": "header",
+        "parent": "Environmental Restoration"
+    },
+    {
+        "official_name": "Air Cleaning Benefits",
+        "name": "Air",
+        "type": "parameter",
+        "parent": "Purification & Enrichment"
+    },
+    {
+        "official_name": "Supports Carbon Sequestration",
+        "name": "Carbon Dioxide",
+        "type": "selector",
+        "parent": "Air",
+        "matrix_column_index": 236
+    },
+    {
+        "official_name": "Volatile Organic Compounds Removal",
+        "name": "Volatile Organic Compounds",
+        "type": "selector",
+        "parent": "Air",
+        "matrix_column_index": 243
+    },
+    {
+        "official_name": "Water Filtration Benefits",
+        "name": "Water",
+        "type": "parameter",
+        "parent": "Purification & Enrichment"
+    },
+    {
+        "official_name": "Biological Filtration",
+        "name": "Bacteria",
+        "type": "selector",
+        "parent": "Water",
+        "matrix_column_index": 246
+    },
+    {
+        "official_name": "Pollutant Absorption",
+        "name": "Pollutants",
+        "type": "selector",
+        "parent": "Water",
+        "matrix_column_index": 247
+    },
+    {
+        "name": "Soil",
+        "type": "header",
+        "parent": "Purification & Enrichment"
+    },
+    {
+        "official_name": "Forms New Soil",
+        "name": "Forms New Soil",
+        "type": "selector",
+        "parent": "Soil",
+        "matrix_column_index": 248
+    },
+    {
+        "official_name": "Soil Remediation",
+        "name": "Cleans Pollutants",
+        "type": "selector",
+        "parent": "Soil",
+        "matrix_column_index": 249
+    },
+    {
+        "official_name": "Deep Roots And Benefits",
+        "name": "Forms Deep Roots",
+        "type": "selector",
+        "parent": "Soil",
+        "matrix_column_index": 250
+    },
+    {
+        "official_name": "Structure And Fertility",
+        "name": "Increases Fertility",
+        "type": "selector",
+        "parent": "Soil",
+        "matrix_column_index": 251
+    },
+    {
+        "official_name": "Nutrient Enrichment",
+        "name": "Increases Nutrients",
+        "type": "selector",
+        "parent": "Soil",
+        "matrix_column_index": 252
+    },
+    {
+        "official_name": "Soil Stabilization",
+        "name": "Reduces Erosion",
+        "type": "selector",
+        "parent": "Soil",
+        "matrix_column_index": 241
+    },
+    {
+        "name": "Farming",
+        "type": "header",
+        "parent": "Objectives",
+	"open": "true"
+    },
+    {
+        "name": "Food",
+        "type": "header",
+        "parent": "Farming"
+    },
+    {
+        "official_name": "Culinary Uses",
+        "name": "Produce",
+        "type": "parameter",
+        "parent": "Food"
+    },
+    {
+        "official_name": "Fruits",
+        "name": "Fruits",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 181
+    },
+    {
+        "official_name": "Vegetables",
+        "name": "Vegetables",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 182
+    },
+    {
+        "official_name": "Herbs",
+        "name": "Herbs",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 183
+    },
+    {
+        "official_name": "Seasonings",
+        "name": "Seasonings",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 184
+    },
+    {
+        "official_name": "Salads",
+        "name": "Salads",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 185
+    },
+    {
+        "official_name": "Spices",
+        "name": "Spices",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 186
+    },
+
+    {
+        "official_name": "Flavoring",
+        "name": "Flavoring",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 188
+    },
+    {
+        "official_name": "Teas",
+        "name": "Teas",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 189
+    },
+    {
+        "official_name": "Sauces",
+        "name": "Sauces",
+        "type": "selector",
+        "parent": "Produce",
+        "matrix_column_index": 190
+    },
+    {
+        "official_name": "Edibility",
+        "name": "Edibility",
+        "type": "parameter",
+        "parent": "Food"
+    },
+    {
+        "official_name": "Roots",
+        "name": "Roots",
+        "type": "selector",
+        "parent": "Edibility",
+        "matrix_column_index": 191
+    },
+    {
+        "official_name": "Fruits",
+        "name": "Fruits",
+        "type": "selector",
+        "parent": "Edibility",
+        "matrix_column_index": 192
+    },
+    {
+        "official_name": "Seeds",
+        "name": "Seeds",
+        "type": "selector",
+        "parent": "Edibility",
+        "matrix_column_index": 193
+    },
+    {
+        "official_name": "Flowers",
+        "name": "Flowers",
+        "type": "selector",
+        "parent": "Edibility",
+        "matrix_column_index": 194
+    },
+    {
+        "official_name": "Herbs",
+        "name": "Leaves",
+        "type": "selector",
+        "parent": "Edibility",
+        "matrix_column_index": 195
+    },
+    {
+        "official_name": "Stems",
+        "name": "Stems",
+        "type": "selector",
+        "parent": "Edibility",
+        "matrix_column_index": 196
+    },
+    {
+        "official_name": "Fragrance Benefits",
+        "name": "Fragrance",
+        "type": "parameter",
+        "parent": "Farming"
+    },
+    {
+        "official_name": "Medicinal Uses",
+        "name": "Medicinal Fragrance",
+        "type": "selector",
+        "parent": "Fragrance",
+        "matrix_column_index": 221
+    },
+    {
+        "official_name": "Essential Oils",
+        "name": "Essential Oils",
+        "type": "selector",
+        "parent": "Fragrance",
+        "matrix_column_index": 222
+    },
+    {
+        "official_name": "Culinary Uses",
+        "name": "Culinary Uses",
+        "type": "selector",
+        "parent": "Fragrance",
+        "matrix_column_index": 223
+    },
+    {
+        "official_name": "Incense",
+        "name": "Incense",
+        "type": "selector",
+        "parent": "Fragrance",
+        "matrix_column_index": 224
+    },
+    {
+        "official_name": "Perfumes",
+        "name": "Perfumes",
+        "type": "selector",
+        "parent": "Fragrance",
+        "matrix_column_index": 225
+    },
+    {
+        "official_name": "Aromatherapy",
+        "name": "Aromatherapy",
+        "type": "selector",
+        "parent": "Fragrance",
+        "matrix_column_index": 226
+    },
+    {
+        "official_name": "Air Freshening",
+        "name": "Air Freshening",
+        "type": "selector",
+        "parent": "Fragrance",
+        "matrix_column_index": 227
+    },
+    {
+        "official_name": "Medical Uses",
+        "name": "Medicine",
+        "type": "parameter",
+        "parent": "Farming"
+    },
+    {
+        "official_name": "Pain Relief",
+        "name": "Pain Relief",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 197
+    },
+    {
+        "official_name": "Analgesic",
+        "name": "Analgesic",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 198
+    },
+    {
+        "official_name": "Anti Inflammatory Properties",
+        "name": "Anti Inflammatory Properties",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 199
+    },
+    {
+        "official_name": "Anti Cancer Properties",
+        "name": "Anti Cancer Properties",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 200
+    },
+    {
+        "official_name": "Anti Depressant Properties",
+        "name": "Anti Depressant Properties",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 201
+    },
+    {
+        "official_name": "Anti Anxiety Effects",
+        "name": "Anti Anxiety Effects",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 202
+    },
+    {
+        "official_name": "Sedative Effects",
+        "name": "Sedative Effects",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 203
+    },
+    {
+        "official_name": "Antimicrobial Activity",
+        "name": "Antimicrobial Activity",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 204
+    },
+    {
+        "official_name": "Antiseptic Properties",
+        "name": "Antiseptic Properties",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 205
+    },
+    {
+        "official_name": "Antioxidant Effects",
+        "name": "Antioxidant Effects",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 206
+    },
+    {
+        "official_name": "Immune Boosting",
+        "name": "Immune Boosting",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 207
+    },
+    {
+        "official_name": "Wound Healing",
+        "name": "Wound Healing",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 208
+    },
+    {
+        "official_name": "Digestive Health",
+        "name": "Digestive Health",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 209
+    },
+    {
+        "official_name": "Cardiovascular Health Benefits",
+        "name": "Cardiovascular Health Benefits",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 210
+    },
+    {
+        "official_name": "Anti Diabetic Effects",
+        "name": "Anti Diabetic Effects",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 211
+    },
+    {
+        "official_name": "Cytotoxic",
+        "name": "Cytotoxic",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 212
+    },
+    {
+        "official_name": "Antihyperlipidemic",
+        "name": "Antihyperlipidemic",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 213
+    },
+    {
+        "official_name": "Anti Urolithiasis",
+        "name": "Anti Urolithiasis",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 214
+    },
+    {
+        "official_name": "Diuretic",
+        "name": "Diuretic",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 215
+    },
+    {
+        "official_name": "Anthelmintic",
+        "name": "Anthelmintic",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 216
+    },
+    {
+        "official_name": "Antihepatotoxic",
+        "name": "Antihepatotoxic",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 217
+    },
+    {
+        "official_name": "Antistress",
+        "name": "Antistress",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 218
+    },
+    {
+        "official_name": "Antiulcer",
+        "name": "Antiulcer",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 219
+    },
+    {
+        "official_name": "Hepatoprotective",
+        "name": "Hepatoprotective",
+        "type": "selector",
+        "parent": "Medicine",
+        "matrix_column_index": 220
+    }
+
+
+]

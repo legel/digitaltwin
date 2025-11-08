@@ -1740,28 +1740,8 @@ function expandToFocusPanel(paName, paFeature, callback) {
     panel.style.transformOrigin = 'left center';
 
     
-    // Populate panel content without triggering visibility
-    window.focusPanel.currentPA = paName;
-    window.focusPanel.displayMetrics(paFeature);
-    window.focusPanel.isVisible = true;
-    
-    // Update header
-    const headerHTML = `
-        <div>
-            <h3 class="pa-name">${paName.toUpperCase()}</h3>
-            <p class="pa-subtitle">Ecological Niche Metrics</p>
-        </div>
-        <button class="close-button" aria-label="Close panel">×</button>
-    `;
-    panel.querySelector('.focus-panel-header').innerHTML = headerHTML;
-    
-    // Re-attach close button listener to trigger full animation
-    const closeBtn = panel.querySelector('.close-button');
-    closeBtn.addEventListener('click', () => {
-        if (window.clearPAConnection) {
-            window.clearPAConnection();
-        }
-    });
+    // Populate panel content using the proper show method
+    window.focusPanel.show(paName, paFeature);
     
     // Make panel visible and animate expansion in next frame
     requestAnimationFrame(() => {
