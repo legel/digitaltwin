@@ -15,16 +15,20 @@
     -webkit-backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
     border: 2px solid rgba(255, 255, 255, 0.8);
     border-radius: 20px; /* Full radius on all corners */
-    box-shadow: 
+    box-shadow:
         -8px 0 32px rgba(255, 255, 255, 0.1),
         -4px 0 16px rgba(255, 255, 255, 0.05),
         inset 0 0 80px rgba(255, 255, 255, 0.05);
     overflow: hidden;
     opacity: 0;
     z-index: 1001; /* Above SuperSplat container (1000) and layer controls (1000) */
-    
+
+    /* Flex container for proper content sizing */
+    display: flex;
+    flex-direction: column;
+
     /* Soft diffuse light effect */
-    background-image: 
+    background-image:
         radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
         radial-gradient(ellipse at 70% 60%, rgba(255, 255, 255, 0.04) 0%, transparent 45%),
         radial-gradient(ellipse at 40% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
@@ -100,6 +104,19 @@
     justify-content: space-between;
     align-items: center;
     background: rgba(7, 43, 46, 0.3); /* Slight tint for header */
+    flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.panel-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.page-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .pa-name {
@@ -119,6 +136,43 @@
     margin: 4px 0 0 0;
     font-family: 'Oxygen', sans-serif;
     font-style: italic;
+}
+
+.page-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.page-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+    opacity: 1;
+}
+
+.page-button.active {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.6);
+    opacity: 1;
+    cursor: default;
+    box-shadow:
+        0 0 15px rgba(255, 255, 255, 0.3),
+        inset 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.page-button.active:hover {
+    transform: none;
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .close-button {
@@ -143,10 +197,11 @@
 
 /* Panel content */
 .focus-panel-content {
-    padding: 10px 20px 15px 20px; /* Reduced vertical padding */
+    padding: 10px 20px 20px 20px; /* Consistent padding with extra bottom space */
     overflow-y: auto;
-    height: calc(100% - 80px); /* Fill remaining height */
+    flex: 1; /* Take remaining space in flex container */
     overflow-x: hidden; /* Prevent horizontal scroll */
+    min-height: 0; /* Allow flex shrinking */
 }
 
 /* Custom scrollbar for panel content */
@@ -517,5 +572,648 @@
     
     .close-button {
         display: none;
+    }
+}
+
+/* Plant recommendations page styling */
+.plant-recommendations-content {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.recommendations-placeholder {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 40px 20px;
+}
+
+.placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.recommendations-placeholder h3 {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0 0 16px 0;
+    font-family: 'Oxygen', sans-serif;
+}
+
+.recommendations-placeholder p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 20px 0;
+    font-family: 'Oxygen', sans-serif;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.coming-soon {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    display: inline-block;
+}
+
+/* Refine plant section */
+.refine-plant-section {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.refine-plants-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Oxygen', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.refine-plants-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+.refine-plants-button i {
+    font-size: 12px;
+}
+
+/* Plant grid container */
+.plant-grid-container {
+    height: 100%;
+    overflow-y: auto;
+    padding: 0;
+    /* Remove explicit bottom padding - let flex handle it */
+}
+
+.plant-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 plants per row */
+    gap: 15px;
+    padding: 15px 15px 40px 15px; /* Generous bottom padding for last row */
+}
+
+/* Individual plant item - terrain design */
+.plant-item {
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    aspect-ratio: 1 / 1; /* Force square aspect ratio */
+    width: 100%;
+    height: auto;
+    background: transparent;
+    border: none;
+}
+
+.plant-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
+}
+
+/* Plant image container */
+.plant-image-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.plant-image,
+.species-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    border-radius: 16px;
+}
+
+.plant-item:hover .plant-image,
+.plant-item:hover .species-image {
+    transform: scale(1.03);
+}
+
+/* Plant name overlay - top left */
+.plant-name-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    padding: 6px 10px;
+    max-width: calc(100% - 24px);
+}
+
+.plant-name-overlay .species {
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Oxygen', sans-serif;
+    margin: 0;
+    font-style: italic;
+    line-height: 1.2;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Navigation arrows */
+.img-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.plant-item:hover .img-arrow {
+    opacity: 1;
+    visibility: visible;
+}
+
+.img-arrow:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.img-arrow.left {
+    left: 8px;
+}
+
+.img-arrow.right {
+    right: 8px;
+}
+
+.img-arrow svg {
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Image indicators - terrain style with high specificity */
+.plant-item .img-indicators {
+    position: absolute !important;
+    bottom: 8px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    gap: 3px !important;
+    align-items: center !important;
+    z-index: 15 !important;
+    padding: 3px 6px !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(4px) !important;
+    border-radius: 12px !important;
+    width: auto !important;
+    height: auto !important;
+    flex-direction: row !important;
+}
+
+.plant-item .indicator-wrapper {
+    position: static !important;
+    width: 10px !important;
+    height: 10px !important;
+    cursor: pointer !important;
+    z-index: 2 !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+}
+
+.plant-item .indicator-wrapper .indicator {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    background: white !important;
+    transition: all 0.2s ease !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+    opacity: 0.5 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    min-width: auto !important;
+    min-height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+
+.plant-item .indicator-wrapper .indicator.active {
+    background: white !important;
+    opacity: 1 !important;
+    transform: none !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+}
+
+.plant-item .indicator-wrapper:hover .indicator {
+    opacity: 0.8 !important;
+    transform: scale(1.15) !important;
+}
+
+.plant-item .indicator-wrapper:hover .indicator.active {
+    opacity: 1 !important;
+}
+
+/* Remove cursor since we're using filled circles */
+.indicator-cursor,
+.plant-item .indicator-cursor {
+    display: none !important;
+}
+
+/* Override any potential conflicts from other stylesheets */
+.plant-item .img-indicators * {
+    box-sizing: border-box !important;
+    font-family: inherit !important;
+}
+
+/* Ensure no flex or grid interference */
+.plant-item .img-indicators .indicator-wrapper {
+    flex: none !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    align-self: auto !important;
+    justify-self: auto !important;
+}
+
+/* Reset any inherited styles that might cause vertical lines */
+.plant-item .indicator-wrapper::before,
+.plant-item .indicator-wrapper::after,
+.plant-item .indicator::before,
+.plant-item .indicator::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Force circular shape */
+.plant-item .indicator-wrapper .indicator {
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    text-indent: -9999px !important;
+    line-height: 1 !important;
+    font-size: 0 !important;
+}
+
+/* Remove old plant info styles */
+.plant-info,
+.plant-name,
+.plant-common-name {
+    display: none;
+}
+
+/* Loading states */
+.loading-plants {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.plant-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 12px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* No plants state */
+.no-plants {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.no-plants-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.6;
+}
+
+.no-plants-suggestion {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 8px;
+}
+
+/* Error state */
+.plant-error {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.plant-error-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+}
+
+.retry-plants-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+}
+
+.retry-plants-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Plant filters panel */
+.plant-filters-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000; /* Above focus panel */
+    display: none;
+}
+
+.plant-filters-panel.visible {
+    display: block;
+}
+
+.plant-filters-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.plant-filters-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow: hidden;
+    animation: filterPanelSlideIn 0.3s ease-out;
+}
+
+@keyframes filterPanelSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.plant-filters-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plant-filters-header h3 {
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+    font-family: 'Oxygen', sans-serif;
+}
+
+.plant-filters-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.plant-filters-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.plant-filters-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.filter-section {
+    margin-bottom: 20px;
+}
+
+.filter-section h4 {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    font-family: 'Oxygen', sans-serif;
+}
+
+.filter-section label {
+    display: block;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    padding-left: 20px;
+    position: relative;
+    font-family: 'Oxygen', sans-serif;
+}
+
+.filter-section input[type="checkbox"] {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    margin: 0;
+    accent-color: rgba(255, 255, 255, 0.8);
+}
+
+.filter-actions {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 10px;
+}
+
+.apply-filters-btn,
+.clear-filters-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'Oxygen', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.apply-filters-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.apply-filters-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.clear-filters-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.clear-filters-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.loading-filters {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 20px;
+    font-size: 13px;
+    font-family: 'Oxygen', sans-serif;
+}
+
+/* Hierarchical filter styling */
+.filter-header {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Oxygen', sans-serif;
+    padding: 6px 0;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    border-radius: 4px;
+}
+
+.filter-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.filter-toggle-icon {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: bold;
+    font-size: 12px;
+    width: 16px;
+    display: inline-block;
+    text-align: center;
+}
+
+.filter-children {
+    margin-bottom: 8px;
+}
+
+.filter-selector {
+    padding: 3px 0;
+    display: flex;
+    align-items: center;
+}
+
+.filter-checkbox {
+    margin: 0;
+    accent-color: rgba(255, 255, 255, 0.8);
+    transform: scale(0.9);
+}
+
+.filter-selector label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    font-family: 'Oxygen', sans-serif;
+    cursor: pointer;
+    user-select: none;
+    flex: 1;
+}
+
+.filter-selector:hover label {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* Mobile responsiveness for plant grid */
+@media screen and (max-width: 767px) {
+    .plant-grid {
+        grid-template-columns: 1fr; /* Single column on mobile */
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .plant-item {
+        height: 160px;
+    }
+
+    .plant-image-container {
+        height: 100px;
+    }
+
+    .plant-filters-content {
+        width: 95%;
+        max-height: 85vh;
     }
 }

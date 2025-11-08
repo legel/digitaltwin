@@ -1,7 +1,7 @@
 // Global loading configuration
 window.TERRAIN_LOADING_CONFIG = {
     // Loading timing configuration
-    expectedLoadTime: 8,      // 8 seconds expected for SuperSplat startup
+    expectedLoadTime: 20,      // 8 seconds expected for SuperSplat startup
 
     // Progress thresholds
     steadyProgressUntil: 80,  // Progress steadily to 80%

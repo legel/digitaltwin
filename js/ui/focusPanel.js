@@ -8,6 +8,19 @@ class FocusPanel {
         this.panel = null;
         this.isVisible = false;
         this.currentPA = null;
+        this.currentPage = 'plantRecommendations'; // Default to plant recommendations page
+        this.pages = {
+            plantRecommendations: {
+                title: 'Plant Recommendations',
+                icon: '🌱',
+                subtitle: 'Plant Recommendations'
+            },
+            ecologicalMetrics: {
+                title: 'Ecological Metrics',
+                icon: '📊',
+                subtitle: 'Ecological Niche Metrics'
+            }
+        };
         this.metricOrder = [
             'sunlight',      // formerly lightHours
             'soilMoisture',  // formerly moisture
@@ -200,28 +213,39 @@ class FocusPanel {
         
         this.currentPA = paName;
         
-        // Update header with location name in ALL CAPS and subtitle
+        // Update header with location name in ALL CAPS, page buttons, and close button
+        const currentPageData = this.pages[this.currentPage];
         const headerHTML = `
-            <div>
+            <div class="panel-title-section">
                 <h3 class="pa-name">${paName.toUpperCase()}</h3>
-                <p class="pa-subtitle">Ecological Niche Metrics</p>
+                <p class="pa-subtitle">${currentPageData.subtitle}</p>
+                ${this.currentPage === 'plantRecommendations' ? `
+                <div class="refine-plant-section">
+                    <button id="refine-plants-btn" class="refine-plants-button">
+                        <i class="fas fa-filter"></i> Refine Plant List
+                    </button>
+                </div>
+                ` : ''}
             </div>
-            <button class="close-button" aria-label="Close panel">×</button>
+            <div class="page-controls">
+                <button class="page-button ${this.currentPage === 'plantRecommendations' ? 'active' : ''}"
+                        data-page="plantRecommendations"
+                        aria-label="Plant Recommendations"
+                        title="Plant Recommendations">${this.pages.plantRecommendations.icon}</button>
+                <button class="page-button ${this.currentPage === 'ecologicalMetrics' ? 'active' : ''}"
+                        data-page="ecologicalMetrics"
+                        aria-label="Ecological Metrics"
+                        title="Ecological Metrics">${this.pages.ecologicalMetrics.icon}</button>
+                <button class="close-button" aria-label="Close panel">×</button>
+            </div>
         `;
         this.panel.querySelector('.focus-panel-header').innerHTML = headerHTML;
         
-        // Re-attach close button listener to trigger full animation
-        const closeBtn = this.panel.querySelector('.close-button');
-        closeBtn.addEventListener('click', () => {
-            if (window.clearPAConnection) {
-                window.clearPAConnection();
-            } else {
-                this.hide();
-            }
-        });
+        // Re-attach event listeners
+        this.attachHeaderEventListeners();
         
-        // Parse and display metrics
-        this.displayMetrics(paData);
+        // Display content for current page
+        this.displayCurrentPage(paData);
         
         this.panel.classList.add('visible');
         this.isVisible = true;
@@ -571,6 +595,88 @@ class FocusPanel {
                 }
             });
         }
+    }
+
+    attachHeaderEventListeners() {
+        // Close button
+        const closeBtn = this.panel.querySelector('.close-button');
+        closeBtn.addEventListener('click', () => {
+            if (window.clearPAConnection) {
+                window.clearPAConnection();
+            } else {
+                this.hide();
+            }
+        });
+
+        // Page buttons
+        const pageButtons = this.panel.querySelectorAll('.page-button');
+        pageButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const targetPage = e.target.dataset.page;
+                if (targetPage && targetPage !== this.currentPage) {
+                    this.switchToPage(targetPage);
+                }
+            });
+        });
+
+        // Refine plants button
+        const refinePlantsBtn = this.panel.querySelector('#refine-plants-btn');
+        if (refinePlantsBtn) {
+            refinePlantsBtn.addEventListener('click', () => {
+                if (window.plantRecommendations) {
+                    window.plantRecommendations.toggleFilters();
+                }
+            });
+        }
+    }
+
+    switchToPage(pageName) {
+        if (this.pages[pageName] && pageName !== this.currentPage) {
+            this.currentPage = pageName;
+
+            // Update header to reflect new page
+            const currentPageData = this.pages[this.currentPage];
+            const subtitle = this.panel.querySelector('.pa-subtitle');
+            subtitle.textContent = currentPageData.subtitle;
+
+            // Update page button states
+            const pageButtons = this.panel.querySelectorAll('.page-button');
+            pageButtons.forEach(button => {
+                const isActive = button.dataset.page === this.currentPage;
+                button.classList.toggle('active', isActive);
+            });
+
+            // Refresh content for new page
+            this.displayCurrentPage();
+        }
+    }
+
+    displayCurrentPage(paData) {
+        if (this.currentPage === 'ecologicalMetrics') {
+            this.displayMetrics(paData || this.currentPAData);
+        } else if (this.currentPage === 'plantRecommendations') {
+            this.displayPlantRecommendations(paData || this.currentPAData);
+        }
+
+        // Store PA data for page switching
+        if (paData) {
+            this.currentPAData = paData;
+        }
+    }
+
+    displayPlantRecommendations(paData) {
+        // Initialize plant recommendations page if not already done
+        if (!window.plantRecommendations) {
+            // Plant recommendations will be initialized by its own script
+            setTimeout(() => this.displayPlantRecommendations(paData), 100);
+            return;
+        }
+
+        // Initialize the plant recommendations system
+        window.plantRecommendations.initialize();
+
+        // Display the plant recommendations content
+        window.plantRecommendations.displayContent(paData);
     }
 }
 
