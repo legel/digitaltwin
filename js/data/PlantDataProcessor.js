@@ -16,8 +16,6 @@ class PlantDataProcessor {
      * Initialize with plant data from terrain-3d format
      */
     async initializeWithPlantData(plantData, ontologyData) {
-        console.log("PlantDataProcessor: Initializing with plant data...");
-
         try {
             // Convert plant data to array format
             this.plants = Object.values(plantData);
@@ -32,7 +30,6 @@ class PlantDataProcessor {
 
             if (window.tf) {
                 this.tfMatrix = window.tf.tensor2d(matrixData, [this.numPlants, this.numAttributes]);
-                console.log(`PlantDataProcessor: Matrix initialized - ${this.numPlants} plants x ${this.numAttributes} attributes`);
             } else {
                 console.warn("PlantDataProcessor: TensorFlow.js not available, filtering disabled");
             }
@@ -48,8 +45,6 @@ class PlantDataProcessor {
      * Build matrix from actual plant ecophysiologyVector data
      */
     buildMatrixFromPlantData(plantData) {
-        console.log("PlantDataProcessor: Building matrix from ecophysiology data...");
-
         const matrixData = [];
         const plantEntries = Object.values(plantData);
 
@@ -67,16 +62,6 @@ class PlantDataProcessor {
             }
         }
 
-        console.log(`PlantDataProcessor: Built matrix with ${matrixData.length} values (${this.numPlants} x ${this.numAttributes})`);
-
-        // Debug: Log first few plants and their column 4 values (Grass filter)
-        console.log("PlantDataProcessor: First 5 plants column 4 values (Grass filter):");
-        for (let i = 0; i < Math.min(5, this.numPlants); i++) {
-            const plantName = plantEntries[i].name || "Unknown";
-            const col4Value = matrixData[i * this.numAttributes + 4];
-            console.log(`  ${i + 1}. ${plantName}: ${col4Value}`);
-        }
-
         return matrixData;
     }
 
@@ -92,22 +77,18 @@ class PlantDataProcessor {
             }
         });
 
-        console.log(`PlantDataProcessor: Built matrix column map with ${Object.keys(this.matrixColumnMap).length} filters`);
     }
 
     /**
      * Filter plants using TensorFlow.js operations (matching terrain implementation)
      */
     filterPlants(selectedFilters, plantsToFilter) {
-        console.log("PlantDataProcessor: Applying filters...", Array.from(selectedFilters));
-
         if (!this.tfMatrix || !window.tf) {
             console.warn("PlantDataProcessor: Matrix or TensorFlow.js not available, returning all plants");
             return plantsToFilter;
         }
 
         if (selectedFilters.size === 0) {
-            console.log("PlantDataProcessor: No filters selected, showing all plants");
             return plantsToFilter;
         }
 
@@ -125,14 +106,12 @@ class PlantDataProcessor {
 
             // Get visibility array from tensor
             const visibilityArray = resultVector.dataSync();
-            console.log("PlantDataProcessor: Filter results:", visibilityArray);
 
             // Filter plants based on visibility
             const filteredPlants = plantsToFilter.filter((plant, index) => {
                 return index < visibilityArray.length && visibilityArray[index] === 1;
             });
 
-            console.log(`PlantDataProcessor: Filtered from ${plantsToFilter.length} to ${filteredPlants.length} plants`);
             return filteredPlants;
 
         } catch (error) {

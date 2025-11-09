@@ -205,12 +205,9 @@ class FocusPanel {
     }
     
     show(paName, paData) {
-        // console.log('Showing focus panel for:', paName);
-        
         if (!this.panel || !document.body.contains(this.panel)) {
             this.init();
         }
-        
         this.currentPA = paName;
         
         // Update header with location name in ALL CAPS, page buttons, and close button
@@ -292,9 +289,7 @@ class FocusPanel {
             // Matches patterns like "M1: Moisture Level = 2-3" or "M2: Light Hours (hours/day) = 6-8"
             // Also matches categorical values like "M1: Moisture Level = Moderate"
             const metricMatches = description.matchAll(/M(\d+):[^=]+=\s*([^\n]+?)(?=\s*M\d+:|$)/g);
-            
-            // console.log('Parsing ecological data from:', description.substring(0, 200) + '...');
-            
+
             for (const match of metricMatches) {
                 const metricNumber = parseInt(match[1]);
                 const rawValue = match[2];
@@ -329,7 +324,6 @@ class FocusPanel {
                             mean: (value1 + value2) / 2,
                             range: Math.abs(value2 - value1)
                         };
-                        // console.log(`Found M${metricNumber}: ${value1}-${value2}`);
                     } else if (metricNumber === 1 && this.metricDefinitions.soilMoisture.categoryMap) {
                         // Check for categorical moisture values
                         const moistureText = rawValue.toLowerCase().trim();
@@ -343,7 +337,6 @@ class FocusPanel {
                                 mean: mappedValue,
                                 range: 10
                             };
-                            // console.log(`Mapped categorical moisture '${moistureText}' to ${mappedValue}%VWC`);
                         } else {
                             // Try to parse as single number
                             const singleValue = parseFloat(rawValue);
@@ -366,14 +359,12 @@ class FocusPanel {
                                 mean: singleValue,
                                 range: 0
                             };
-                            // console.log(`Found M${metricNumber}: ${singleValue}`);
                         }
                     }
                 }
             }
         }
         
-        // console.log('Parsed metrics:', metrics);
         return metrics;
     }
     
@@ -465,7 +456,6 @@ class FocusPanel {
         const label = document.getElementById(`label-${metricKey}`);
         
         if (!canvas || !dot) {
-            // console.log(`Missing elements for metric ${metricKey}`);
             return;
         }
         
@@ -630,6 +620,50 @@ class FocusPanel {
         }
     }
 
+    /**
+     * Update Refine Plant List button visibility based on current page
+     */
+    updateRefinePlantButtonVisibility() {
+        // Find existing refine plant section
+        let refinePlantSection = this.panel.querySelector('.refine-plant-section');
+
+        if (this.currentPage === 'plantRecommendations') {
+            // Show button on plant recommendations page
+            if (!refinePlantSection) {
+                // Create the section if it doesn't exist
+                const titleSection = this.panel.querySelector('.panel-title-section');
+                if (titleSection) {
+                    const refinePlantHTML = `
+                        <div class="refine-plant-section">
+                            <button id="refine-plants-btn" class="refine-plants-button">
+                                <i class="fas fa-filter"></i> Refine Plant List
+                            </button>
+                        </div>
+                    `;
+                    titleSection.insertAdjacentHTML('beforeend', refinePlantHTML);
+
+                    // Attach event listener to the new button
+                    const refinePlantsBtn = this.panel.querySelector('#refine-plants-btn');
+                    if (refinePlantsBtn) {
+                        refinePlantsBtn.addEventListener('click', () => {
+                            if (window.plantRecommendations) {
+                                window.plantRecommendations.toggleFilters();
+                            }
+                        });
+                    }
+                }
+            } else {
+                // Show existing section
+                refinePlantSection.style.display = 'block';
+            }
+        } else {
+            // Hide button on other pages
+            if (refinePlantSection) {
+                refinePlantSection.style.display = 'none';
+            }
+        }
+    }
+
     switchToPage(pageName) {
         if (this.pages[pageName] && pageName !== this.currentPage) {
             this.currentPage = pageName;
@@ -639,6 +673,9 @@ class FocusPanel {
             const subtitle = this.panel.querySelector('.pa-subtitle');
             subtitle.textContent = currentPageData.subtitle;
 
+            // Update Refine Plant List button visibility based on current page
+            this.updateRefinePlantButtonVisibility();
+
             // Update page button states
             const pageButtons = this.panel.querySelectorAll('.page-button');
             pageButtons.forEach(button => {
@@ -646,16 +683,16 @@ class FocusPanel {
                 button.classList.toggle('active', isActive);
             });
 
-            // Refresh content for new page
-            this.displayCurrentPage();
+            // Refresh content for new page (don't reset filters when switching pages)
+            this.displayCurrentPage(null, false);
         }
     }
 
-    displayCurrentPage(paData) {
+    displayCurrentPage(paData, resetFilters = true) {
         if (this.currentPage === 'ecologicalMetrics') {
             this.displayMetrics(paData || this.currentPAData);
         } else if (this.currentPage === 'plantRecommendations') {
-            this.displayPlantRecommendations(paData || this.currentPAData);
+            this.displayPlantRecommendations(paData || this.currentPAData, resetFilters);
         }
 
         // Store PA data for page switching
@@ -664,19 +701,24 @@ class FocusPanel {
         }
     }
 
-    displayPlantRecommendations(paData) {
+    displayPlantRecommendations(paData, resetFilters = true) {
         // Initialize plant recommendations page if not already done
         if (!window.plantRecommendations) {
             // Plant recommendations will be initialized by its own script
-            setTimeout(() => this.displayPlantRecommendations(paData), 100);
+            setTimeout(() => this.displayPlantRecommendations(paData, resetFilters), 100);
             return;
         }
 
         // Initialize the plant recommendations system
         window.plantRecommendations.initialize();
 
-        // Display the plant recommendations content
-        window.plantRecommendations.displayContent(paData);
+        if (resetFilters) {
+            // Full reload with new ecological data (first time or reopening focus panel)
+            window.plantRecommendations.displayContent(paData);
+        } else {
+            // Just switch to plant recommendations page without resetting filters (page switching)
+            window.plantRecommendations.displayContentWithoutReset(paData);
+        }
     }
 }
 
