@@ -1135,6 +1135,16 @@ function populatePACategories(categories, categorizedPAs) {
                     if (paFeature) {
                         updateSelectedPAHighlight(name);
                         orchestrateFocusAnimation(label, name, paFeature);
+
+                        // Refresh plant recommendations only if plants are already loaded (switching between PAs)
+                        if (window.plantRecommendations &&
+                            typeof window.plantRecommendations.refreshRecommendationsForCurrentPA === 'function' &&
+                            window.plantRecommendations.currentPlants &&
+                            window.plantRecommendations.currentPlants.length > 0) {
+                            setTimeout(() => {
+                                window.plantRecommendations.refreshRecommendationsForCurrentPA();
+                            }, 500); // Small delay to ensure PA selection is processed
+                        }
                     }
                 }
 

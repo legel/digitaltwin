@@ -51,6 +51,49 @@ class PlantRecommendationsPage {
     }
 
     /**
+     * Display the plant recommendations content without resetting filters
+     * Used when switching back to plant recommendations page
+     */
+    displayContentWithoutReset(paData) {
+        const content = document.querySelector('.focus-panel-content');
+        if (!content) return;
+
+        // Only update content HTML if it's not already showing plant recommendations
+        if (!content.querySelector('.plant-recommendations-content')) {
+            content.innerHTML = `
+                <div class="plant-recommendations-content">
+                    <div class="plant-grid-container">
+                        <div class="plant-grid" id="plant-grid">
+                            <div class="loading-plants">
+                                <div class="plant-spinner"></div>
+                                <p>Loading native plant recommendations...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // If plants are already loaded, just redisplay the current filtered list
+        if (this.filteredPlants && this.filteredPlants.length > 0) {
+            this.displayPlantGrid(this.filteredPlants);
+        } else if (this.currentPlants && this.currentPlants.length > 0) {
+            // Plants are loaded but no filtered list - apply current filter state
+            if (this.selectedFilters && this.selectedFilters.size > 0 && this.dataProcessor) {
+                // Apply current manual filters
+                this.filteredPlants = this.dataProcessor.filterPlants(this.selectedFilters, this.currentPlants);
+            } else {
+                // No manual filters - apply ecological default
+                this.filteredPlants = this.applyDefaultFilter(this.currentPlants);
+            }
+            this.displayPlantGrid(this.filteredPlants);
+        } else {
+            // No plants loaded yet - fallback to full load
+            this.loadOntologyAndPlants(paData);
+        }
+    }
+
+    /**
      * Load ontology data first, then plant recommendations
      */
     async loadOntologyAndPlants(paData) {
@@ -176,7 +219,6 @@ class PlantRecommendationsPage {
 
             // Convert all plants to array (full dataset)
             const plantEntries = Object.entries(speciesData);
-            console.log(`PlantRecommendationsPage: Loaded ${plantEntries.length} plants from full dataset`);
 
             const plants = plantEntries.map(([scientificName, data]) => {
                 // Get only VALID photo types for this species based on data validation
@@ -206,22 +248,20 @@ class PlantRecommendationsPage {
                     photoTypes: photoTypes,
                     currentPhotoType: defaultPhotoType,
                     currentIndex: 1,
-                    totalImages: photoTypes.length,
-                    sunlight: this.inferSunlightRequirement(data),
-                    structure: this.inferPlantStructure(scientificName)
+                    totalImages: photoTypes.length
                 };
             });
 
             // Store all plants as the full dataset
             this.currentPlants = plants;
 
-            // Apply default filter (first 20 plants) - placeholder for future PA-based filtering
-            this.filteredPlants = this.applyDefaultFilter(plants);
-
-            // Initialize PlantDataProcessor if not already done
+            // Initialize PlantDataProcessor BEFORE applying filters
             if (!this.dataProcessor && window.PlantDataProcessor) {
                 await this.initializeDataProcessor(speciesData);
             }
+
+            // Apply default filter with data processor available
+            this.filteredPlants = this.applyDefaultFilter(plants);
 
             setTimeout(() => {
                 this.displayPlantGrid(this.filteredPlants);
@@ -234,17 +274,107 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Apply default filter - currently first 20 plants (placeholder for PA-based filtering)
+     * Maps GeoJSON ecological values to qualitative filter categories
+     * @param {Object} paData - PA ecological data from GeoJSON
+     * @returns {Array} - Array of matrix column indices for filtering
+     */
+    mapEcologicalDataToFilters(paData) {
+        const filterIndices = [];
+
+        if (!paData) {
+            return filterIndices;
+        }
+
+        // Map sunlight hours to categories
+        if (paData.sunlight) {
+            const sunlightValue = window.parseParameterValue(paData.sunlight, 'sunlight');
+
+            if (sunlightValue <= 4) {
+                filterIndices.push(125); // Shaded
+            } else if (sunlightValue <= 6) {
+                filterIndices.push(126); // Partial Shade/Sun
+            } else {
+                filterIndices.push(127); // Full Sun
+            }
+        }
+
+        // Map pH to categories
+        if (paData.pH) {
+            const pHValue = window.parseParameterValue(paData.pH, 'pH');
+
+            if (pHValue < 6.5) {
+                filterIndices.push(139); // Acidic
+            } else if (pHValue <= 7.5) {
+                filterIndices.push(140); // Neutral
+            } else {
+                filterIndices.push(141); // Alkaline
+            }
+        }
+
+        return filterIndices;
+    }
+
+    /**
+     * Gets ecological data from currently selected PA area
+     * @returns {Object|null} - PA ecological data or null if no selection
+     */
+    getCurrentPAEcologicalData() {
+        // Check if a PA area is currently selected
+        if (!window.layerState?.selectedGroup || window.layerState?.selectedGroupType !== 'PA') {
+            return null;
+        }
+
+        if (!window.currentSiteData?.features) {
+            return null;
+        }
+
+        // Find the selected PA feature
+        const selectedPAName = window.layerState.selectedGroup;
+        const paFeature = window.currentSiteData.features.find(feature => {
+            const parsed = window.parseBoydName(feature.properties.name);
+            return (parsed.description || parsed.id) === selectedPAName;
+        });
+
+        if (!paFeature) {
+            return null;
+        }
+
+        // Extract ecological data from the feature description
+        return window.parseBoydEcologicalData(paFeature.properties.description || '');
+    }
+
+    /**
+     * Apply default filter using sunlight and pH from selected PA area
      */
     applyDefaultFilter(plants) {
-        console.log(`PlantRecommendationsPage: Applying default filter to ${plants.length} plants`);
+        // Try to get ecological data from currently selected PA
+        const paEcologicalData = this.getCurrentPAEcologicalData();
 
-        // TODO: Replace with PA ecological metrics-based filtering
-        // For now, return first 20 plants as default
-        const defaultFiltered = plants.slice(0, 20);
+        if (paEcologicalData && this.dataProcessor && this.ontologyData) {
+            // Map ecological data to filter categories
+            const filterIndices = this.mapEcologicalDataToFilters(paEcologicalData);
 
-        console.log(`PlantRecommendationsPage: Default filter returned ${defaultFiltered.length} plants`);
-        return defaultFiltered;
+            if (filterIndices.length > 0) {
+                // Update selectedFilters to sync with UI
+                this.selectedFilters.clear();
+                filterIndices.forEach(index => this.selectedFilters.add(index));
+
+                // Update filter UI checkboxes to reflect the ecological selection
+                this.updateFilterUIFromSelectedFilters();
+
+                // Use PlantDataProcessor for ecological filtering
+                const ecologicallyFiltered = this.dataProcessor.filterPlants(new Set(filterIndices), plants);
+
+                return ecologicallyFiltered;
+            }
+        }
+
+        // Clear any previous ecological filter selections when falling back
+        this.selectedFilters.clear();
+        this.updateFilterUIFromSelectedFilters();
+
+        // Fallback: return first 20 plants as default when no PA selected or no ecological data
+        return plants.slice(0, 20);
     }
 
     /**
@@ -252,18 +382,14 @@ class PlantRecommendationsPage {
      */
     async initializeDataProcessor(speciesData) {
         try {
-            console.log('PlantRecommendationsPage: Initializing data processor...');
-
             this.dataProcessor = new window.PlantDataProcessor();
 
             // Wait for ontology data if not loaded yet
             if (!this.ontologyData) {
-                console.log('PlantRecommendationsPage: Waiting for ontology data...');
                 return; // Will be initialized when filters are loaded
             }
 
             await this.dataProcessor.initializeWithPlantData(speciesData, this.ontologyData);
-            console.log('PlantRecommendationsPage: Data processor initialized successfully');
 
         } catch (error) {
             console.error('PlantRecommendationsPage: Error initializing data processor:', error);
@@ -286,25 +412,6 @@ class PlantRecommendationsPage {
         };
 
         return commonNames[scientificName] || scientificName.split(' ')[0];
-    }
-
-    /**
-     * Infer sunlight requirement (placeholder logic)
-     */
-    inferSunlightRequirement(plantData) {
-        // TODO: Use ecophysiology data to determine actual sunlight requirements
-        const rand = Math.random();
-        return rand < 0.4 ? 'full-sun' : rand < 0.7 ? 'partial-shade' : 'full-shade';
-    }
-
-    /**
-     * Infer plant structure (placeholder logic)
-     */
-    inferPlantStructure(scientificName) {
-        if (scientificName.includes('Quercus') || scientificName.includes('Pinus')) return 'tree';
-        if (scientificName.includes('Spartina') || scientificName.includes('Panicum')) return 'grass';
-        if (scientificName.includes('Serenoa') || scientificName.includes('Myrica')) return 'shrub';
-        return 'groundcover';
     }
 
     /**
@@ -600,19 +707,8 @@ class PlantRecommendationsPage {
                 this.attachFilterListeners();
                 this.filtersLoaded = true;
 
-                // Initialize data processor if we have plant data
-                if (!this.dataProcessor && this.currentPlants.length > 0 && window.PlantDataProcessor) {
-                    // Convert current plants back to the original format for data processor
-                    const speciesData = {};
-                    this.currentPlants.forEach(plant => {
-                        speciesData[plant.name] = {
-                            speciesKey: plant.speciesKey,
-                            name: plant.name,
-                            photos: plant.photos
-                        };
-                    });
-                    this.initializeDataProcessor(speciesData);
-                }
+                // Sync filter UI with any existing ecological selections
+                this.updateFilterUIFromSelectedFilters();
             }
         } catch (error) {
             console.error('Error loading plant filters:', error);
@@ -738,6 +834,9 @@ class PlantRecommendationsPage {
             `;
             this.attachFilterListeners();
             this.filtersLoaded = true;
+
+            // Sync filter UI with any existing ecological selections
+            this.updateFilterUIFromSelectedFilters();
         }
     }
 
@@ -783,16 +882,36 @@ class PlantRecommendationsPage {
     }
 
     /**
+     * Update filter UI checkboxes to reflect current selectedFilters
+     * This is used to sync the UI when ecological filters are applied automatically
+     */
+    updateFilterUIFromSelectedFilters() {
+        // Only update if the filter panel exists (has been loaded)
+        const checkboxes = document.querySelectorAll('.filter-checkbox');
+        if (checkboxes.length === 0) {
+            return;
+        }
+
+        // Update each checkbox based on selectedFilters
+        checkboxes.forEach(checkbox => {
+            const filterIndex = parseInt(checkbox.value);
+            const shouldBeChecked = this.selectedFilters.has(filterIndex);
+
+            if (checkbox.checked !== shouldBeChecked) {
+                checkbox.checked = shouldBeChecked;
+            }
+        });
+    }
+
+    /**
      * Apply current filters to plant list using PlantDataProcessor
      */
     applyFilters() {
         if (this.selectedFilters.size === 0) {
             // No filters selected - show all plants (matches clearFilters behavior)
-            console.log(`PlantRecommendationsPage: No filters selected - showing all ${this.currentPlants.length} plants`);
             this.filteredPlants = [...this.currentPlants];
         } else if (this.dataProcessor) {
             // Use PlantDataProcessor for matrix-based filtering on FULL dataset
-            console.log("Applying filters to full dataset:", Array.from(this.selectedFilters));
             this.filteredPlants = this.dataProcessor.filterPlants(this.selectedFilters, this.currentPlants);
         } else {
             // Fallback: show all plants if data processor not available
@@ -814,7 +933,6 @@ class PlantRecommendationsPage {
         });
 
         // Show all plants when filters are cleared
-        console.log(`PlantRecommendationsPage: Clearing filters - showing all ${this.currentPlants.length} plants`);
         this.filteredPlants = [...this.currentPlants];
         this.displayPlantGrid(this.filteredPlants);
     }
@@ -837,15 +955,29 @@ class PlantRecommendationsPage {
      */
     onPlantSelected(plantName) {
         console.log('Plant selected:', plantName);
-        // TODO: Implement plant detail view or additional actions
     }
 
     /**
      * Update recommendations based on ecological metrics
      */
     updateRecommendationsForMetrics(metrics) {
-        // TODO: Implement ecological matching logic
         console.log('Updating recommendations for metrics:', metrics);
+    }
+
+    /**
+     * Refresh plant recommendations based on current PA selection
+     * Called when a different PA is selected to update the plant list
+     */
+    refreshRecommendationsForCurrentPA() {
+        if (this.currentPlants.length === 0) {
+            return;
+        }
+
+        // Re-apply default filter with current PA ecological data
+        this.filteredPlants = this.applyDefaultFilter(this.currentPlants);
+
+        // Update the display
+        this.displayPlantGrid(this.filteredPlants);
     }
 
     /**
