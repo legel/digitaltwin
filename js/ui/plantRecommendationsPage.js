@@ -126,17 +126,11 @@ class PlantRecommendationsPage {
     createFiltersPanel() {
         const filtersHTML = `
             <div id="plant-filters-panel" class="plant-filters-panel">
-                <div class="plant-filters-overlay" id="plant-filters-overlay"></div>
-                <div class="plant-filters-content">
-                    <div class="plant-filters-header">
-                        <h3>Refine Plant List</h3>
-                        <button class="plant-filters-close" id="plant-filters-close">×</button>
-                    </div>
-                    <div class="plant-filters-body" id="plant-filters-body">
-                        <div class="loading-filters">Loading plant filters...</div>
-                    </div>
+                <div class="plant-filters-body" id="plant-filters-body">
+                    <div class="loading-filters">Loading plant filters...</div>
                 </div>
             </div>
+            <div class="plant-filters-overlay" id="plant-filters-overlay"></div>
         `;
         document.body.insertAdjacentHTML('beforeend', filtersHTML);
 
@@ -178,29 +172,95 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Show the plant filters panel
+     * Show the plant filters panel - terrain style
      */
     showFilters() {
         const filtersPanel = document.getElementById('plant-filters-panel');
         if (filtersPanel) {
+            // Position panel relative to refine button
+            const refineButton = document.getElementById('refine-plants-btn');
+            if (refineButton) {
+                const buttonRect = refineButton.getBoundingClientRect();
+
+                // Terrain-style seamless positioning - panel flows directly from button
+                filtersPanel.style.top = `${buttonRect.bottom - 1}px`; // -1px for seamless connection
+                filtersPanel.style.left = `${buttonRect.left + (buttonRect.width / 2)}px`;
+                filtersPanel.style.transform = 'translateX(-50%)'; // Center align
+
+                // Terrain-style border radius connection
+                refineButton.style.borderBottomLeftRadius = '0px';
+                refineButton.style.borderBottomRightRadius = '0px';
+                refineButton.style.setProperty('--button-width', `${buttonRect.width}px`);
+
+                // Update button text to terrain-style
+                this.updateRefineButtonText(true);
+            }
+
+            // Show panel with terrain-style animation
             filtersPanel.classList.add('visible');
             this.isFiltersVisible = true;
 
-            // Load filter options if not already loaded
+            // Show overlay
+            const overlay = document.getElementById('plant-filters-overlay');
+            if (overlay) {
+                overlay.classList.add('visible');
+            }
+
+            // Load filter options if not already loaded, then show content
             if (!this.filtersLoaded) {
                 this.loadFilters();
+            } else {
+                // Add content visibility for animation
+                setTimeout(() => {
+                    filtersPanel.classList.add('content-visible');
+                }, 50);
             }
         }
     }
 
     /**
-     * Hide the plant filters panel
+     * Hide the plant filters panel - terrain style
      */
     hideFilters() {
         const filtersPanel = document.getElementById('plant-filters-panel');
         if (filtersPanel) {
-            filtersPanel.classList.remove('visible');
-            this.isFiltersVisible = false;
+            // Restore button border radius
+            const refineButton = document.getElementById('refine-plants-btn');
+            if (refineButton) {
+                refineButton.style.borderBottomLeftRadius = '25px';
+                refineButton.style.borderBottomRightRadius = '25px';
+                refineButton.style.removeProperty('--button-width');
+            }
+
+            // Update button text back to default
+            this.updateRefineButtonText(false);
+
+            // Reverse animation sequence
+            filtersPanel.classList.remove('content-visible');
+
+            setTimeout(() => {
+                filtersPanel.classList.remove('visible');
+                this.isFiltersVisible = false;
+            }, 200);
+
+            // Hide overlay
+            const overlay = document.getElementById('plant-filters-overlay');
+            if (overlay) {
+                overlay.classList.remove('visible');
+            }
+        }
+    }
+
+    /**
+     * Update refine button text - terrain style
+     */
+    updateRefineButtonText(isVisible) {
+        const refineButton = document.getElementById('refine-plants-btn');
+        if (refineButton) {
+            const buttonText = refineButton.querySelector('span');
+            if (buttonText) {
+                buttonText.textContent = isVisible ? 'Hide Criteria' : 'Refine Plant List';
+            }
         }
     }
 
@@ -432,84 +492,36 @@ class PlantRecommendationsPage {
             return;
         }
 
+        // Use terrain-style HTML generation from focusPanel
         const plantsHTML = plants.map(plant => {
-            // Handle plants with no valid images after strict filtering
-            if (plant.photoTypes.length === 0 || !plant.currentPhotoType) {
-                return `
-                    <div class="plant-item image-wrapper"
-                         data-plant="${plant.name}"
-                         data-species-key="${plant.speciesKey}"
-                         data-current-index="1"
-                         data-photo-count="0">
-
-                        <div class="plant-image-container">
-                            <!-- Plant name overlay -->
-                            <div class="plant-name-overlay">
-                                <h4 class="species">${plant.name}</h4>
-                            </div>
-
-                            <!-- Black box for no images -->
-                            <img src="${this.getFallbackImageUrl()}"
-                                 alt="${plant.name} - No images available"
-                                 class="species-image plant-image">
-
-                            <!-- No indicators for plants with no images -->
-                        </div>
-                    </div>
-                `;
+            if (window.focusPanel && typeof window.focusPanel.getTerrainPlantHTML === 'function') {
+                return window.focusPanel.getTerrainPlantHTML(plant);
             }
 
-            // Generate image indicators for plants with valid images
-            const indicators = plant.photoTypes.map((photoType, index) => `
-                <div class="indicator-wrapper" data-index="${index + 1}" data-photo-type="${photoType}">
-                    <span class="indicator ${index === 0 ? 'active' : ''}"></span>
-                </div>
-            `).join('');
-
-            // Use the image URL - errors will be handled silently by onError handler
-            const initialImageUrl = `images/species/${plant.speciesKey}/species_${plant.speciesKey}_${plant.currentPhotoType}_360.webp`;
+            // Fallback to simplified version if focusPanel not available
+            const initialImageUrl = plant.currentPhotoType ?
+                `images/species/${plant.speciesKey}/species_${plant.speciesKey}_${plant.currentPhotoType}_360.webp` :
+                this.getFallbackImageUrl();
 
             return `
                 <div class="plant-item image-wrapper"
                      data-plant="${plant.name}"
                      data-species-key="${plant.speciesKey}"
-                     data-current-index="${plant.currentIndex}"
-                     data-photo-count="${plant.totalImages}">
-
+                     data-current-index="${plant.currentIndex || 1}"
+                     data-photo-count="${plant.totalImages || 0}">
                     <div class="plant-image-container">
-                        <!-- Plant name overlay -->
-                        <div class="plant-name-overlay">
-                            <h4 class="species">${plant.name}</h4>
+                        <div class="species-name-banner">
+                            <div class="text-overlay">
+                                <span class="genus">${plant.name.split(' ')[0] || plant.name}</span>
+                                <span class="species">${plant.name.split(' ').slice(1).join(' ') || ''}</span>
+                            </div>
                         </div>
-
-                        <!-- Main image with silent error handling -->
                         <img src="${initialImageUrl}"
                              alt="${plant.name}"
                              class="species-image plant-image"
                              data-species-key="${plant.speciesKey}"
                              data-photo-type="${plant.currentPhotoType}"
                              onerror="this.style.visibility='hidden'">
-
-                        <!-- Navigation arrows -->
-                        ${plant.photoTypes.length > 1 ? `
-                            <div class="img-arrow left" aria-label="Previous image">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                    <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </div>
-                            <div class="img-arrow right" aria-label="Next image">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                    <path d="M9 18L15 12L9 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </div>
-                        ` : ''}
-
-                        <!-- Image indicators -->
-                        ${plant.photoTypes.length > 1 ? `
-                            <div class="img-indicators">
-                                ${indicators}
-                            </div>
-                        ` : ''}
                     </div>
                 </div>
             `;
@@ -520,6 +532,9 @@ class PlantRecommendationsPage {
         // Initialize image gallery functionality
         this.initializeImageNavigation();
         this.attachPlantItemListeners();
+
+        // Initialize cursor positions for all plant items
+        this.initializeCursorPositions();
     }
 
     /**
@@ -640,13 +655,39 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Update indicator states
+     * Initialize cursor positions for all plant items
+     */
+    initializeCursorPositions() {
+        const plantItems = document.querySelectorAll('.plant-item');
+        plantItems.forEach(item => {
+            const currentIndex = parseInt(item.dataset.currentIndex) || 1;
+            this.updateIndicators(item, currentIndex);
+        });
+    }
+
+    /**
+     * Update indicator states and cursor position (terrain-style)
      */
     updateIndicators(wrapper, activeIndex) {
         const indicators = wrapper.querySelectorAll('.indicator-wrapper .indicator');
+        const cursor = wrapper.querySelector('.indicator-cursor');
+
         indicators.forEach((indicator, index) => {
             indicator.classList.toggle('active', (index + 1) === activeIndex);
         });
+
+        // Update cursor position if it exists (terrain-style)
+        if (cursor && indicators.length > 0) {
+            const activeIndicatorIndex = activeIndex - 1; // Convert to 0-based index
+            const indicatorWrapper = wrapper.querySelector(`.indicator-wrapper[data-index="${activeIndex}"]`);
+
+            if (indicatorWrapper) {
+                const wrapperLeft = indicatorWrapper.offsetLeft;
+                const wrapperWidth = indicatorWrapper.offsetWidth;
+                const cursorLeft = wrapperLeft + (wrapperWidth / 2) - 6; // Center cursor (12px wide, so offset by 6px)
+                cursor.style.left = `${cursorLeft}px`;
+            }
+        }
     }
 
     /**
@@ -707,6 +748,14 @@ class PlantRecommendationsPage {
                 this.attachFilterListeners();
                 this.filtersLoaded = true;
 
+                // Add content visibility for animation
+                setTimeout(() => {
+                    const filtersPanel = document.getElementById('plant-filters-panel');
+                    if (filtersPanel) {
+                        filtersPanel.classList.add('content-visible');
+                    }
+                }, 50);
+
                 // Sync filter UI with any existing ecological selections
                 this.updateFilterUIFromSelectedFilters();
             }
@@ -749,6 +798,13 @@ class PlantRecommendationsPage {
     renderFilterHierarchy(nodes, parentElement, level = 0) {
         nodes.forEach((node, index) => {
             if (node.type === 'header' || node.type === 'parameter') {
+                // Add terrain-style separator before each top-level section (except the first)
+                if (level === 0 && index > 0) {
+                    const separator = document.createElement('div');
+                    separator.className = 'filter-separator';
+                    parentElement.appendChild(separator);
+                }
+
                 // Create collapsible header
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'filter-header';
@@ -841,19 +897,11 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Attach filter control event listeners
+     * Attach filter control event listeners - terrain style with instant filtering
      */
     attachFilterListeners() {
-        const applyBtn = document.getElementById('apply-filters');
         const clearBtn = document.getElementById('clear-filters');
         const checkboxes = document.querySelectorAll('.filter-checkbox');
-
-        if (applyBtn) {
-            applyBtn.addEventListener('click', () => {
-                this.applyFilters();
-                this.hideFilters();
-            });
-        }
 
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
@@ -861,12 +909,28 @@ class PlantRecommendationsPage {
             });
         }
 
-        // Apply filters when checkboxes change
+        // Apply filters instantly when checkboxes change (terrain-style)
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', () => {
                 this.updateSelectedFilters();
+                // Apply filters immediately
+                this.applyFilters();
             });
         });
+
+        // Hide apply button since we do instant filtering
+        const applyBtn = document.getElementById('apply-filters');
+        if (applyBtn) {
+            applyBtn.style.display = 'none';
+        }
+
+        // Auto-hide panel when clicking outside (terrain-style)
+        const overlay = document.getElementById('plant-filters-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                this.hideFilters();
+            });
+        }
     }
 
     /**

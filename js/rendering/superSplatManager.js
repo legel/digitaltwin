@@ -452,7 +452,7 @@ class SuperSplatManager {
      * @param {number} leftHalfCoverage - Desired coverage of left 50% of screen (0.0 to 1.0)
      * @returns {number} - Optimal camera distance (Y-axis offset)
      */
-    calculateOptimalZoom(extents, verticalCoverage = 1.0, leftHalfCoverage = 0.98) {
+    calculateOptimalZoom(extents, verticalCoverage = 1.0, leftHalfCoverage = 0.60) {
         if (!extents || extents.width <= 0 || extents.height <= 0) {
             return 10;
         }
@@ -521,7 +521,7 @@ class SuperSplatManager {
     }
 
     /**
-     * Position camera to focus on polygon group center with 25% left offset and optimal zoom
+     * Position camera to focus on polygon group center with left offset and optimal zoom
      * @param {Array} polygonNames - Array of polygon names to focus on
      * @returns {boolean} - Success/failure of positioning
      */
@@ -532,7 +532,12 @@ class SuperSplatManager {
         }
 
         const { center: groupCenter, extents } = bounds;
-        const optimalDistance = this.calculateOptimalZoom(extents);
+        var optimalDistance;
+        if (polygonNames && polygonNames[0].includes("NPA")) {
+            optimalDistance = this.calculateOptimalZoom(extents, 1.0, 1.8); // NPAs can be zoomed in further
+        } else {
+            optimalDistance = this.calculateOptimalZoom(extents);
+        }
 
         const iframe = this.superSplatIframe;
         if (!iframe || !iframe.contentWindow) {
@@ -547,9 +552,12 @@ class SuperSplatManager {
                 return false;
             }
 
-            // Calculate proper screen-space offset for 25% from left edge
+            // Calculate proper screen-space offset for close to left edge
             const viewportWorldWidth = optimalDistance * 2;
-            const offsetFactor = 0.25;
+            var offsetFactor = 0.6;
+            if (polygonNames && polygonNames[0].includes("NPA")) { //NPAs are more centered
+                offsetFactor = 0.1;
+            }
             const worldOffsetX = viewportWorldWidth * offsetFactor;
 
             const offsetFocalPoint = {
