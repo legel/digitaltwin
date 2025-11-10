@@ -6,7 +6,7 @@
 /* Main focus panel container */
 .focus-panel {
     position: fixed;
-    left: -450px; /* Start off-screen left to prevent flash */
+    left: -500px; /* Start completely off-screen to prevent blocking mouse events */
     top: 100px; /* Align with layer controls accounting for border radius */
     bottom: 100px; /* Mirror top alignment */
     width: 420px; /* Standard width */
@@ -22,6 +22,7 @@
     overflow: hidden;
     opacity: 0;
     z-index: 1001; /* Above SuperSplat container (1000) and layer controls (1000) */
+    pointer-events: none; /* Prevent blocking mouse events when invisible/off-screen */
 
     /* Flex container for proper content sizing */
     display: flex;
@@ -43,6 +44,7 @@
 /* Visible state - for programmatic animation */
 .focus-panel.visible {
     opacity: 1 !important;
+    pointer-events: auto; /* Re-enable mouse events when panel is visible */
 }
 
 .focus-panel.visible:not(.animating-in):not(.animating-out) {

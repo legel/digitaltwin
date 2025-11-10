@@ -140,26 +140,58 @@ class SuperSplatBridge {
      * Set up splat loading detection to accelerate loading screen when splat is actually loaded
      */
     setupSplatLoadingDetection() {
-        // Access SuperSplat scene events
-        const scene = window.superSplatScene;
-        if (!scene || !scene.events) {
-            console.warn('⚠️ SuperSplat scene events not available for splat loading detection');
-            return;
-        }
-
-
-        // Listen for splat elements being added to the scene
-        scene.events.on('scene.elementAdded', (element) => {
-            // Check if a splat was added (using ElementType.splat constant)
-            // ElementType.splat corresponds to the splat element type from SuperSplat
-            if (element.type === 'splat' || element.type === 2) { // 2 is ElementType.splat value
-
-                // Trigger loading screen acceleration if loading is still active
-                if (window.independentLoadingState?.isActive) {
-                    window.independentLoadingState.complete();
-                }
+        const attemptSetup = () => {
+            const scene = window.superSplatScene;
+            if (!scene || !scene.events) {
+                console.warn('⚠️ SuperSplat scene events not available for splat loading detection - retrying...');
+                setTimeout(attemptSetup, 1000);
+                return;
             }
-        });
+
+            try {
+                // Listen for splat elements being added to the scene
+                scene.events.on('scene.elementAdded', (element) => {
+                    // Match the exact logic used in point-overlay.ts y-plane listener
+                    if (element.type === 'splat') {
+                        console.log('🎯 Splat element detected via scene.elementAdded - completing loading screen');
+                        if (window.independentLoadingState?.isActive) {
+                            window.independentLoadingState.complete();
+                        }
+                    }
+                });
+
+                // Fallback detection: Check for existing splats periodically
+                const fallbackCheck = setInterval(() => {
+                    if (!window.independentLoadingState?.isActive) {
+                        clearInterval(fallbackCheck);
+                        return;
+                    }
+
+                    try {
+                        // Check if splats already exist using same method as SuperSplat point-overlay
+                        const splats = scene.getElementsByType?.('splat');
+                        if (splats && splats.length > 0) {
+                            console.log('🎯 Existing splats detected via fallback check - completing loading screen');
+                            clearInterval(fallbackCheck);
+                            window.independentLoadingState.complete();
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Fallback splat detection error:', error);
+                    }
+                }, 2000);
+
+                // Clear fallback after reasonable timeout to prevent memory leaks
+                setTimeout(() => {
+                    clearInterval(fallbackCheck);
+                }, 50000);
+
+            } catch (error) {
+                console.warn('⚠️ Failed to set up splat loading detection:', error);
+                setTimeout(attemptSetup, 2000);
+            }
+        };
+
+        attemptSetup();
     }
 
     /**
