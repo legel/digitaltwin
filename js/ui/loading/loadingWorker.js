@@ -239,7 +239,7 @@ function startMessageCycling() {
     });
     messageIndex = 1;
     
-    // Set up cycling every 2 seconds
+    // Set up cycling every 6 seconds
     messageIntervalId = setInterval(() => {
         if (!isActive) {
             clearInterval(messageIntervalId);
@@ -259,5 +259,5 @@ function startMessageCycling() {
             // Re-shuffle for variety
             shuffledMessages.sort(() => Math.random() - 0.5);
         }
-    }, 2000);
+    }, 6000);
 }

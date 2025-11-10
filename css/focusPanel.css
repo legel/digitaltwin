@@ -6,10 +6,15 @@
 /* Main focus panel container */
 .focus-panel {
     position: fixed;
-    left: -500px; /* Start completely off-screen to prevent blocking mouse events */
+    left: -900px; /* Start completely off-screen to prevent blocking mouse events (800px + margin) */
     top: 100px; /* Align with layer controls accounting for border radius */
     bottom: 100px; /* Mirror top alignment */
-    width: 420px; /* Standard width */
+    width: 800px; /* Updated default width to match new panel design */
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Dynamic sizing variables */
+    --plant-panel-width: 800px; /* 2 plants: 2×360px + 20px gap + 2×20px padding */
+    --metrics-panel-width: 800px; /* Match plant panel width for consistency */
     background: rgba(255, 255, 255, 0.03); /* Very light, almost transparent white */
     backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
     -webkit-backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
@@ -206,7 +211,16 @@
     min-height: 0; /* Allow flex shrinking */
 }
 
-/* Custom scrollbar for panel content */
+/* Dynamic width classes */
+.focus-panel.plant-mode {
+    width: var(--plant-panel-width) !important;
+}
+
+.focus-panel.metrics-mode {
+    width: var(--metrics-panel-width) !important;
+}
+
+/* Unified scrollbar styling for panel content */
 .focus-panel-content::-webkit-scrollbar {
     width: 6px;
 }
@@ -225,12 +239,57 @@
     background: rgba(255, 255, 255, 0.3);
 }
 
-/* Metric row styling */
+/* Hide scrollbar for plant filters - terrain style */
+.plant-filters-panel::-webkit-scrollbar,
+.plant-filters-panel .plant-filters-body::-webkit-scrollbar {
+    display: none;
+}
+
+.plant-filters-panel {
+    scrollbar-width: none;
+}
+
+.plant-filters-panel .plant-filters-body {
+    scrollbar-width: none;
+}
+
+/* Metric row styling - 2-column layout */
 .metric-row {
-    margin-bottom: 10px; /* Reduced from 15px */
+    margin-bottom: 15px;
     opacity: 0;
     transform: translateY(10px);
     animation: fadeInUp 0.4s ease forwards;
+    width: 360px; /* Match plant tile width */
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 20px; /* Gap between columns */
+}
+
+/* 2-column grid container for metrics */
+.focus-panel.metrics-mode .focus-panel-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    padding: 20px; /* Match terrain padding */
+}
+
+/* Remove right margin from second column items */
+.focus-panel.metrics-mode .metric-row:nth-child(even) {
+    margin-right: 0;
+}
+
+/* Plant mode - use direct scrolling like metrics mode */
+.focus-panel.plant-mode .focus-panel-content {
+    display: flex;
+    flex-direction: column;
+    padding: 0; /* No padding needed - plant-grid handles all spacing */
+}
+
+.focus-panel.plant-mode .metric-row {
+    width: 100%;
+    margin-right: 0;
+    display: block;
 }
 
 .metric-row:nth-child(1) { animation-delay: 0.05s; }
@@ -255,14 +314,16 @@
 .metric-container {
     background: rgba(0, 0, 0, 0.4);
     border-radius: 12px;
-    padding: 12px 15px; /* Reduced vertical padding */
+    padding: 12px 15px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
-    overflow: visible; /* Changed from hidden to show dots/labels at edges */
+    overflow: visible;
     display: flex;
     flex-direction: column;
-    height: auto; /* Let content determine height */
-    gap: 8px; /* Consistent spacing between elements */
+    height: auto;
+    gap: 8px;
+    width: 100%; /* Ensure container fills metric-row */
+    box-sizing: border-box;
 }
 
 .metric-container::before {
@@ -307,13 +368,14 @@
 
 /* Interpretation text will use inline Viridis colors */
 
-/* Chart container */
+/* Chart container - maintain height for 2-column layout */
 .metric-chart {
     position: relative;
     height: 100px; /* Match canvas height exactly */
     margin: 0;
     padding: 0; /* Remove padding - canvas handles its own padding */
     overflow: visible; /* Ensure dots and labels are not clipped */
+    width: 100%; /* Ensure chart fills available width */
 }
 
 /* Chart wrapper for proper positioning */
@@ -581,8 +643,9 @@
 .plant-recommendations-content {
     height: 100%;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
 }
 
 .recommendations-placeholder {
@@ -633,58 +696,72 @@
     text-align: center;
 }
 
-.refine-plants-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.9);
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-family: 'Oxygen', sans-serif;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
+/* Terrain-style action button */
+.action-button {
+    background: linear-gradient(135deg, #072b2e 0%, #01213d 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    width: 250px; /* Match terrain app exactly */
+    border-radius: 25px;
+    cursor: pointer !important;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1002;
 }
 
-.refine-plants-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+.action-button i {
+    font-size: 18px;
 }
 
-.refine-plants-button i {
-    font-size: 12px;
+.action-button:hover {
+    background-color: #01213d;
 }
 
-/* Plant grid container */
+.action-button span {
+    font-weight: 400;
+}
+
+/* Plant grid container - no scrolling, parent handles it */
 .plant-grid-container {
-    height: 100%;
-    overflow-y: auto;
+    width: 100%;
+    height: auto;
     padding: 0;
-    /* Remove explicit bottom padding - let flex handle it */
+    flex: 1;
+    /* No overflow or scrollbar - parent .focus-panel-content handles scrolling */
 }
 
 .plant-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 2 plants per row */
-    gap: 15px;
-    padding: 15px 15px 40px 15px; /* Generous bottom padding for last row */
+    grid-template-columns: 360px 360px; /* Exact terrain sizing */
+    gap: 20px; /* Match terrain gap */
+    padding: 20px; /* Match terrain padding */
+    box-sizing: border-box;
+    justify-content: center; /* Center the grid */
+    max-width: 100%;
 }
 
-/* Individual plant item - terrain design */
+/* Individual plant item - exact terrain design */
 .plant-item {
-    border-radius: 16px;
+    position: relative;
+    width: 360px; /* Exact terrain size */
+    height: 360px; /* Exact terrain size */
+    border: 1px solid #072b2e; /* Exact terrain border color */
+    border-radius: 25px; /* Exact terrain border radius */
     overflow: hidden;
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
-    aspect-ratio: 1 / 1; /* Force square aspect ratio */
-    width: 100%;
-    height: auto;
     background: transparent;
-    border: none;
+    flex: 0 0 auto;
+    display: block;
 }
 
 .plant-item:hover {
@@ -698,8 +775,8 @@
     height: 100%;
     position: relative;
     overflow: hidden;
-    border-radius: 16px;
-    background: rgba(0, 0, 0, 0.3);
+    border-radius: 25px; /* Match terrain border radius */
+    background: transparent;
 }
 
 .plant-image,
@@ -707,8 +784,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
-    border-radius: 16px;
+    transition: opacity 0.2s ease-in-out; /* Exact terrain transition */
+    border-radius: 0; /* Images inside container don't need border radius */
 }
 
 .plant-item:hover .plant-image,
@@ -716,181 +793,191 @@
     transform: scale(1.03);
 }
 
-/* Plant name overlay - top left */
+/* Plant name overlay - exact terrain styling */
+.species-name-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    align-items: flex-start;
+    z-index: 5;
+}
+
+.text-overlay {
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    position: relative;
+    z-index: 2;
+    display: inline;
+    background-color: #01213dcb;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 25px;
+    border-top-left-radius: 25px;
+    padding: 5px 20px;
+}
+
+.genus {
+    display: block;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.species {
+    display: block;
+    font-weight: normal;
+    line-height: 1.2;
+}
+
+/* Legacy support for existing structure */
 .plant-name-overlay {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 10;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    border-radius: 8px;
-    padding: 6px 10px;
-    max-width: calc(100% - 24px);
+    top: 0;
+    left: 0;
+    z-index: 5;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    max-width: 100%;
 }
 
 .plant-name-overlay .species {
     color: white;
-    font-size: 12px;
-    font-weight: 500;
-    font-family: 'Oxygen', sans-serif;
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: normal;
     margin: 0;
-    font-style: italic;
+    font-style: normal;
     line-height: 1.2;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-shadow: none;
+    background-color: #01213dcb;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 25px;
+    border-top-left-radius: 25px;
+    padding: 5px 20px;
+    display: inline-block;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
 }
 
-/* Navigation arrows */
+/* Navigation arrows - exact terrain styling */
 .img-arrow {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 18px;
+    padding: 10px;
+    margin: -5px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    border-radius: 50%;
+    z-index: 2;
+    pointer-events: auto;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    backdrop-filter: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    transition: all 0.2s ease;
-    opacity: 0;
-    visibility: hidden;
-}
-
-.plant-item:hover .img-arrow {
     opacity: 1;
     visibility: visible;
 }
 
 .img-arrow:hover {
-    background: rgba(0, 0, 0, 0.8);
-    transform: translateY(-50%) scale(1.1);
+    color: white;
+    transform: translateY(-50%);
+    background: transparent;
 }
 
-.img-arrow.left {
-    left: 8px;
+.img-arrow:active {
+    transform: translateY(-50%) scale(0.95);
 }
 
-.img-arrow.right {
-    right: 8px;
-}
+/* Old arrow positioning removed - now handled by .image-selector flexbox layout */
 
 .img-arrow svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
-/* Image indicators - terrain style with high specificity */
-.plant-item .img-indicators {
-    position: absolute !important;
-    bottom: 8px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    display: flex !important;
-    gap: 3px !important;
-    align-items: center !important;
-    z-index: 15 !important;
-    padding: 3px 6px !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(4px) !important;
-    border-radius: 12px !important;
-    width: auto !important;
-    height: auto !important;
-    flex-direction: row !important;
+/* Simplified image selector - arrows at edges, dots centered independently */
+.image-selector {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    width: 100%;
+    height: 24px; /* Set explicit height for positioning */
+    z-index: 6;
+    pointer-events: none;
 }
 
-.plant-item .indicator-wrapper {
-    position: static !important;
-    width: 10px !important;
-    height: 10px !important;
-    cursor: pointer !important;
-    z-index: 2 !important;
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    background: none !important;
+/* Image indicators container - independently centered */
+.img-indicators {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    gap: 0; /* No gap between indicators - they handle their own spacing */
 }
 
-.plant-item .indicator-wrapper .indicator {
-    width: 10px !important;
-    height: 10px !important;
-    border-radius: 50% !important;
-    background: white !important;
-    transition: all 0.2s ease !important;
-    border: 1px solid rgba(0, 0, 0, 0.2) !important;
-    opacity: 0.5 !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    position: static !important;
-    min-width: auto !important;
-    min-height: auto !important;
-    max-width: none !important;
-    max-height: none !important;
+.indicator-wrapper {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
 }
 
-.plant-item .indicator-wrapper .indicator.active {
-    background: white !important;
-    opacity: 1 !important;
-    transform: none !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+.indicator {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    background-color: transparent;
+    transition: border-color 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.plant-item .indicator-wrapper:hover .indicator {
-    opacity: 0.8 !important;
-    transform: scale(1.15) !important;
+.indicator-wrapper:hover .indicator {
+    border-color: white;
+    transform: scale(1.1);
 }
 
-.plant-item .indicator-wrapper:hover .indicator.active {
-    opacity: 1 !important;
-}
-
-/* Remove cursor since we're using filled circles */
-.indicator-cursor,
-.plant-item .indicator-cursor {
-    display: none !important;
-}
-
-/* Override any potential conflicts from other stylesheets */
-.plant-item .img-indicators * {
-    box-sizing: border-box !important;
-    font-family: inherit !important;
-}
-
-/* Ensure no flex or grid interference */
-.plant-item .img-indicators .indicator-wrapper {
-    flex: none !important;
-    grid-column: auto !important;
-    grid-row: auto !important;
-    align-self: auto !important;
-    justify-self: auto !important;
-}
-
-/* Reset any inherited styles that might cause vertical lines */
-.plant-item .indicator-wrapper::before,
-.plant-item .indicator-wrapper::after,
-.plant-item .indicator::before,
-.plant-item .indicator::after {
-    display: none !important;
-    content: none !important;
-}
-
-/* Force circular shape */
-.plant-item .indicator-wrapper .indicator {
-    border-radius: 50% !important;
-    overflow: hidden !important;
-    text-indent: -9999px !important;
-    line-height: 1 !important;
-    font-size: 0 !important;
+.indicator-cursor {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 20px;
+    background-color: white;
+    border: 1px solid #072b2e;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0;
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: -1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
 }
 
 /* Remove old plant info styles */
@@ -898,6 +985,34 @@
 .plant-name,
 .plant-common-name {
     display: none;
+}
+
+/* Navigation arrows - positioned at absolute edges */
+.image-selector .img-arrow {
+    pointer-events: auto;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin: 0;
+    z-index: 1;
+}
+
+.image-selector .img-arrow.left {
+    left: 10px !important; /* 10px from left edge */
+    right: auto !important;
+}
+
+.image-selector .img-arrow.right {
+    right: 10px !important; /* 10px from right edge */
+    left: auto !important;
+}
+
+/* Clean up any conflicting styles */
+.img-arrow.left:not(.image-selector .img-arrow),
+.img-arrow.right:not(.image-selector .img-arrow) {
+    position: static;
+    left: auto;
+    right: auto;
 }
 
 /* Loading states */
@@ -971,98 +1086,136 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Plant filters panel */
+/* Plant filters panel - terrain-style dropdown */
 .plant-filters-panel {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2000; /* Above focus panel */
-    display: none;
+    transform-origin: top center;
+    width: var(--button-width, 250px); /* Use button width when connected, fallback to 250px */
+    min-width: 250px; /* Minimum width for content readability */
+    box-sizing: border-box;
+    height: 0;
+    background-color: #ffffff;
+    padding: 0;
+    border: 1px solid rgba(7, 43, 46, 0.2);
+    border-top: none; /* Remove top border for seamless connection */
+    border-radius: 0 0 25px 25px; /* Remove top radius for seamless connection */
+    margin-top: 0;
+    z-index: 1002;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    will-change: height, opacity, top, left;
+    /* Position below refine button when shown */
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .plant-filters-panel.visible {
-    display: block;
+    height: 70vh;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.plant-filters-panel.content-visible {
+    padding: 15px 15px 20px 15px;
+    overflow-y: scroll;
+    scrollbar-width: none;
+}
+
+.plant-filters-panel.content-visible::-webkit-scrollbar {
+    display: none;
 }
 
 .plant-filters-overlay {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
+    right: 0;
+    bottom: 0;
+    background: rgba(7, 43, 46, 0.05); /* Minimal overlay like terrain */
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4375s ease, visibility 0.4375s ease;
+    pointer-events: none;
 }
 
-.plant-filters-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 400px;
-    max-height: 80vh;
-    overflow: hidden;
-    animation: filterPanelSlideIn 0.3s ease-out;
+.plant-filters-panel.visible + .plant-filters-overlay,
+.plant-filters-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
-@keyframes filterPanelSlideIn {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
+.filter-content {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    max-width: 100%;
+    margin: 0 auto;
 }
 
-.plant-filters-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.plant-filters-panel.content-visible .filter-content {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.plant-filters-header h3 {
-    color: white;
+/* Terrain-style filter headers and controls */
+.filter-header,
+.filter-parameter {
+    cursor: pointer;
+    padding-left: 25px;
+    margin-top: 15px;
+    position: relative;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    color: #072b2e;
     font-size: 16px;
-    font-weight: 500;
-    margin: 0;
-    font-family: 'Oxygen', sans-serif;
+}
+
+.filter-selector {
+    display: flex;
+    align-items: center;
+    padding-left: 25px;
+    margin-top: 6px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 300;
+    color: #072b2e;
+    font-size: 16px;
+}
+
+.filter-selector input {
+    margin-right: 8px;
+    transform: scale(1.33);
+    margin-left: 0;
+}
+
+.toggle-icon {
+    position: absolute;
+    left: 0;
+    margin-left: 5px;
+    color: slategray;
+    font-weight: bold;
+    width: 20px;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Compatibility header for existing structure */
+.plant-filters-header {
+    display: none; /* Hide since we're using inline controls */
 }
 
 .plant-filters-close {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
-}
-
-.plant-filters-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
+    display: none; /* Hide since we use terrain-style auto-close */
 }
 
 .plant-filters-body {
-    padding: 20px;
-    max-height: 60vh;
-    overflow-y: auto;
+    padding: 0; /* Remove padding to match terrain style */
+    max-height: none;
+    overflow: visible;
 }
 
 .filter-section {
@@ -1096,122 +1249,132 @@
     accent-color: rgba(255, 255, 255, 0.8);
 }
 
+/* Terrain-style filter actions */
 .filter-actions {
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(7, 43, 46, 0.2);
     display: flex;
-    gap: 10px;
+    justify-content: center;
+    gap: 15px;
 }
 
 .apply-filters-btn,
 .clear-filters-btn {
-    flex: 1;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-family: 'Oxygen', sans-serif;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.apply-filters-btn {
-    background: rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, #072b2e 0%, #01213d 100%);
     color: white;
+    border: none;
+    padding: 10px 20px;
+    width: 120px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.apply-filters-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
+.apply-filters-btn:hover,
+.clear-filters-btn:hover {
+    background-color: #01213d;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .clear-filters-btn {
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.7);
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
 }
 
 .clear-filters-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
+    background-color: #495057;
 }
 
 .loading-filters {
     text-align: center;
-    color: rgba(255, 255, 255, 0.6);
+    color: #072b2e;
     padding: 20px;
-    font-size: 13px;
-    font-family: 'Oxygen', sans-serif;
+    font-size: 14px;
+    font-family: 'Nunito', sans-serif;
+    font-style: italic;
 }
 
-/* Hierarchical filter styling */
-.filter-header {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 13px;
-    font-weight: 500;
-    font-family: 'Oxygen', sans-serif;
-    padding: 6px 0;
-    cursor: pointer;
-    user-select: none;
-    transition: background-color 0.2s ease;
-    border-radius: 4px;
-}
-
-.filter-header:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.filter-toggle-icon {
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: bold;
-    font-size: 12px;
-    width: 16px;
-    display: inline-block;
-    text-align: center;
-}
-
+/* Terrain-style hierarchical filter styling */
 .filter-children {
     margin-bottom: 8px;
 }
 
-.filter-selector {
-    padding: 3px 0;
-    display: flex;
-    align-items: center;
+/* Terrain-style section separator */
+.filter-separator {
+    border-bottom: 1px solid #072b2e;
+    width: 33%;
+    margin: 6px 0;
+    margin-top: 15px;
+    height: 0;
+    flex-shrink: 0;
 }
 
 .filter-checkbox {
     margin: 0;
-    accent-color: rgba(255, 255, 255, 0.8);
-    transform: scale(0.9);
+    accent-color: #072b2e;
+    transform: scale(1.33);
 }
 
 .filter-selector label {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 12px;
-    font-family: 'Oxygen', sans-serif;
+    color: #072b2e;
+    font-size: 16px;
+    font-family: 'Nunito', sans-serif;
     cursor: pointer;
     user-select: none;
     flex: 1;
+    font-weight: 300;
+    margin-left: 8px;
 }
 
 .filter-selector:hover label {
-    color: rgba(255, 255, 255, 0.95);
+    color: #01213d;
+}
+
+.filter-toggle-icon {
+    color: slategray;
+    font-weight: bold;
+    font-size: 16px;
+    width: 20px;
+    display: inline-block;
+    text-align: center;
 }
 
 /* Mobile responsiveness for plant grid */
 @media screen and (max-width: 767px) {
     .plant-grid {
         grid-template-columns: 1fr; /* Single column on mobile */
-        gap: 10px;
-        padding: 10px;
+        gap: 15px; /* Maintain reasonable gap on mobile */
+        padding: 15px;
+    }
+
+    .focus-panel.plant-mode {
+        width: calc(100vw - 20px) !important; /* Full width minus margin on mobile */
+    }
+
+    .focus-panel.metrics-mode {
+        width: calc(100vw - 20px) !important;
+    }
+
+    .focus-panel.metrics-mode .metric-row {
+        width: 100%; /* Single column on mobile */
+        margin-right: 0;
     }
 
     .plant-item {
-        height: 160px;
+        width: 100%; /* Fill available space on mobile */
+        height: 200px; /* Reasonable mobile height */
     }
 
     .plant-image-container {
-        height: 100px;
+        height: 200px;
     }
 
     .plant-filters-content {

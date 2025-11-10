@@ -185,6 +185,9 @@ class FocusPanel {
         // Add panel to body
         document.body.insertAdjacentHTML('beforeend', panelHTML);
         this.panel = document.getElementById('focusPanel');
+
+        // Ensure panel starts with correct width mode
+        this.updatePanelWidth(null, this.currentPage);
     }
     
     setupEventListeners() {
@@ -209,6 +212,9 @@ class FocusPanel {
             this.init();
         }
         this.currentPA = paName;
+
+        // Set initial panel width based on current page
+        this.updatePanelWidth(null, this.currentPage);
         
         // Update header with location name in ALL CAPS, page buttons, and close button
         const currentPageData = this.pages[this.currentPage];
@@ -218,8 +224,10 @@ class FocusPanel {
                 <p class="pa-subtitle">${currentPageData.subtitle}</p>
                 ${this.currentPage === 'plantRecommendations' ? `
                 <div class="refine-plant-section">
-                    <button id="refine-plants-btn" class="refine-plants-button">
-                        <i class="fas fa-filter"></i> Refine Plant List
+                    <button id="refine-plants-btn" class="action-button">
+                        <i class="fas fa-leaf"></i>
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Refine Plant List</span>
                     </button>
                 </div>
                 ` : ''}
@@ -666,6 +674,7 @@ class FocusPanel {
 
     switchToPage(pageName) {
         if (this.pages[pageName] && pageName !== this.currentPage) {
+            const previousPage = this.currentPage;
             this.currentPage = pageName;
 
             // Update header to reflect new page
@@ -682,6 +691,9 @@ class FocusPanel {
                 const isActive = button.dataset.page === this.currentPage;
                 button.classList.toggle('active', isActive);
             });
+
+            // Update panel width class and animate if needed
+            this.updatePanelWidth(previousPage, this.currentPage);
 
             // Refresh content for new page (don't reset filters when switching pages)
             this.displayCurrentPage(null, false);
@@ -719,6 +731,134 @@ class FocusPanel {
             // Just switch to plant recommendations page without resetting filters (page switching)
             window.plantRecommendations.displayContentWithoutReset(paData);
         }
+    }
+
+    /**
+     * Update panel width based on page type with smooth animation
+     */
+    updatePanelWidth(previousPage, currentPage) {
+        if (!this.panel) return;
+
+        // Store current left position to preserve it during width changes
+        const currentLeft = this.panel.style.left;
+
+        // Remove existing width classes
+        this.panel.classList.remove('plant-mode', 'metrics-mode');
+
+        // Add appropriate width class
+        if (currentPage === 'plantRecommendations') {
+            this.panel.classList.add('plant-mode');
+        } else if (currentPage === 'ecologicalMetrics') {
+            this.panel.classList.add('metrics-mode');
+        }
+
+        // Restore left position if it was animation-set (contains px value)
+        if (currentLeft && currentLeft.includes('px')) {
+            this.panel.style.setProperty('left', currentLeft, 'important');
+            this.panel.style.setProperty('right', 'auto', 'important');
+        }
+    }
+
+    /**
+     * Get terrain-style HTML structure for plant items
+     */
+    getTerrainPlantHTML(plant) {
+        if (plant.photoTypes.length === 0 || !plant.currentPhotoType) {
+            return `
+                <div class="plant-item image-wrapper"
+                     data-plant="${plant.name}"
+                     data-species-key="${plant.speciesKey}"
+                     data-current-index="1"
+                     data-photo-count="0">
+                    <div class="plant-image-container">
+                        <div class="species-name-banner">
+                            <div class="text-overlay">
+                                <span class="genus">${this.getGenusFromName(plant.name)}</span>
+                                <span class="species">${this.getSpeciesFromName(plant.name)}</span>
+                            </div>
+                        </div>
+                        <img src="${this.getFallbackImageUrl()}"
+                             alt="${plant.name} - No images available"
+                             class="species-image plant-image">
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate image indicators for plants with valid images
+        const indicators = plant.photoTypes.map((photoType, index) => `
+            <div class="indicator-wrapper" data-index="${index + 1}" data-photo-type="${photoType}">
+                <span class="indicator ${index === 0 ? 'active' : ''}"></span>
+            </div>
+        `).join('');
+
+        // Use the image URL - errors will be handled silently by onError handler
+        const initialImageUrl = `images/species/${plant.speciesKey}/species_${plant.speciesKey}_${plant.currentPhotoType}_360.webp`;
+
+        return `
+            <div class="plant-item image-wrapper"
+                 data-plant="${plant.name}"
+                 data-species-key="${plant.speciesKey}"
+                 data-current-index="${plant.currentIndex}"
+                 data-photo-count="${plant.totalImages}">
+                <div class="plant-image-container">
+                    <div class="species-name-banner">
+                        <div class="text-overlay">
+                            <span class="genus">${this.getGenusFromName(plant.name)}</span>
+                            <span class="species">${this.getSpeciesFromName(plant.name)}</span>
+                        </div>
+                    </div>
+
+                    <img src="${initialImageUrl}"
+                         alt="${plant.name}"
+                         class="species-image plant-image"
+                         data-species-key="${plant.speciesKey}"
+                         data-photo-type="${plant.currentPhotoType}"
+                         onerror="this.style.visibility='hidden'">
+
+                    ${plant.photoTypes.length > 1 ? `
+                        <div class="image-selector">
+                            <div class="img-arrow left" aria-label="Previous image">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="img-indicators">
+                                ${indicators}
+                                <div class="indicator-cursor"></div>
+                            </div>
+                            <div class="img-arrow right" aria-label="Next image">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M9 18L15 12L9 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Extract genus from scientific name
+     */
+    getGenusFromName(scientificName) {
+        return scientificName.split(' ')[0] || scientificName;
+    }
+
+    /**
+     * Extract species from scientific name
+     */
+    getSpeciesFromName(scientificName) {
+        const parts = scientificName.split(' ');
+        return parts.length > 1 ? parts.slice(1).join(' ') : '';
+    }
+
+    /**
+     * Get fallback image URL for plants with no valid images
+     */
+    getFallbackImageUrl() {
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYwIiBoZWlnaHQ9IjM2MCIgdmlld0JveD0iMCAwIDM2MCAzNjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzNjAiIGhlaWdodD0iMzYwIiBmaWxsPSIjMDAwMDAwIi8+Cjwvc3ZnPgo=';
     }
 }
 

@@ -1733,8 +1733,18 @@ function expandToFocusPanel(paName, paFeature, callback) {
     panel.classList.add('animating-in');
     
     // Position panel at the connection line end point
-    // Panel width is 420px, so its right edge should be at lineEndX
-    const panelWidth = 420;
+    // Get actual panel width based on current mode
+    let panelWidth = 800; // Always use 800px for new design
+
+    // Verify computed width for debugging
+    const computedStyle = getComputedStyle(panel);
+    const computedWidth = parseInt(computedStyle.width);
+    if (computedWidth !== 800) {
+        console.warn(`Panel computed width (${computedWidth}px) doesn't match expected (800px)`);
+        // Force the width to be correct before positioning
+        panel.style.setProperty('width', '800px', 'important');
+    }
+
     const panelLeft = currentAnimationState.lineEndX - panelWidth;
 
 
@@ -1745,7 +1755,8 @@ function expandToFocusPanel(paName, paFeature, callback) {
     // Override default CSS position temporarily - use !important to override CSS
     panel.style.setProperty('left', `${panelLeft}px`, 'important');
     panel.style.setProperty('right', 'auto', 'important');
-    panel.style.transition = 'none'; // Clear any existing transitions
+    // Disable all transitions that might interfere with positioning
+    panel.style.setProperty('transition', 'none', 'important');
     panel.style.transform = 'scaleX(0)';
     panel.style.transformOrigin = 'left center';
 
@@ -1771,7 +1782,11 @@ function expandToFocusPanel(paName, paFeature, callback) {
         panel.style.visibility = 'visible';
         panel.style.opacity = '1'; // Force opacity to 1 to override CSS
         panel.classList.add('visible'); // Add visible class now that positioning is set
-        panel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+
+        // Ensure positioning stays locked during animation - reapply after visible class
+        panel.style.setProperty('left', `${panelLeft}px`, 'important');
+        panel.style.setProperty('right', 'auto', 'important');
+        panel.style.setProperty('transition', 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
 
 
         requestAnimationFrame(() => {
@@ -1787,11 +1802,22 @@ function expandToFocusPanel(paName, paFeature, callback) {
                 return;
             }
 
+            // Ensure position is still correct before final transform
+            panel.style.setProperty('left', `${panelLeft}px`, 'important');
+            panel.style.setProperty('right', 'auto', 'important');
             panel.style.transform = 'scaleX(1)';
 
-            // Log final state after transform
+            // After animation completes, maintain position and reset transition
             setTimeout(() => {
-            }, 100);
+                if (panel && panel.classList.contains('visible')) {
+                    // Keep the animation-determined position as the new default
+                    panel.style.setProperty('left', `${panelLeft}px`, 'important');
+                    panel.style.setProperty('right', 'auto', 'important');
+                    // Allow width transitions back, but not left/right
+                    panel.style.setProperty('transition', 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
+                }
+                panel.classList.remove('animating-in');
+            }, 400);
         });
 
         setTimeout(() => {
@@ -1833,7 +1859,16 @@ function collapseFocusPanel(callback) {
     
     // Position panel at the connection line end point for collapse
     if (currentAnimationState.lineEndX) {
-        const panelWidth = 420;
+        // Always use 800px width for consistency
+        let panelWidth = 800;
+
+        // Verify computed width matches expected width
+        const computedStyle = getComputedStyle(panel);
+        const computedWidth = parseInt(computedStyle.width);
+        if (computedWidth !== 800) {
+            console.warn(`Panel collapse: computed width (${computedWidth}px) doesn't match expected (800px)`);
+        }
+
         const panelLeft = currentAnimationState.lineEndX - panelWidth;
         panel.style.left = `${panelLeft}px`;
         panel.style.right = 'auto';
