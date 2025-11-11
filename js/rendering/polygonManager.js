@@ -1297,7 +1297,7 @@ class PolygonManager {
     /**
      * Add a polygon to the manager
      */
-    addPolygon(vertices, color = {x: 0, y: 1, z: 0}, fillAlpha = 1.0, outlineColor = {x: 1, y: 1, z: 1}, outlineThickness = 0.1, name, group) {
+    addPolygon(vertices, color = {x: 0, y: 1, z: 0}, fillAlpha = 1.0, outlineColor = {x: 1, y: 1, z: 1}, outlineThickness = 0.1, name, group, visible = true) {
         const polygon = new Polygon({
             vertices,
             color,
@@ -1305,7 +1305,8 @@ class PolygonManager {
             outlineColor,
             outlineThickness,
             name,
-            group
+            group,
+            visible
         });
 
         // Set manager reference for dirty tracking
