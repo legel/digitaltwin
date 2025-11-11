@@ -30,10 +30,8 @@ class SuperSplatManager {
             return;
         }
 
-        // Construct URL for SuperSplat with auto-load parameter using Google Cloud Storage
-        const splatUrl = window.TerrainConfig ?
-            window.TerrainConfig.getGcsUrl(siteId, 'splat.ply') :
-            `https://storage.googleapis.com/terrain-3d-assets/${siteId}/splat.ply`;
+        // Construct URL for SuperSplat with auto-load parameter using local proxy
+        const splatUrl = `/data/${siteId}/splat.ply`;
 
         // Use the built SuperSplat editor
         const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;

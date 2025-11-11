@@ -10,13 +10,37 @@ CORS(app)  # Enable CORS for all routes
 def index():
     return send_from_directory('.', 'app.html')
 
-# Redirect large Gaussian splat content.glb files to Google Cloud Storage CDN
-# This solves CORS issues and provides faster download speeds for 44MB+ files
-# Maintains Cesium compatibility by keeping tileset.json local with relative URIs
-@app.route('/data/<site_id>/content.glb')
-def redirect_content_glb(site_id):
-    gcs_url = f'https://storage.googleapis.com/terrain-3d-assets/{site_id}/content.glb'
-    return redirect(gcs_url, code=301)  # Permanent redirect for browser caching
+
+# Proxy splat.ply files from DeepEarth bucket with proper CORS headers
+# DeepEarth bucket doesn't have CORS configured, so we proxy through our server
+@app.route('/data/<site_id>/splat.ply')
+def proxy_splat_ply(site_id):
+    import requests
+    from flask import Response
+
+    deepearth_url = f'https://storage.googleapis.com/deepearth/datasets/terrain3d/{site_id}/splat.ply'
+
+    try:
+        # Stream the file from DeepEarth bucket
+        response = requests.get(deepearth_url, stream=True)
+        response.raise_for_status()
+
+        # Create a Flask response with proper CORS headers
+        def generate():
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    yield chunk
+
+        flask_response = Response(generate(), content_type='application/octet-stream')
+        flask_response.headers['Access-Control-Allow-Origin'] = '*'
+        flask_response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD'
+        flask_response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        flask_response.headers['Content-Length'] = response.headers.get('content-length', '')
+
+        return flask_response
+
+    except requests.exceptions.RequestException as e:
+        return f"Error fetching splat file: {str(e)}", 500
 
 # Serve static files (CSS, JS, images)
 # Flask automatically separates query parameters from the path
