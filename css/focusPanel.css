@@ -756,16 +756,35 @@
     height: 360px; /* Exact terrain size */
     border: 1px solid #072b2e; /* Exact terrain border color */
     border-radius: 25px; /* Exact terrain border radius */
-    overflow: hidden;
+    overflow: visible; /* Changed to allow purchase widget to extend below */
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease, margin-top 0.3s ease; /* Added margin transition for spacing adjustment */
     background: transparent;
     flex: 0 0 auto;
     display: block;
 }
 
+/* Plant item with active purchase widget */
+.plant-item.has-active-widget {
+    margin-bottom: 160px; /* Increased space for the taller purchase widget */
+}
+
+/* Allow widget interactions when widget is active */
+.plant-item.has-active-widget .plant-image-container {
+    pointer-events: none; /* Allow clicks to pass through to widget */
+}
+
+.plant-item.has-active-widget .species-name-banner,
+.plant-item.has-active-widget .image-selector {
+    pointer-events: auto; /* But keep navigation working */
+}
+
+/* Plant items that come after an active widget (push down) */
+.plant-item.push-down {
+    margin-top: 160px; /* Increased space for the taller purchase widget */
+}
+
 .plant-item:hover {
-    transform: translateY(-2px);
     box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
 }
 
@@ -777,6 +796,7 @@
     overflow: hidden;
     border-radius: 25px; /* Match terrain border radius */
     background: transparent;
+    z-index: 2; /* Above widget but below navigation elements */
 }
 
 .plant-image,
@@ -788,9 +808,370 @@
     border-radius: 0; /* Images inside container don't need border radius */
 }
 
-.plant-item:hover .plant-image,
-.plant-item:hover .species-image {
-    transform: scale(1.03);
+/* Image hover animations removed - only show purchase icon on hover */
+
+/* Cart button - positioned above layer controls */
+.cart-button {
+    position: fixed;
+    top: 60px; /* Above layer controls, below view cube */
+    right: 240px; /* To the left of control panel (which is at right: 10px) */
+    width: 40px; /* Smaller to fit just the truck */
+    height: 40px;
+    background: transparent; /* No background circle */
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.cart-button:hover {
+    transform: translateY(-2px);
+}
+
+.cart-icon {
+    width: 32px; /* Slightly larger for better visibility */
+    height: 32px;
+    background-image: url('../images/truck.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: relative;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); /* Add shadow for visibility */
+}
+
+.cart-counter {
+    position: absolute;
+    top: -2px; /* Adjusted to sit in truck bed area */
+    right: 15px; /* Moved left to be in the truck bed */
+    background: #072b2e; /* Match ecodash blue color */
+    color: white;
+    border-radius: 50%;
+    width: 18px; /* Slightly smaller to be proportional */
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    font-family: 'Nunito', sans-serif;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Add shadow for better visibility */
+}
+
+.cart-counter.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Cart popup - similar styling to purchase widget */
+.cart-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    background: #072b2e;
+    border: 2px solid #ffffff20;
+    border-radius: 25px;
+    padding: 30px;
+    z-index: 1500;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+}
+
+.cart-popup.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.cart-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+}
+
+.cart-title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.cart-close {
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    color: #072b2e;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-close:hover {
+    background: #f0f0f0;
+}
+
+.cart-items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 15px;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+}
+
+.cart-item-info {
+    flex: 1;
+}
+
+.cart-item-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.cart-item-quantity {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.cart-item-remove {
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.cart-item-remove:hover {
+    background: #ff6666;
+}
+
+.cart-empty {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    padding: 40px 20px;
+}
+
+/* Cart overlay */
+.cart-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1400;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.cart-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Purchase widget - seamless extension of plant item */
+.plant-purchase-widget {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0; /* Use right instead of fixed width to prevent overflow */
+    max-width: 360px;
+    background: #072b2e;
+    border: 1px solid #072b2e;
+    border-radius: 0 0 25px 25px;
+    border-top: none;
+    padding: 20px 20px 30px 20px; /* Extra bottom padding to extend height */
+    padding-top: 45px; /* Extra top padding to push content down below image */
+    min-height: 120px; /* Ensure minimum height for content */
+    z-index: 1; /* Above plant image container (2), but below species banner (5), and navigation (6) */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transform: translateY(-25px); /* Move up significantly to flow from behind plant image */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.plant-purchase-widget.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.purchase-widget-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    z-index: 4; /* Above widget (3) but below species banner (5) */
+}
+
+.purchase-widget-close {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    color: #072b2e;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 20;
+    pointer-events: auto; /* Ensure close button is clickable */
+}
+
+.purchase-widget-close:hover {
+    background: #f0f0f0;
+}
+
+.purchase-inventory-info {
+    color: white;
+    font-family: 'Nunito', sans-serif;
+}
+
+.inventory-available {
+    font-size: 14px;
+    margin-bottom: 2px;
+    opacity: 0.8;
+}
+
+.inventory-location {
+    font-size: 12px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.inventory-price {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+}
+
+.inventory-size {
+    font-size: 14px;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+.purchase-widget-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    z-index: 4; /* Above widget (3) but below species banner (5) */
+    position: relative;
+}
+
+.add-to-cart-btn {
+    background: white;
+    color: #072b2e;
+    border: none;
+    border-radius: 25px;
+    padding: 12px 24px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    pointer-events: auto; /* Ensure button is clickable */
+    position: relative;
+    z-index: 4;
+}
+
+.add-to-cart-btn:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+}
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.quantity-btn {
+    background: none;
+    border: none;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #072b2e;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    pointer-events: auto; /* Ensure buttons are clickable */
+    position: relative;
+    z-index: 4;
+}
+
+.quantity-btn:hover {
+    background: #f0f0f0;
+}
+
+.quantity-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.quantity-display {
+    min-width: 60px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #072b2e;
+    border-left: 1px solid #e0e0e0;
+    border-right: 1px solid #e0e0e0;
 }
 
 /* Plant name overlay - exact terrain styling */
@@ -831,6 +1212,74 @@
     display: block;
     font-weight: normal;
     line-height: 1.2;
+}
+
+/* Purchase hover icon - mirrors plant name corner styling */
+.plant-purchase-icon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 48px;
+    height: 48px;
+    background: white;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 25px;
+    border-bottom-left-radius: 25px;
+    border-bottom-right-radius: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+}
+
+.plant-item:hover .plant-purchase-icon {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.plant-purchase-icon:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.purchase-icon-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.purchase-plus {
+    position: absolute;
+    font-size: 20px;
+    font-weight: bold;
+    color: #072b2e;
+    z-index: 2;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.purchase-truck {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-image: url('../images/truck.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 2;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    filter: contrast(1.2);
 }
 
 /* Legacy support for existing structure */

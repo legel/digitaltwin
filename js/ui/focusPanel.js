@@ -257,11 +257,16 @@ class FocusPanel {
     }
     
     hide() {
+        // Clean up any active purchase widgets when focus panel closes
+        if (window.plantRecommendations && typeof window.plantRecommendations.onFocusPanelClose === 'function') {
+            window.plantRecommendations.onFocusPanelClose();
+        }
+
         // Only handle the panel visibility, let the animation system handle the rest
         this.panel.classList.remove('visible');
         this.isVisible = false;
         this.currentPA = null;
-        
+
         // If called directly (e.g., from close button), trigger the full animation
         if (!this.panel.classList.contains('animating-out') && window.clearPAConnection) {
             window.clearPAConnection();
@@ -780,6 +785,12 @@ class FocusPanel {
                         <img src="${this.getFallbackImageUrl()}"
                              alt="${plant.name} - No images available"
                              class="species-image plant-image">
+                        <div class="plant-purchase-icon" data-plant-name="${plant.name}" data-species-key="${plant.speciesKey}">
+                            <div class="purchase-icon-content">
+                                <span class="purchase-plus">+</span>
+                                <div class="purchase-truck"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -815,6 +826,13 @@ class FocusPanel {
                          data-species-key="${plant.speciesKey}"
                          data-photo-type="${plant.currentPhotoType}"
                          onerror="this.style.visibility='hidden'">
+
+                    <div class="plant-purchase-icon" data-plant-name="${plant.name}" data-species-key="${plant.speciesKey}">
+                        <div class="purchase-icon-content">
+                            <span class="purchase-plus">+</span>
+                            <div class="purchase-truck"></div>
+                        </div>
+                    </div>
 
                     ${plant.photoTypes.length > 1 ? `
                         <div class="image-selector">

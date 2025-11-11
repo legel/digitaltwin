@@ -14,6 +14,8 @@ class PlantRecommendationsPage {
         this.ontologyData = null;
         this.imageCache = new Map(); // Cache for image validation results
         this.navigationHandlers = null; // Store navigation event handlers
+        this.activePurchaseWidget = null; // Track current purchase widget
+        this.currentQuantity = 1; // Current quantity selection
     }
 
     /**
@@ -32,6 +34,9 @@ class PlantRecommendationsPage {
     displayContent(paData) {
         const content = document.querySelector('.focus-panel-content');
         if (!content) return;
+
+        // Close any existing purchase widget when loading new content
+        this.closePurchaseWidget();
 
         content.innerHTML = `
             <div class="plant-recommendations-content">
@@ -522,6 +527,12 @@ class PlantRecommendationsPage {
                              data-species-key="${plant.speciesKey}"
                              data-photo-type="${plant.currentPhotoType}"
                              onerror="this.style.visibility='hidden'">
+                        <div class="plant-purchase-icon" data-plant-name="${plant.name}" data-species-key="${plant.speciesKey}">
+                            <div class="purchase-icon-content">
+                                <span class="purchase-plus">+</span>
+                                <div class="purchase-truck"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1006,19 +1017,279 @@ class PlantRecommendationsPage {
      */
     attachPlantItemListeners() {
         const plantItems = document.querySelectorAll('.plant-item');
-        plantItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const plantName = item.dataset.plant;
-                this.onPlantSelected(plantName);
+
+        plantItems.forEach((item) => {
+            const plantName = item.dataset.plant;
+            const speciesKey = item.dataset.speciesKey;
+
+            item.addEventListener('click', (e) => {
+                // Check if navigation elements were clicked - don't show purchase widget
+                if (e.target.closest('.img-arrow') || e.target.closest('.indicator-wrapper')) {
+                    return; // Let navigation handle this
+                }
+
+                // Check if purchase widget elements were clicked - don't close/reopen widget
+                if (e.target.closest('.plant-purchase-widget')) {
+                    return; // Let widget handle its own events
+                }
+
+                // Check if the purchase icon was clicked
+                if (e.target.closest('.plant-purchase-icon')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const purchaseIcon = e.target.closest('.plant-purchase-icon');
+                    const plantName = purchaseIcon.dataset.plantName;
+                    const speciesKey = purchaseIcon.dataset.speciesKey;
+                    this.onPurchaseIconClicked(plantName, speciesKey);
+                    return;
+                }
+
+                // Plant item click (including image clicks) - show purchase widget
+                // Directly show widget for this plant (onPurchaseIconClicked will handle closing existing)
+                this.onPurchaseIconClicked(plantName, speciesKey);
             });
         });
     }
 
     /**
-     * Handle plant selection
+     * Handle plant selection (legacy method - now mostly handled by direct clicks)
      */
     onPlantSelected(plantName) {
-        console.log('Plant selected:', plantName);
+        console.log('Plant selected (legacy):', plantName);
+    }
+
+    /**
+     * Handle purchase icon click
+     */
+    onPurchaseIconClicked(plantName, speciesKey) {
+        // Find the plant item - try by species key first, then by plant name
+        let plantItem = document.querySelector(`[data-species-key="${speciesKey}"].plant-item`);
+        if (!plantItem) {
+            plantItem = document.querySelector(`[data-plant="${plantName}"].plant-item`);
+        }
+
+        if (!plantItem) {
+            console.error('Could not find plant item for:', plantName, speciesKey);
+            return;
+        }
+
+        // Check if this is the same plant that already has a widget
+        if (this.activePurchaseWidget &&
+            this.activePurchaseWidget.dataset.plant === plantName &&
+            this.activePurchaseWidget.dataset.speciesKey === speciesKey) {
+            return; // Same plant, don't recreate widget
+        }
+
+        // Close any existing purchase widget
+        this.closePurchaseWidget();
+
+        // Immediately create new widget since cleanup is now immediate
+        this.showPurchaseWidget(plantItem, plantName, speciesKey);
+    }
+
+    /**
+     * Create and show purchase widget below the selected plant
+     */
+    showPurchaseWidget(plantItem, plantName, speciesKey) {
+        // Generate mock inventory data (will be replaced with real data later)
+        const mockInventoryData = this.generateMockInventoryData(plantName);
+
+        const widgetHTML = `
+            <div class="plant-purchase-widget" data-plant="${plantName}" data-species-key="${speciesKey}">
+                <div class="purchase-widget-header">
+                    <button class="purchase-widget-close" aria-label="Close purchase options">×</button>
+                    <div class="purchase-inventory-info">
+                        <div class="inventory-available">${mockInventoryData.available} AVAILABLE</div>
+                        <div class="inventory-location">${mockInventoryData.location}</div>
+                        <div class="inventory-price">$${mockInventoryData.price}</div>
+                        <div class="inventory-size">${mockInventoryData.size}</div>
+                    </div>
+                </div>
+                <div class="purchase-widget-controls">
+                    <button class="add-to-cart-btn">Add to Cart</button>
+                    <div class="quantity-selector">
+                        <button class="quantity-btn quantity-minus" data-action="decrease">−</button>
+                        <div class="quantity-display">${this.currentQuantity}</div>
+                        <button class="quantity-btn quantity-plus" data-action="increase">+</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add widget to the plant item itself (not the image container to avoid overflow hidden)
+        plantItem.insertAdjacentHTML('beforeend', widgetHTML);
+
+        // Store reference to active widget
+        this.activePurchaseWidget = plantItem.querySelector('.plant-purchase-widget');
+
+        if (!this.activePurchaseWidget) {
+            console.error('Could not find inserted widget in DOM');
+            return;
+        }
+
+        // Add spacing classes to handle grid layout
+        this.updatePlantSpacing(plantItem, true);
+
+        // Show widget with animation
+        setTimeout(() => {
+            if (this.activePurchaseWidget) {
+                this.activePurchaseWidget.classList.add('visible');
+            }
+        }, 50);
+
+        // Attach event listeners
+        this.attachPurchaseWidgetListeners();
+    }
+
+    /**
+     * Generate mock inventory data (placeholder until real data is available)
+     */
+    generateMockInventoryData(plantName) {
+        // Generate consistent mock data based on plant name hash
+        const hash = this.simpleHash(plantName);
+        const available = 50 + (hash % 200); // 50-249 available
+        const basePrice = 15 + (hash % 85); // $15-99
+        const price = (basePrice + 0.99).toFixed(2); // Add .99 for realistic pricing
+
+        return {
+            available: available,
+            location: 'CHERRYLAKE, INC.',
+            price: price,
+            size: '15 GALLON 1.5 x 2.0 ft'
+        };
+    }
+
+    /**
+     * Simple hash function for consistent mock data
+     */
+    simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return Math.abs(hash);
+    }
+
+    /**
+     * Attach event listeners to purchase widget elements
+     */
+    attachPurchaseWidgetListeners() {
+        if (!this.activePurchaseWidget) return;
+
+        // Mark widget as having listeners attached to prevent duplicates
+        if (this.activePurchaseWidget.dataset.listenersAttached === 'true') {
+            return;
+        }
+        this.activePurchaseWidget.dataset.listenersAttached = 'true';
+
+        // Close button
+        const closeBtn = this.activePurchaseWidget.querySelector('.purchase-widget-close');
+        closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent event bubbling to plant item
+            this.closePurchaseWidget();
+        });
+
+        // Quantity buttons - use event delegation to prevent duplicate handlers
+        this.activePurchaseWidget.addEventListener('click', (e) => {
+            if (e.target.classList.contains('quantity-btn')) {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent event bubbling to plant item
+                const action = e.target.dataset.action;
+                this.updateQuantity(action);
+                return;
+            }
+
+            if (e.target.classList.contains('add-to-cart-btn')) {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent event bubbling to plant item
+                const plantName = this.activePurchaseWidget.dataset.plant;
+                const speciesKey = this.activePurchaseWidget.dataset.speciesKey;
+
+                // Add to cart via cart manager
+                if (window.cartManager) {
+                    window.cartManager.addToCart(plantName, speciesKey, this.currentQuantity);
+                    // Close the purchase widget after adding to cart
+                    this.closePurchaseWidget();
+                } else {
+                    console.error('Cart manager not available');
+                }
+                return;
+            }
+        });
+    }
+
+    /**
+     * Update quantity with +/- buttons (1-20 range)
+     */
+    updateQuantity(action) {
+        if (!this.activePurchaseWidget) return;
+
+        if (action === 'increase' && this.currentQuantity < 20) {
+            this.currentQuantity++;
+        } else if (action === 'decrease' && this.currentQuantity > 1) {
+            this.currentQuantity--;
+        }
+
+        // Update display
+        const quantityDisplay = this.activePurchaseWidget.querySelector('.quantity-display');
+        quantityDisplay.textContent = this.currentQuantity;
+
+        // Update button states
+        const minusBtn = this.activePurchaseWidget.querySelector('.quantity-minus');
+        const plusBtn = this.activePurchaseWidget.querySelector('.quantity-plus');
+
+        minusBtn.disabled = this.currentQuantity <= 1;
+        plusBtn.disabled = this.currentQuantity >= 20;
+    }
+
+    /**
+     * Close the active purchase widget
+     */
+    closePurchaseWidget() {
+        if (this.activePurchaseWidget) {
+            const plantItem = this.activePurchaseWidget.parentElement;
+
+            // Immediately remove from DOM to prevent event conflicts
+            this.activePurchaseWidget.remove();
+            this.activePurchaseWidget = null;
+            this.currentQuantity = 1; // Reset quantity
+
+            // Remove spacing classes
+            this.updatePlantSpacing(plantItem, false);
+        }
+    }
+
+    /**
+     * Update plant spacing to accommodate active widget
+     */
+    updatePlantSpacing(activeItem, isShowing) {
+        const allPlantItems = document.querySelectorAll('.plant-item');
+
+        // Clear all spacing classes first
+        allPlantItems.forEach(item => {
+            item.classList.remove('has-active-widget', 'push-down');
+        });
+
+        if (isShowing && activeItem) {
+            // Mark the active item
+            activeItem.classList.add('has-active-widget');
+
+            // Find the grid column of the active item (0 or 1 for 2-column grid)
+            const allItems = Array.from(allPlantItems);
+            const activeIndex = allItems.indexOf(activeItem);
+            const activeColumn = activeIndex % 2; // 0 for left, 1 for right
+
+            // Find items in the next row that need to be pushed down
+            const nextRowStart = Math.ceil((activeIndex + 1) / 2) * 2;
+
+            // Push down items starting from the next row
+            for (let i = nextRowStart; i < allItems.length; i++) {
+                allItems[i].classList.add('push-down');
+            }
+        }
     }
 
     /**
@@ -1063,6 +1334,13 @@ class PlantRecommendationsPage {
      */
     getTotalCount() {
         return this.currentPlants.length;
+    }
+
+    /**
+     * Handle focus panel closing - clean up any active purchase widgets
+     */
+    onFocusPanelClose() {
+        this.closePurchaseWidget();
     }
 }
 
