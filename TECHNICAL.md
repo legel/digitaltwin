@@ -431,12 +431,13 @@ class GaussianSplatManager {
 ```
 
 #### Key Technical Features
-- **Tileset Loading**: Uses `Cesium.Cesium3DTileset.fromUrl()` method for reliable loading
-- **File Structure**: Expects `tileset.json` + `content.glb` in `/data/[site-id]/` directory
-- **Extension Support**: Handles `KHR_spz_gaussian_splats_compression` for .spz files
-- **Loading Indicators**: Static canvas-based visual feedback during load
-- **Error Recovery**: Comprehensive error handling with emergency cleanup
-- **Auto-initialization**: Checks for splat data and loads automatically per site
+- **SuperSplat Integration**: Uses SuperSplat iframe for native .ply file rendering
+- **File Structure**: Uses `.ply` files served via DeepEarth bucket proxy
+- **DeepEarth Storage**: Files stored in `gs://deepearth/datasets/terrain3d/<site-id>/splat.ply`
+- **CORS Proxy**: Server-side proxy handles CORS issues for large splat files
+- **Loading Indicators**: Visual feedback during SuperSplat initialization
+- **Error Recovery**: Comprehensive error handling with accessibility checks
+- **Auto-initialization**: Loads splat data automatically per site via SuperSplat
 
 #### Polygon Visibility Enhancements
 ```javascript

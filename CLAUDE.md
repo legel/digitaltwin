@@ -155,17 +155,15 @@ A comprehensive system for loading and managing 3D Gaussian Splat digital twins 
 - **Debug Controls**: Development button for removing splats when testing
 
 #### Technical Details
-- **File Structure**: Expects `tileset.json` locally, `content.glb` served via Google Cloud Storage
-- **Performance Optimization**: Large GLB files (44MB+) automatically redirected to GCS CDN for fast delivery
-- **CORS Configuration**: GCS bucket configured with proper Access-Control-Allow-Origin headers
-- **SuperSplat Integration**: Uses SuperSplat's native Gaussian splat rendering system
-- **Extension Support**: Handles `KHR_spz_gaussian_splats_compression` extension
+- **SuperSplat Integration**: Uses SuperSplat's native Gaussian splat rendering system via .ply files
+- **Performance Optimization**: Large splat files (120MB+) served via local proxy with proper CORS headers
+- **DeepEarth Integration**: Splat files stored in DeepEarth bucket and proxied through local server
 - **Camera Positioning**: Automatic optimal viewpoint when splat loads
 
-#### Google Cloud Storage Integration
-- **server.py**: Redirects `/data/<site-id>/content.glb` requests to `gs://terrain-3d-assets/<site-id>/content.glb`
-- **CORS Policy**: Bucket configured to allow GET requests from `https://testing.ecodash.ai`
-- **Fallback Completion**: Smart loading completion handles stuck tile requests gracefully
+#### DeepEarth Storage Integration
+- **server.py**: Proxies `/data/<site-id>/splat.ply` requests to DeepEarth bucket with CORS headers
+- **Proxy Solution**: Local server streams files from `gs://deepearth/datasets/terrain3d/<site-id>/splat.ply`
+- **CORS Handling**: Server-side proxy provides proper Access-Control-Allow-Origin headers
 
 #### Polygon Overlay System
 - **Shader-Based Rendering**: Custom fragment shaders render polygons above splat data
