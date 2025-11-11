@@ -1153,7 +1153,7 @@ class PlantRecommendationsPage {
 
         return {
             available: available,
-            location: 'CHERRYLAKE, INC.',
+            location: 'EXAMPLE, INC.',
             price: price,
             size: '15 GALLON 1.5 x 2.0 ft'
         };
