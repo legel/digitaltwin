@@ -278,6 +278,20 @@ class SuperSplatBridge {
 
                 // After site navigation, render GeoJSON polygons
                 setTimeout(() => {
+                    // Ensure layerState is initialized before polygon render
+                    if (!window.layerState) {
+                        window.layerState = {
+                            showPlantableAreas: true,
+                            showNonPlantableAreas: false, // Non-plantable areas hidden by default
+                            selectedGroup: null,
+                            selectedGroupType: null,
+                            selectedPolygons: [],
+                            npaCategories: new Map(),
+                            paCategories: new Map(),
+                            categorizedPAs: new Map()
+                        };
+                    }
+
                     if (window.currentSiteData && this.isInitialized) {
                         this.renderGeoJSONPolygons(window.currentSiteData);
                     }
@@ -294,6 +308,20 @@ class SuperSplatBridge {
     performInitialSync() {
         // Wait for loading screen to complete before rendering GeoJSON polygons
         this.waitForLoadingCompletion().then(() => {
+            // Ensure layerState is initialized before first polygon render
+            if (!window.layerState) {
+                window.layerState = {
+                    showPlantableAreas: true,
+                    showNonPlantableAreas: false, // Non-plantable areas hidden by default
+                    selectedGroup: null,
+                    selectedGroupType: null,
+                    selectedPolygons: [],
+                    npaCategories: new Map(),
+                    paCategories: new Map(),
+                    categorizedPAs: new Map()
+                };
+            }
+
             if (window.currentSiteData) {
                 this.renderGeoJSONPolygons(window.currentSiteData);
             } else {
@@ -338,6 +366,7 @@ class SuperSplatBridge {
             console.error('❌ No GeoJSON data provided');
             return;
         }
+
 
         // Generate cache key based on GeoJSON content
         const cacheKey = this.generateGeoJSONCacheKey(geoJsonData);
@@ -395,7 +424,7 @@ class SuperSplatBridge {
                     // Check visibility state for this polygon type
                     const layerState = window.layerState || {};
                     const shouldShowPlantable = layerState.showPlantableAreas !== false;
-                    const shouldShowNonPlantable = layerState.showNonPlantableAreas !== false;
+                    const shouldShowNonPlantable = layerState.showNonPlantableAreas === true;
 
                     // Visibility logic implemented - polygons respect layer state
 
@@ -404,19 +433,6 @@ class SuperSplatBridge {
 
                     // Transform coordinates to SuperSplat world space
                     const vertices = this.transformPolygonCoordinates(feature, splatBounds, geoBounds);
-
-                    // Debug: Log coordinate transformation and polygon complexity
-                    if (polygonsRendered < 3) { // Only log first 3 for readability
-
-                        // Calculate bounds of transformed vertices for debugging
-                        const bounds = {
-                            minX: Math.min(...vertices.map(v => v.x)),
-                            maxX: Math.max(...vertices.map(v => v.x)),
-                            minZ: Math.min(...vertices.map(v => v.z)),
-                            maxZ: Math.max(...vertices.map(v => v.z))
-                        };
-
-                    }
 
                     if (vertices.length >= 3) {
                         // Style based on PA/NPA classification
@@ -436,11 +452,9 @@ class SuperSplatBridge {
                             style.outlineColor, // outlineColor
                             style.outlineThickness, // outlineThickness
                             name, // name
-                            group // group
+                            group, // group
+                            shouldBeVisible // visible
                         );
-
-                        // Set initial visibility based on layer state
-                        polygon.visible = shouldBeVisible;
 
                         // Count this as a rendered polygon
                         polygonsRendered++;
@@ -465,17 +479,10 @@ class SuperSplatBridge {
                 });
             }
 
-            // Sync window.layerState with actual polygon visibility defaults
-            // Both PA and NPA polygons default to visible in SuperSplat (using !== false logic means both show unless explicitly hidden)
-            // Since polygons are being rendered for both types, set both to visible
+            // Sync window.layerState with polygon visibility defaults
             window.layerState.showPlantableAreas = true;
-            window.layerState.showNonPlantableAreas = true;
+            window.layerState.showNonPlantableAreas = false;
 
-            // Sync polygon visibility with layer state via polygonManager
-            if (this.polygonManager) {
-                this.polygonManager.setGroupVisibility('plantable-areas', window.layerState.showPlantableAreas);
-                this.polygonManager.setGroupVisibility('non-plantable-areas', window.layerState.showNonPlantableAreas);
-            }
 
             // Update visibility button icons to match actual polygon visibility
             if (window.updateVisibilityButtonIcons) {
@@ -1178,7 +1185,7 @@ class SuperSplatBridge {
 
             // Update polygon manager group visibility
             const plantableVisible = layerState.showPlantableAreas !== false;
-            const nonPlantableVisible = layerState.showNonPlantableAreas !== false;
+            const nonPlantableVisible = layerState.showNonPlantableAreas === true;
 
             this.polygonManager.setGroupVisibility('plantable-areas', plantableVisible);
             this.polygonManager.setGroupVisibility('non-plantable-areas', nonPlantableVisible);

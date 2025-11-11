@@ -205,7 +205,7 @@ async function initializeSupersplatSiteData() {
     // Initialize layer state
     window.layerState = {
         showPlantableAreas: true,
-        showNonPlantableAreas: true,
+        showNonPlantableAreas: false, // Non-plantable areas hidden by default
 
         // Unified selection structure
         selectedGroup: null,        // PA name, NPA category, or metric name ('soilMoisture', 'pH', etc.)

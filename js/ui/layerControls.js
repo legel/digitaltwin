@@ -5,7 +5,7 @@
 // Layer state management - condensed structure
 window.layerState = {
     showPlantableAreas: true,
-    showNonPlantableAreas: true,
+    showNonPlantableAreas: false, // Non-plantable areas hidden by default
 
     // Unified selection structure
     selectedGroup: null,        // PA name, NPA category, or metric name ('soilMoisture', 'pH', etc.)
@@ -502,7 +502,7 @@ function initializeLayerControls() {
     if (!window.layerState) {
         window.layerState = {
             showPlantableAreas: true,
-            showNonPlantableAreas: true, // Match SuperSplat default: both PA and NPA visible
+            showNonPlantableAreas: false, // Non-plantable areas hidden by default
 
             // Unified selection structure
             selectedGroup: null,
@@ -1428,7 +1428,7 @@ function initializeLayerControlsForSite(geoJsonFormat) {
         // Reset layer state
         window.layerState = {
             showPlantableAreas: true,
-            showNonPlantableAreas: true,
+            showNonPlantableAreas: false, // Non-plantable areas hidden by default
 
             // Unified selection structure
             selectedGroup: null,
