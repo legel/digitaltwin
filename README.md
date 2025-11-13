@@ -7,22 +7,16 @@
 
 This is a 3D visualization platform for landscape designers working with photorealistic digital twins. It integrates 3D Gaussian Splatting with ecological modeling to support native plant-based landscape design decisions.
 
+![3D Gaussian Splat Digital Twin](docs/digital_twin.png)
 
 
 ## 🦋 Platform Overview
-
-
 
 ### Photorealistic Precision
 
 * 3D Gaussian Splatting uses advanced neural network reconstruction for lifelike rendering
 * Geospatially accurate capture from drone and ground surveys
 * Minimal visual difference between digital interface and reality
-
-
-
-![3D Gaussian Splat Digital Twin](docs/Digital%20Twin.png)
-
 
 
 ### Landscape Design Tool
@@ -213,5 +207,6 @@ Copyright Ecological Intelligence, Inc.
 - **[SuperSplat](https://github.com/playcanvas/supersplat)**: Advanced 3D Gaussian Splat rendering and visualization
 - **Native Plant Community**: Growers, researchers, and designers preserving genetic heritage
 - **Landscape Professionals**: Practitioners shaping millions of acres annually for ecological function
+
 
 
