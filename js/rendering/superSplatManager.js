@@ -11,6 +11,8 @@ class SuperSplatManager {
         // Track camera state for smooth transitions
         this.lastKnownCameraDistance = null;
         this.lastKnownFocalPoint = null;
+        this.progressiveLoader = null;
+        this.currentBlobUrl = null;
     }
 
     /**
@@ -19,35 +21,178 @@ class SuperSplatManager {
     initialize() {
         this.superSplatContainer = document.getElementById('superSplatContainer');
 
+        // Initialize progressive loader
+        if (window.ProgressivePlyLoader) {
+            this.progressiveLoader = new window.ProgressivePlyLoader();
+            this.progressiveLoader.setProgressCallback((loadedBytes, totalBytes, partsLoaded, totalParts) => {
+                const percentage = totalBytes > 0 ? (loadedBytes / totalBytes) * 100 : 0;
+                if (window.independentLoadingState) {
+                    window.independentLoadingState.currentProgress = percentage;
+                    window.independentLoadingState.currentMessage = `Downloading: Part ${partsLoaded}/${totalParts}`;
+                    const progressBar = document.getElementById("loadingProgress");
+                    const loadingMessage = document.getElementById("loadingMessage");
+                    const loadingPercentage = document.getElementById("loadingPercentage");
+                    if (progressBar) progressBar.style.transform = `scaleX(${percentage / 100})`;
+                    if (loadingMessage) loadingMessage.textContent = `Downloading: Part ${partsLoaded}/${totalParts}`;
+                    if (loadingPercentage) loadingPercentage.textContent = `${Math.floor(percentage)}%`;
+                }
+            });
+            console.log("✅ Progressive PLY Loader initialized");
+        } else {
+            console.warn("⚠️ ProgressivePlyLoader not available");
+        }
+
     }
 
     /**
      * Loads SuperSplat editor in an iframe with the current site's splat file
      */
-    loadSuperSplatEditor(siteId) {
+    async loadSuperSplatEditor(siteId) {
         if (!this.superSplatContainer) {
             console.error('SuperSplat container not found');
             return;
         }
 
-        // Construct URL for SuperSplat with auto-load parameter using local proxy
-        const splatUrl = `/data/${siteId}/splat.ply`;
+        this.currentSiteId = siteId;
 
-        // Use the built SuperSplat editor
-        const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
+        try {
+            if (this.progressiveLoader) {
+                console.log(`🚀 Loading splat progressively for: ${siteId}`);
 
-        // Test if PLY is accessible
-        fetch(splatUrl, { method: 'HEAD' })
-            .then(response => {
-                if (!response.ok) {
-                    console.error('PLY file not accessible:', response.status, response.statusText);
+                this.updateProgress(5, 'Initializing manifest...');
+
+                this.progressiveLoader.setProgressCallback((loaded, total, partsLoaded, totalParts) => {
+                    const downloadProgress = (partsLoaded / totalParts);
+                    const progressPercent = 10 + Math.round(downloadProgress * 60);
+                    this.updateProgress(progressPercent);
+                });
+
+                try {
+                    const plyFile = await this.progressiveLoader.loadPlyFiles(siteId);
+
+                    this.updateProgress(70, 'Assembling file...');
+
+                    await this.countUpProgressWithLoading(70, 99, 1000, plyFile);
+
+                } catch (downloadError) {
+                    this.showError(`Download failed: ${downloadError.message}`);
+                    throw downloadError;
                 }
+            } else {
+                const splatUrl = `https://storage.googleapis.com/deepearth/datasets/terrain3d/${siteId}/splat.ply`;
+                this.loadSuperSplatWithUrl(splatUrl);
+            }
+        } catch (error) {
+            console.error('❌ Progressive loading failed:', error);
+            this.showError(`Loading failed: ${error.message}`);
+        }
+    }
+
+    updateProgress(percent, message = null) {
+        if (window.independentLoadingState) {
+            window.independentLoadingState.currentProgress = percent;
+        }
+
+        const progressBar = document.getElementById('loadingProgress');
+        const loadingPercentage = document.getElementById('loadingPercentage');
+
+        if (progressBar) {
+            progressBar.style.transform = `scaleX(${percent / 100})`;
+        }
+        if (loadingPercentage) {
+            loadingPercentage.textContent = `${Math.round(percent)}%`;
+        }
+    }
+
+    showError(message) {
+        const loadingMessage = document.getElementById('loadingMessage');
+        const loadingPercentage = document.getElementById('loadingPercentage');
+
+        if (loadingMessage) {
+            loadingMessage.textContent = message;
+            loadingMessage.style.color = '#ff4444';
+        }
+        if (loadingPercentage) {
+            loadingPercentage.style.color = '#ff4444';
+        }
+    }
+
+    async countUpProgress(startPercent, endPercent, msPerPercent) {
+        for (let i = startPercent; i <= endPercent; i++) {
+            this.updateProgress(i);
+            await new Promise(resolve => setTimeout(resolve, msPerPercent));
+        }
+    }
+
+    async countUpProgressWithLoading(startPercent, endPercent, msPerPercent, plyFile) {
+        let loadingComplete = false;
+        let timeoutOccurred = false;
+        let currentPercent = startPercent;
+
+        const timeoutDuration = 120000;
+
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                if (!loadingComplete) {
+                    timeoutOccurred = true;
+                    reject(new Error('Gaussian Splat loading timeout (2 minutes exceeded)'));
+                }
+            }, timeoutDuration);
+        });
+
+        const loadingPromise = this.loadSuperSplatWithFile(plyFile)
+            .then(() => {
+                loadingComplete = true;
             })
-            .catch(error => {
-                console.error('Failed to check PLY accessibility:', error);
+            .catch((error) => {
+                loadingComplete = true;
+                throw error;
             });
 
-        // Create iframe for SuperSplat
+        const countingPromise = (async () => {
+            while (currentPercent < endPercent && !loadingComplete && !timeoutOccurred) {
+                await new Promise(resolve => setTimeout(resolve, msPerPercent));
+                currentPercent++;
+                this.updateProgress(currentPercent);
+            }
+
+            while (!loadingComplete && !timeoutOccurred) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        })();
+
+        try {
+            await Promise.race([
+                Promise.all([loadingPromise, countingPromise]),
+                timeoutPromise
+            ]);
+        } catch (error) {
+            if (timeoutOccurred) {
+                this.showError('Gaussian Splat loading timeout (2 minutes exceeded)');
+            }
+            throw error;
+        }
+    }
+
+    startExponentialProgress(startPercent, maxPercent) {
+        let currentPercent = startPercent;
+        const decayRate = 0.92;
+
+        return setInterval(() => {
+            const remaining = maxPercent - currentPercent;
+            const increment = remaining * (1 - decayRate);
+            currentPercent += increment;
+
+            if (currentPercent < maxPercent) {
+                this.updateProgress(currentPercent);
+            }
+        }, 200);
+    }
+
+    loadSuperSplatWithUrl(splatUrl) {
+        const editorUrl = `/supersplat/index.html?load=${encodeURIComponent(splatUrl)}`;
+        console.log(`📥 Loading SuperSplat with URL`);
+
         this.superSplatIframe = document.createElement('iframe');
         this.superSplatIframe.src = editorUrl;
         this.superSplatIframe.style.width = '100%';
@@ -57,19 +202,13 @@ class SuperSplatManager {
         this.superSplatIframe.style.top = '0';
         this.superSplatIframe.style.left = '0';
 
-        // Add error handler for iframe loading issues
         this.superSplatIframe.onerror = () => {
             console.error('Failed to load SuperSplat editor');
         };
-        
-        // Add loading handler
-        this.superSplatIframe.onload = () => {
-            // Set initial view
-            setTimeout(() => {
-                this.setInitialSuperSplatView();
-            }, 2000);
 
-            // Initialize SuperSplat Bridge after iframe loads
+        this.superSplatIframe.onload = () => {
+            console.log('✅ SuperSplat iframe loaded');
+            setTimeout(() => this.setInitialSuperSplatView(), 2000);
             setTimeout(() => {
                 if (window.initializeSuperSplatBridge) {
                     window.initializeSuperSplatBridge();
@@ -77,13 +216,94 @@ class SuperSplatManager {
             }, 2500);
         };
 
-        this.superSplatIframe.onerror = (error) => {
-            console.error('Failed to load SuperSplat editor:', error);
-        };
-
-        // Clear container and add iframe
         this.superSplatContainer.innerHTML = '';
         this.superSplatContainer.appendChild(this.superSplatIframe);
+    }
+
+    async loadSuperSplatWithFile(plyFile) {
+        console.log(`📥 Loading SuperSplat with single PLY file: ${(plyFile.size / 1024 / 1024).toFixed(2)} MB`);
+
+        const editorUrl = `/supersplat/index.html`;
+
+        this.superSplatIframe = document.createElement('iframe');
+        this.superSplatIframe.src = editorUrl;
+        this.superSplatIframe.style.width = '100%';
+        this.superSplatIframe.style.height = '100%';
+        this.superSplatIframe.style.border = 'none';
+        this.superSplatIframe.style.position = 'absolute';
+        this.superSplatIframe.style.top = '0';
+        this.superSplatIframe.style.left = '0';
+
+        this.superSplatIframe.onerror = () => {
+            console.error('Failed to load SuperSplat editor');
+            this.showError('Failed to load SuperSplat editor');
+        };
+
+        return new Promise((resolve, reject) => {
+            this.superSplatIframe.onload = async () => {
+                console.log('✅ SuperSplat iframe loaded');
+
+                const iframeWindow = this.superSplatIframe.contentWindow;
+                const iframeDocument = iframeWindow.document;
+
+                const waitForScene = async () => {
+                    for (let i = 0; i < 100; i++) {
+                        if (iframeWindow.scene && iframeWindow.scene.assetLoader) {
+                            return iframeWindow.scene;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                    return null;
+                };
+
+                console.log('⏳ Waiting for SuperSplat scene...');
+                const scene = await waitForScene();
+
+                if (scene) {
+                    try {
+                        console.log(`🚀 Loading PLY file into SuperSplat...`);
+
+                        const model = await scene.assetLoader.loadModel({
+                            contents: plyFile,
+                            filename: plyFile.name,
+                            animationFrame: false
+                        });
+
+                        scene.add(model);
+                        console.log(`✅ PLY loaded successfully into scene`);
+
+                        this.updateProgress(100);
+                        setTimeout(() => {
+                            if (window.independentLoadingState) {
+                                window.independentLoadingState.complete();
+                            }
+                        }, 500);
+
+                        resolve();
+                    } catch (error) {
+                        this.showError(`SuperSplat loading error: ${error.message}`);
+                        console.error('❌ Failed to load PLY into SuperSplat:', error);
+                        reject(error);
+                    }
+                } else {
+                    this.showError('SuperSplat scene initialization failed');
+                    console.error('❌ SuperSplat scene not available after 10 seconds');
+                    reject(new Error('Scene initialization failed'));
+                }
+
+                setTimeout(() => this.setInitialSuperSplatView(), 2000);
+                setTimeout(() => {
+                    if (window.initializeSuperSplatBridge) {
+                        window.initializeSuperSplatBridge();
+                    }
+                }, 2500);
+
+                resolve();
+            };
+
+            this.superSplatContainer.innerHTML = '';
+            this.superSplatContainer.appendChild(this.superSplatIframe);
+        });
     }
 
     /**
