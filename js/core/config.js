@@ -51,14 +51,7 @@
             }
             return `/api/${endpoint}`;
         },
-        
-        // Google Cloud Storage base URL (always remote)
-        gcsBaseUrl: 'https://storage.googleapis.com/terrain-3d-assets',
-        
-        // Get GCS URL for a site
-        getGcsUrl: function(siteId, file) {
-            return `${this.gcsBaseUrl}/${siteId}/${file}`;
-        }
+
     };
     
     // Log configuration on load

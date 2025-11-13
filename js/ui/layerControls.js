@@ -3,20 +3,9 @@
  */
 
 // Layer state management - condensed structure
-window.layerState = {
-    showPlantableAreas: true,
-    showNonPlantableAreas: false, // Non-plantable areas hidden by default
-
-    // Unified selection structure
-    selectedGroup: null,        // PA name, NPA category, or metric name ('soilMoisture', 'pH', etc.)
-    selectedGroupType: null,    // 'PA', 'NPA', or 'METRIC'
-    selectedPolygons: [],       // Array of polygon names for current selection
-
-    // Categorization data
-    npaCategories: new Map(), // Map of NPA category name to metadata
-    paCategories: new Map(), // Map of PA name to {number, category}
-    categorizedPAs: new Map() // Map of category -> array of PAs
-};
+// Layer state management - visibility defaults set by siteDataManager
+// Full layerState initialized by siteDataManager.initializeDefaultState()
+window.layerState = window.layerState || {};
 
 // Toggle tracking variables for detecting re-clicks on radio buttons
 window.uiToggleState = {
@@ -498,23 +487,7 @@ function initializeLayerControls() {
     }
     layerControls.dataset.initialized = 'true';
 
-    // Initialize layer state if not already initialized
-    if (!window.layerState) {
-        window.layerState = {
-            showPlantableAreas: true,
-            showNonPlantableAreas: false, // Non-plantable areas hidden by default
-
-            // Unified selection structure
-            selectedGroup: null,
-            selectedGroupType: null,
-            selectedPolygons: [],
-
-            // Categorization data
-            npaCategories: new Map(),
-            paCategories: new Map(),
-            categorizedPAs: new Map()
-        };
-    }
+    // Layer state initialized by siteDataManager - no need to duplicate defaults here
 
     // Set up controls and initialize state after a brief delay to ensure DOM is ready
     setTimeout(async () => {
@@ -578,13 +551,15 @@ function initializeLayerControls() {
         // Set up visibility toggle buttons AFTER cloning to ensure handlers aren't lost
         setupVisibilityToggleButtons();
 
-        // Finally, set initial state for plantable areas
+        // Finally, set initial UI state for plantable areas based on defaults
         const plantableToggle = document.getElementById('plantableAreasToggle');
         const plantableSubOptions = document.getElementById('plantableSubOptions');
         if (plantableToggle && plantableSubOptions) {
-            plantableToggle.classList.add('expanded');
-            plantableSubOptions.style.display = 'block';
-            window.layerState.showPlantableAreas = true;
+            // Only expand if plantable areas are visible by default
+            if (window.layerState.showPlantableAreas) {
+                plantableToggle.classList.add('expanded');
+                plantableSubOptions.style.display = 'block';
+            }
             // Clear all polygon selections for "All" mode
             clearAllPolygonSelections();
             
@@ -1425,21 +1400,22 @@ function initializeLayerControlsForSite(geoJsonFormat) {
         }
     } else {
         layerControls.style.display = 'none';
-        // Reset layer state
-        window.layerState = {
-            showPlantableAreas: true,
-            showNonPlantableAreas: false, // Non-plantable areas hidden by default
-
-            // Unified selection structure
-            selectedGroup: null,
-            selectedGroupType: null,
-            selectedPolygons: [],
-
-            // Categorization data
-            npaCategories: new Map(),
-            paCategories: new Map(),
-            categorizedPAs: new Map()
-        };
+        // Reset layer state via siteDataManager
+        if (window.siteDataManager && window.siteDataManager.initializeDefaultState) {
+            window.siteDataManager.initializeDefaultState();
+        } else {
+            // Fallback if siteDataManager not available
+            window.layerState = {
+                showPlantableAreas: true,
+                showNonPlantableAreas: false,
+                selectedGroup: null,
+                selectedGroupType: null,
+                selectedPolygons: [],
+                npaCategories: new Map(),
+                paCategories: new Map(),
+                categorizedPAs: new Map()
+            };
+        }
     }
 }
 

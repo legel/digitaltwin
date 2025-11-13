@@ -202,10 +202,10 @@ async function initializeSupersplatSiteData() {
     // Store the site data globally
     window.currentSiteData = defaultSite.geoJson;
 
-    // Initialize layer state
+    // Initialize layer state - SINGLE SOURCE OF TRUTH FOR VISIBILITY DEFAULTS
     window.layerState = {
-        showPlantableAreas: true,
-        showNonPlantableAreas: false, // Non-plantable areas hidden by default
+        showPlantableAreas: true,        // PA visible by default
+        showNonPlantableAreas: false,    // NPA hidden by default
 
         // Unified selection structure
         selectedGroup: null,        // PA name, NPA category, or metric name ('soilMoisture', 'pH', etc.)
