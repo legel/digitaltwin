@@ -1,0 +1,509 @@
+{
+  "site_id": "scott-boyd-residence",
+  "total_parts": 100,
+  "total_size": 126564033,
+  "chunk_size": 1265640,
+  "base_url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks",
+  "parts": [
+    {
+      "index": 0,
+      "filename": "chunk_000.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_000.bin"
+    },
+    {
+      "index": 1,
+      "filename": "chunk_001.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_001.bin"
+    },
+    {
+      "index": 2,
+      "filename": "chunk_002.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_002.bin"
+    },
+    {
+      "index": 3,
+      "filename": "chunk_003.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_003.bin"
+    },
+    {
+      "index": 4,
+      "filename": "chunk_004.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_004.bin"
+    },
+    {
+      "index": 5,
+      "filename": "chunk_005.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_005.bin"
+    },
+    {
+      "index": 6,
+      "filename": "chunk_006.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_006.bin"
+    },
+    {
+      "index": 7,
+      "filename": "chunk_007.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_007.bin"
+    },
+    {
+      "index": 8,
+      "filename": "chunk_008.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_008.bin"
+    },
+    {
+      "index": 9,
+      "filename": "chunk_009.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_009.bin"
+    },
+    {
+      "index": 10,
+      "filename": "chunk_010.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_010.bin"
+    },
+    {
+      "index": 11,
+      "filename": "chunk_011.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_011.bin"
+    },
+    {
+      "index": 12,
+      "filename": "chunk_012.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_012.bin"
+    },
+    {
+      "index": 13,
+      "filename": "chunk_013.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_013.bin"
+    },
+    {
+      "index": 14,
+      "filename": "chunk_014.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_014.bin"
+    },
+    {
+      "index": 15,
+      "filename": "chunk_015.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_015.bin"
+    },
+    {
+      "index": 16,
+      "filename": "chunk_016.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_016.bin"
+    },
+    {
+      "index": 17,
+      "filename": "chunk_017.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_017.bin"
+    },
+    {
+      "index": 18,
+      "filename": "chunk_018.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_018.bin"
+    },
+    {
+      "index": 19,
+      "filename": "chunk_019.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_019.bin"
+    },
+    {
+      "index": 20,
+      "filename": "chunk_020.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_020.bin"
+    },
+    {
+      "index": 21,
+      "filename": "chunk_021.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_021.bin"
+    },
+    {
+      "index": 22,
+      "filename": "chunk_022.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_022.bin"
+    },
+    {
+      "index": 23,
+      "filename": "chunk_023.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_023.bin"
+    },
+    {
+      "index": 24,
+      "filename": "chunk_024.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_024.bin"
+    },
+    {
+      "index": 25,
+      "filename": "chunk_025.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_025.bin"
+    },
+    {
+      "index": 26,
+      "filename": "chunk_026.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_026.bin"
+    },
+    {
+      "index": 27,
+      "filename": "chunk_027.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_027.bin"
+    },
+    {
+      "index": 28,
+      "filename": "chunk_028.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_028.bin"
+    },
+    {
+      "index": 29,
+      "filename": "chunk_029.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_029.bin"
+    },
+    {
+      "index": 30,
+      "filename": "chunk_030.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_030.bin"
+    },
+    {
+      "index": 31,
+      "filename": "chunk_031.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_031.bin"
+    },
+    {
+      "index": 32,
+      "filename": "chunk_032.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_032.bin"
+    },
+    {
+      "index": 33,
+      "filename": "chunk_033.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_033.bin"
+    },
+    {
+      "index": 34,
+      "filename": "chunk_034.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_034.bin"
+    },
+    {
+      "index": 35,
+      "filename": "chunk_035.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_035.bin"
+    },
+    {
+      "index": 36,
+      "filename": "chunk_036.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_036.bin"
+    },
+    {
+      "index": 37,
+      "filename": "chunk_037.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_037.bin"
+    },
+    {
+      "index": 38,
+      "filename": "chunk_038.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_038.bin"
+    },
+    {
+      "index": 39,
+      "filename": "chunk_039.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_039.bin"
+    },
+    {
+      "index": 40,
+      "filename": "chunk_040.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_040.bin"
+    },
+    {
+      "index": 41,
+      "filename": "chunk_041.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_041.bin"
+    },
+    {
+      "index": 42,
+      "filename": "chunk_042.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_042.bin"
+    },
+    {
+      "index": 43,
+      "filename": "chunk_043.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_043.bin"
+    },
+    {
+      "index": 44,
+      "filename": "chunk_044.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_044.bin"
+    },
+    {
+      "index": 45,
+      "filename": "chunk_045.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_045.bin"
+    },
+    {
+      "index": 46,
+      "filename": "chunk_046.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_046.bin"
+    },
+    {
+      "index": 47,
+      "filename": "chunk_047.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_047.bin"
+    },
+    {
+      "index": 48,
+      "filename": "chunk_048.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_048.bin"
+    },
+    {
+      "index": 49,
+      "filename": "chunk_049.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_049.bin"
+    },
+    {
+      "index": 50,
+      "filename": "chunk_050.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_050.bin"
+    },
+    {
+      "index": 51,
+      "filename": "chunk_051.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_051.bin"
+    },
+    {
+      "index": 52,
+      "filename": "chunk_052.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_052.bin"
+    },
+    {
+      "index": 53,
+      "filename": "chunk_053.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_053.bin"
+    },
+    {
+      "index": 54,
+      "filename": "chunk_054.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_054.bin"
+    },
+    {
+      "index": 55,
+      "filename": "chunk_055.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_055.bin"
+    },
+    {
+      "index": 56,
+      "filename": "chunk_056.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_056.bin"
+    },
+    {
+      "index": 57,
+      "filename": "chunk_057.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_057.bin"
+    },
+    {
+      "index": 58,
+      "filename": "chunk_058.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_058.bin"
+    },
+    {
+      "index": 59,
+      "filename": "chunk_059.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_059.bin"
+    },
+    {
+      "index": 60,
+      "filename": "chunk_060.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_060.bin"
+    },
+    {
+      "index": 61,
+      "filename": "chunk_061.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_061.bin"
+    },
+    {
+      "index": 62,
+      "filename": "chunk_062.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_062.bin"
+    },
+    {
+      "index": 63,
+      "filename": "chunk_063.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_063.bin"
+    },
+    {
+      "index": 64,
+      "filename": "chunk_064.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_064.bin"
+    },
+    {
+      "index": 65,
+      "filename": "chunk_065.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_065.bin"
+    },
+    {
+      "index": 66,
+      "filename": "chunk_066.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_066.bin"
+    },
+    {
+      "index": 67,
+      "filename": "chunk_067.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_067.bin"
+    },
+    {
+      "index": 68,
+      "filename": "chunk_068.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_068.bin"
+    },
+    {
+      "index": 69,
+      "filename": "chunk_069.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_069.bin"
+    },
+    {
+      "index": 70,
+      "filename": "chunk_070.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_070.bin"
+    },
+    {
+      "index": 71,
+      "filename": "chunk_071.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_071.bin"
+    },
+    {
+      "index": 72,
+      "filename": "chunk_072.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_072.bin"
+    },
+    {
+      "index": 73,
+      "filename": "chunk_073.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_073.bin"
+    },
+    {
+      "index": 74,
+      "filename": "chunk_074.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_074.bin"
+    },
+    {
+      "index": 75,
+      "filename": "chunk_075.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_075.bin"
+    },
+    {
+      "index": 76,
+      "filename": "chunk_076.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_076.bin"
+    },
+    {
+      "index": 77,
+      "filename": "chunk_077.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_077.bin"
+    },
+    {
+      "index": 78,
+      "filename": "chunk_078.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_078.bin"
+    },
+    {
+      "index": 79,
+      "filename": "chunk_079.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_079.bin"
+    },
+    {
+      "index": 80,
+      "filename": "chunk_080.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_080.bin"
+    },
+    {
+      "index": 81,
+      "filename": "chunk_081.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_081.bin"
+    },
+    {
+      "index": 82,
+      "filename": "chunk_082.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_082.bin"
+    },
+    {
+      "index": 83,
+      "filename": "chunk_083.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_083.bin"
+    },
+    {
+      "index": 84,
+      "filename": "chunk_084.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_084.bin"
+    },
+    {
+      "index": 85,
+      "filename": "chunk_085.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_085.bin"
+    },
+    {
+      "index": 86,
+      "filename": "chunk_086.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_086.bin"
+    },
+    {
+      "index": 87,
+      "filename": "chunk_087.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_087.bin"
+    },
+    {
+      "index": 88,
+      "filename": "chunk_088.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_088.bin"
+    },
+    {
+      "index": 89,
+      "filename": "chunk_089.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_089.bin"
+    },
+    {
+      "index": 90,
+      "filename": "chunk_090.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_090.bin"
+    },
+    {
+      "index": 91,
+      "filename": "chunk_091.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_091.bin"
+    },
+    {
+      "index": 92,
+      "filename": "chunk_092.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_092.bin"
+    },
+    {
+      "index": 93,
+      "filename": "chunk_093.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_093.bin"
+    },
+    {
+      "index": 94,
+      "filename": "chunk_094.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_094.bin"
+    },
+    {
+      "index": 95,
+      "filename": "chunk_095.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_095.bin"
+    },
+    {
+      "index": 96,
+      "filename": "chunk_096.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_096.bin"
+    },
+    {
+      "index": 97,
+      "filename": "chunk_097.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_097.bin"
+    },
+    {
+      "index": 98,
+      "filename": "chunk_098.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_098.bin"
+    },
+    {
+      "index": 99,
+      "filename": "chunk_099.bin",
+      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_099.bin"
+    }
+  ]
+}
