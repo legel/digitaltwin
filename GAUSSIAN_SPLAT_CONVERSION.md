@@ -1,6 +1,14 @@
 # Gaussian Splat Conversion Pipeline
 
-> **⚠️ DEPRECATED**: This guide is for the legacy Cesium-based workflow. The current Terrain 3D application uses SuperSplat with direct .ply file loading from the DeepEarth bucket. See the DeepEarth data engine (`temp gcloud/deepearth_data_engine.py`) for the current upload process.
+> **⚠️ DEPRECATED**: This guide is for the legacy Cesium-based workflow. The current Terrain 3D application uses SuperSplat with progressive binary chunk loading.
+>
+> **📖 See PLY_DEPLOYMENT_GUIDE.md** for the current deployment workflow using:
+> - Binary chunk splitting (100 chunks)
+> - Google Cloud Storage upload
+> - Manifest creation
+> - Progressive parallel loading (5 concurrent downloads)
+>
+> The workflow below is preserved for historical reference only.
 
 This guide details the complete process for converting .ply Gaussian splat files into the Cesium-compatible format used by the legacy version of Terrain 3D. The pipeline transforms raw Gaussian splat data into optimized 3D tilesets with optional clipping geometry.
 
