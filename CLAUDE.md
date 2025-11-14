@@ -114,7 +114,6 @@ Site Selection (dropdown)
 - **Actionable Intelligence**: Bias towards tools that directly improve landscape design execution
 
 ### Data Integration Standards
-- **3D Gaussian Splats**: Prepare for integration with .spz file format and new Cesium standards
 - **GIS Layer Support**: Seamlessly blend scientific models (soil pH, moisture, sunlight) with 3D visualization
 - **Real-time Plant Models**: Support for 3D plant models with seasonal growth simulation
 - **Supply Chain Integration**: Connect design decisions with actual nursery inventory and availability
