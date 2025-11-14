@@ -22,11 +22,12 @@ Support landscape designers in creating ecologically functional and beautiful la
 ## Architecture - AI Agent Guide
 
 ### Critical Understanding
-1. **SuperSplat-Only Application** - Uses SuperSplat for all 3D rendering (no Cesium)
+1. **SuperSplat-Only Application** - Uses SuperSplat for all 3D rendering (pure JavaScript, no bundler)
 2. **No build system** - Edit files directly, refresh browser to test
 3. **Global state on window** - All managers and state accessible via `window.X`
 4. **Manager pattern** - Each domain has a dedicated manager class
 5. **Event-driven UI** - Layer controls drive visualization through state changes
+6. **Flask backend** - Simple Python server serving static files and manifests
 
 ### File Hierarchy (by importance)
 1. **utilities.js** - Core initialization and application logic
@@ -71,8 +72,10 @@ Site Selection (dropdown)
 
 ## Key Implementation Details
 
-### API Keys and Services
-- Google Cloud Storage serves large Gaussian splat files (.glb assets)
+### Cloud Services
+- Google Cloud Storage serves Gaussian splat chunk files (configured via environment variables)
+- CORS-enabled bucket for direct browser downloads
+- See CLOUD_CONFIG.md for setup instructions
 
 ### SuperSplat Integration
 - **Gaussian Splat Rendering**: 3D digital twins loaded via SuperSplat (.ply files with progressive loading)
@@ -117,10 +120,11 @@ Site Selection (dropdown)
 - **Supply Chain Integration**: Connect design decisions with actual nursery inventory and availability
 
 ### Development Workflow Priorities
-1. **Mesh-based rendering** (current phase): PIX4Dmatic integration with Cesium
-2. **Gaussian Splat integration** (current phase): Advanced photorealistic rendering - IMPLEMENTED
-3. **Ecological model overlay**: Scientific data visualization on 3D twins
-4. **Commercial platform features**: Native plant marketplace integration
+1. **Gaussian Splat visualization** - IMPLEMENTED: SuperSplat-based photorealistic 3D digital twins
+2. **Ecological model overlay** - IMPLEMENTED: Interactive visualization of scientific data layers
+3. **Progressive loading optimization** - IMPLEMENTED: Binary chunk download system
+4. **Plant selection tools** - IN PROGRESS: Native plant recommendation and placement
+5. **Commercial integration** - PLANNED: Nursery inventory and e-commerce features
 
 ### Code Quality Standards
 When refactoring or creating new code, maintain clean and professional code standards:
@@ -165,15 +169,16 @@ A comprehensive system for loading and managing 3D Gaussian Splat digital twins 
 #### Technical Details
 - **SuperSplat Integration**: Uses SuperSplat's native Gaussian splat rendering via .ply files
 - **Performance Optimization**: Binary chunk approach enables fast parallel downloads
-- **DeepEarth Integration**: Chunks stored at `gs://deepearth/datasets/splats/chunks/`
+- **Cloud Storage**: Chunks stored in Google Cloud Storage bucket (configured per deployment)
 - **Manifest System**: JSON manifests define chunk locations and assembly order
 - **Camera Positioning**: Automatic optimal viewpoint when splat loads
 
-#### DeepEarth Storage Integration
+#### Cloud Storage Integration
 - **GCS Direct Access**: Browser downloads chunks directly from Google Cloud Storage
-- **CORS Configuration**: DeepEarth bucket configured for browser access
+- **CORS Configuration**: Bucket configured for browser access (see CLOUD_CONFIG.md)
 - **CDN-Ready**: Small chunks cache efficiently for improved performance
 - **No Proxy Needed**: Direct GCS URLs in manifest eliminate server bottleneck
+- **Environment Variables**: Bucket name and URLs configured via `.envrc` (not in repo)
 
 #### Polygon Overlay System
 - **Shader-Based Rendering**: Custom fragment shaders render polygons above splat data

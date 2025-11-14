@@ -50,6 +50,9 @@ cesium/
 local/
 .local/
 
+# Environment configuration (contains sensitive data)
+.envrc
+
 # Claude Code Files
 .claude/
 
