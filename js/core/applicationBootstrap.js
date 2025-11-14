@@ -29,8 +29,8 @@ async function initializeSupersplat() {
         if (superSplatContainer) {
             superSplatContainer.style.display = 'block';
 
-            // Load SuperSplat editor with default site (scott-boyd-residence has splat file)
-            window.superSplatManager.loadSuperSplatEditor('scott-boyd-residence');
+            // Load SuperSplat editor with default demo site
+            window.superSplatManager.loadSuperSplatEditor('demo-site');
 
         } else {
             console.error('❌ SuperSplat container not found');

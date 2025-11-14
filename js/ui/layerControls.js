@@ -88,12 +88,12 @@ function findPolygonsForPAArea(paAreaName, geoJsonData) {
     const polygonNames = [];
     geoJsonData.features.forEach(feature => {
         if (feature.geometry.type === 'Polygon') {
-            const parsed = parseBoydName(feature.properties.name);
+            const parsed = parseEcologicalName(feature.properties.name);
             const featureDescription = parsed.description || parsed.id;
 
-            const isPlantable = window.getBoydFeatureCategory ?
-                window.getBoydFeatureCategory(feature) === 'plantable' :
-                isPlantableFeature(feature, 'boyd');
+            const isPlantable = window.getEcologicalFeatureCategory ?
+                window.getEcologicalFeatureCategory(feature) === 'plantable' :
+                isPlantableFeature(feature, 'ecological');
 
             if (featureDescription === paAreaName && isPlantable) {
                 polygonNames.push(feature.properties.name);
@@ -118,9 +118,9 @@ function findPolygonsForNPACategory(npaCategory, geoJsonData) {
         if (feature.geometry.type === 'Polygon') {
             const featureCategory = extractNPACategory(feature.properties.name);
 
-            const isNonPlantable = window.getBoydFeatureCategory ?
-                window.getBoydFeatureCategory(feature) === 'non-plantable' :
-                !isPlantableFeature(feature, 'boyd');
+            const isNonPlantable = window.getEcologicalFeatureCategory ?
+                window.getEcologicalFeatureCategory(feature) === 'non-plantable' :
+                !isPlantableFeature(feature, 'ecological');
 
             if (featureCategory === npaCategory && isNonPlantable) {
                 polygonNames.push(feature.properties.name);
@@ -229,9 +229,9 @@ function findAllPlantablePolygons(geoJsonData) {
     const plantablePolygons = [];
     geoJsonData.features.forEach(feature => {
         if (feature.geometry.type === 'Polygon') {
-            const isPlantable = window.getBoydFeatureCategory ?
-                window.getBoydFeatureCategory(feature) === 'plantable' :
-                isPlantableFeature(feature, 'boyd');
+            const isPlantable = window.getEcologicalFeatureCategory ?
+                window.getEcologicalFeatureCategory(feature) === 'plantable' :
+                isPlantableFeature(feature, 'ecological');
 
             if (isPlantable) {
                 plantablePolygons.push(feature.properties.name);
@@ -256,13 +256,13 @@ function processEnvironmentalMetricColors(metricName, geoJsonData) {
     // Find all plantable polygons and extract their metric values
     geoJsonData.features.forEach(feature => {
         if (feature.geometry.type === 'Polygon') {
-            const isPlantable = window.getBoydFeatureCategory ?
-                window.getBoydFeatureCategory(feature) === 'plantable' :
+            const isPlantable = window.getEcologicalFeatureCategory ?
+                window.getEcologicalFeatureCategory(feature) === 'plantable' :
                 false;
 
             if (isPlantable && feature.properties.name) {
-                const boydData = window.parseBoydEcologicalData(feature.properties.description || '');
-                const paramValue = boydData[metricName];
+                const ecologicalData = window.parseEcologicalData(feature.properties.description || '');
+                const paramValue = ecologicalData[metricName];
 
                 if (paramValue && paramValue !== 'Unknown') {
                     const numericValue = window.parseParameterValue(paramValue, metricName);
@@ -436,8 +436,8 @@ async function autoLoadSiteData() {
 
         // Use the same loading logic as the original loadSiteData function
         const dataUrl = window.TerrainConfig ?
-            window.TerrainConfig.getDataUrl('scott-boyd-residence/Boyd_Residence_Aerial_and_Ground.geojson') :
-            '/data/scott-boyd-residence/Boyd_Residence_Aerial_and_Ground.geojson';
+            window.TerrainConfig.getDataUrl('demo-site/plantable-area-data.geojson') :
+            '/data/demo-site/plantable-area-data.geojson';
 
 
         const response = await fetch(dataUrl);
@@ -451,8 +451,8 @@ async function autoLoadSiteData() {
 
         window.currentSiteInfo = {
             name: 'Winter Garden Residence',
-            filename: 'Boyd_Residence_Aerial_and_Ground.geojson',
-            id: 'scott-boyd-residence',
+            filename: 'plantable-area-data.geojson',
+            id: 'demo-site',
             bounds: window.calculateBounds ? window.calculateBounds(geoJsonData) : null
         };
 
@@ -503,7 +503,7 @@ function initializeLayerControls() {
         // Check site data and format
         if (window.currentSiteData) {
             const geoJsonFormat = detectGeoJsonFormat(window.currentSiteData.features[0]);
-            if (geoJsonFormat === 'boyd') {
+            if (geoJsonFormat === 'ecological') {
                 document.getElementById('layerControls').style.display = 'block';
                 analyzeNPACategories(window.currentSiteData);
                 analyzePACategories(window.currentSiteData);
@@ -526,7 +526,7 @@ function initializeLayerControls() {
 
                 if (window.currentSiteData) {
                     const geoJsonFormat = detectGeoJsonFormat(window.currentSiteData.features[0]);
-                    if (geoJsonFormat === 'boyd') {
+                    if (geoJsonFormat === 'ecological') {
                         document.getElementById('layerControls').style.display = 'block';
                         analyzeNPACategories(window.currentSiteData);
                         analyzePACategories(window.currentSiteData);
@@ -929,7 +929,7 @@ function analyzePACategories(geoJsonData) {
         if (feature.properties.name && feature.properties.name.includes('PA') && !feature.properties.name.includes('NPA')) {
             paFeatureCount++;
             
-            const parsed = parseBoydName(feature.properties.name);
+            const parsed = parseEcologicalName(feature.properties.name);
             
             const name = parsed.description || parsed.id;
             if (name && !categories.has(name)) {
@@ -1104,7 +1104,7 @@ function populatePACategories(categories, categorizedPAs) {
 
                 if (window.focusPanel && window.currentSiteData) {
                     const paFeature = window.currentSiteData.features.find(f => {
-                        const parsed = parseBoydName(f.properties.name);
+                        const parsed = parseEcologicalName(f.properties.name);
                         return (parsed.description || parsed.id) === name;
                     });
                     if (paFeature) {
@@ -1154,11 +1154,11 @@ function analyzeNPACategories(geoJsonData) {
 }
 
 /**
- * Parses Boyd format name to extract ID and description
+ * Parses ecological data format name to extract ID and description
  * @param {string} name - Feature name like 'PA1="Southeast Front Door Entrance"'
  * @returns {Object} - {id, description, number}
  */
-function parseBoydName(name) {
+function parseEcologicalName(name) {
     // Extract PA/NPA number and description
     // Handle both single and double quotes
     const match = name.match(/((?:N)?PA)(\d+)(?:=[\"']([^\"']+)[\"'])?/);
@@ -1378,12 +1378,12 @@ function reRenderPolygons() {
 
 /**
  * Initialize layer controls based on site data format
- * Shows/hides layer controls and analyzes PA/NPA categories for Boyd format sites
+ * Shows/hides layer controls and analyzes PA/NPA categories for ecological data format sites
  */
 function initializeLayerControlsForSite(geoJsonFormat) {
     const layerControls = document.getElementById('layerControls');
 
-    if (geoJsonFormat === 'boyd') {
+    if (geoJsonFormat === 'ecological') {
         layerControls.style.display = 'block';
         // Analyze PA and NPA categories for this site
         if (window.currentSiteData) {
@@ -2028,7 +2028,7 @@ window.autoLoadSiteData = autoLoadSiteData;
 window.initializeLayerControls = initializeLayerControls;
 window.reRenderPolygons = reRenderPolygons;
 window.layerSettings = layerSettings;
-window.parseBoydName = parseBoydName;
+window.parseEcologicalName = parseEcologicalName;
 window.extractNPACategory = extractNPACategory;
 window.updateSelectedPAHighlight = updateSelectedPAHighlight;
 window.clearPAConnection = clearPAConnection;

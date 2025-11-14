@@ -93,7 +93,7 @@ Window Object (Global State)
 ```javascript
 DOMContentLoaded → allSystemsGo() → {
   1. Create managers (map3D, map2D, user)
-  2. initializeSiteSelector() → Load Scott Boyd by default
+  2. initializeSiteSelector() → Load demo site by default
   3. initializeLayerControls() → Set up PA/NPA/metrics UI
   4. Start tour after 2s (can conflict with user actions)
 }
@@ -102,8 +102,8 @@ DOMContentLoaded → allSystemsGo() → {
 #### 2. Site → Layer → Visualization Pipeline
 ```javascript
 Site Selection → {
-  detectGeoJsonFormat() → 'boyd' | 'legacy'
-  if (boyd) → Show layer controls, analyze PA/NPA categories
+  detectGeoJsonFormat() → 'ecological' | 'legacy'
+  if (ecological) → Show layer controls, analyze PA/NPA categories
   visualizeGeoJsonPolygons() → Clear entities, create new ones
 }
 
@@ -263,12 +263,12 @@ window.layerState = {
 | Format | Detection | Coordinates | Parameters |
 |--------|-----------|-------------|------------|
 | Legacy | Has `Layer` property | UTM Zone 17N | Embedded in names: `PA=1_SoilMoisture=Wet_pH=7.6` |
-| Boyd | Has ecological model in description | WGS84 | M1-M10 in description field |
+| Ecological | Has ecological model in description | WGS84 | M1-M10 in description field |
 
 #### Visualization Pipeline
 1. Site Selection → User picks from dropdown
 2. Data Loading → Fetch GeoJSON
-3. Format Detection → Boyd vs Legacy
+3. Format Detection → Ecological vs Legacy
 4. Coordinate Conversion → UTM to WGS84
 5. Entity Creation → Cesium polygons with height separation
 6. Layer-Based Filtering → Dynamic visualization
@@ -334,7 +334,7 @@ class UserManager {
 
 ### GeoJSON Structure
 - **Legacy Format**: Parameters in feature names
-- **Boyd Format**: M1-M10 in description field
+- **Ecological Format**: M1-M10 in description field
 
 ### Visualization Rules
 - **Plantable Areas (PA)**: White outlines, 5.5-6m height
@@ -492,7 +492,7 @@ polyline: {
 
 ### Development Gotchas
 1. Tour auto-starts and can conflict with interaction
-2. Layer controls only appear for Boyd format sites
+2. Layer controls only appear for Ecological format sites
 3. Coordinate conversion has Florida-specific fallback
 4. No error boundaries - crashes stop everything
 5. Global state makes testing difficult
