@@ -190,12 +190,12 @@ function utmToLatLng(easting, northing) {
 /**
  * Detects GeoJSON format type based on feature properties
  * @param {Object} feature - A GeoJSON feature
- * @returns {string} - 'boyd' or 'legacy'
+ * @returns {string} - 'ecological' or 'legacy'
  */
 function detectGeoJsonFormat(feature) {
-    // Boyd format has rich properties with description field containing M1-M10 data
+    // Ecological data format has rich properties with description field containing M1-M10 data
     if (feature.properties.description && feature.properties.description.includes('Ecodash.ai Ecological Niche Model')) {
-        return 'boyd';
+        return 'ecological';
     }
     // Legacy format has Layer property
     if (feature.properties.Layer) {
@@ -208,12 +208,12 @@ function detectGeoJsonFormat(feature) {
 /**
  * Determines if feature is plantable based on format and properties
  * @param {Object} feature - A GeoJSON feature
- * @param {string} geoJsonFormat - 'boyd' or 'legacy'
+ * @param {string} geoJsonFormat - 'ecological' or 'legacy'
  * @returns {boolean} - True if plantable
  */
 function isPlantableFeature(feature, geoJsonFormat) {
-    if (geoJsonFormat === 'boyd') {
-        // Boyd format: PA in name means plantable, NPA and numeric means non-plantable
+    if (geoJsonFormat === 'ecological') {
+        // Ecological data format: PA in name means plantable, NPA and numeric means non-plantable
         const name = feature.properties.name;
         if (!name) return false;
 
@@ -232,7 +232,7 @@ function isPlantableFeature(feature, geoJsonFormat) {
             return false;
         }
 
-        return false; // Default for unknown Boyd patterns
+        return false; // Default for unknown patterns
     } else {
         // Legacy format: Layer determines plantability
         return feature.properties.Layer === 'Plantable Areas';
@@ -240,11 +240,11 @@ function isPlantableFeature(feature, geoJsonFormat) {
 }
 
 /**
- * Determines feature category for Boyd format data
+ * Determines feature category for Ecological data format data
  * @param {Object} feature - A GeoJSON feature
  * @returns {string} - 'plantable', 'non-plantable', or 'unknown'
  */
-function getBoydFeatureCategory(feature) {
+function getEcologicalFeatureCategory(feature) {
     const name = feature.properties.name;
     if (!name) return 'unknown';
 
@@ -267,11 +267,11 @@ function getBoydFeatureCategory(feature) {
 }
 
 /**
- * Parses ecological data from Boyd format description field
+ * Parses ecological data from Ecological data format description field
  * @param {string} description - Description field containing M1-M10 data
  * @returns {Object} - Parsed ecological parameters
  */
-function parseBoydEcologicalData(description) {
+function parseEcologicalData(description) {
     const data = {};
 
     if (!description) return data;
@@ -334,5 +334,5 @@ window.utmToLatLng = utmToLatLng;
 window.detectCoordinateFormat = detectCoordinateFormat;
 window.detectGeoJsonFormat = detectGeoJsonFormat;
 window.isPlantableFeature = isPlantableFeature;
-window.parseBoydEcologicalData = parseBoydEcologicalData;
-window.getBoydFeatureCategory = getBoydFeatureCategory;
+window.parseEcologicalData = parseEcologicalData;
+window.getEcologicalFeatureCategory = getEcologicalFeatureCategory;

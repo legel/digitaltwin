@@ -38,7 +38,7 @@ Support landscape designers in creating ecologically functional and beautiful la
 7. **main.js** - Simple but critical bootstrap sequence
 
 ### Common Pitfalls
-- Layer controls only show for Boyd format sites
+- Layer controls only show for sites with ecological data format
 - Polygon rendering requires SuperSplat initialization completion
 - Height adjustment system uses global `currentHeightOffset`
 - **Direct Calls**: Polygon rendering uses direct `window.superSplatBridge.renderGeoJSONPolygons()` calls
@@ -55,8 +55,8 @@ Support landscape designers in creating ecologically functional and beautiful la
 ```
 Site Selection (dropdown)
 → loadSiteData()
-→ detectGeoJsonFormat() ['boyd'|'legacy']
-→ if boyd: initializeLayerControlsForSite() → analyzePA/NPACategories()
+→ detectGeoJsonFormat() ['ecological'|'legacy']
+→ if ecological: initializeLayerControlsForSite() → analyzePA/NPACategories()
 → SuperSplatBridge.renderGeoJSONPolygons() [main rendering function]
 → Layer controls become interactive
 → User clicks PA/layer OR polygon → SuperSplat polygon selection
@@ -75,7 +75,8 @@ Site Selection (dropdown)
 - Google Cloud Storage serves large Gaussian splat files (.glb assets)
 
 ### SuperSplat Integration
-- **Gaussian Splat Rendering**: 3D digital twins loaded via SuperSplat (.spz files)
+- **Gaussian Splat Rendering**: 3D digital twins loaded via SuperSplat (.ply files with progressive loading)
+- **Progressive Loading System**: Binary chunk approach (100 chunks, 5 concurrent downloads) - see PLY_DEPLOYMENT_GUIDE.md
 - **Polygon Overlay System**: Custom shader-based polygon rendering on top of splat data
 - **Event Bridge**: SuperSplatBridge.js connects terrain-3d UI to SuperSplat polygon system
 - **Coordinate Transformation**: Geographic coordinates converted to SuperSplat world space
@@ -149,21 +150,30 @@ When refactoring or creating new code, maintain clean and professional code stan
 A comprehensive system for loading and managing 3D Gaussian Splat digital twins via SuperSplat:
 
 #### Core Implementation
-- **SuperSplatManager.js**: SuperSplat iframe initialization and lifecycle management
-- **GaussianSplatManager.js**: Asset loading and coordinate integration with SuperSplat
-- **Loading Indicators**: Visual feedback during splat loading with progress messaging
-- **Debug Controls**: Development button for removing splats when testing
+- **SuperSplatManager.js**: SuperSplat iframe initialization, lifecycle management, and progress tracking
+- **ProgressivePlyLoader.js**: Binary chunk downloading with staggered queue (5 concurrent)
+- **Loading Indicators**: Multi-stage progress (10-70% downloads, 70-99% assembly, 99-100% rendering)
+- **Ecological Messages**: 300+ rotating messages during load (3-second intervals)
+
+#### Progressive Loading System
+- **Binary Chunks**: PLY files split into 100 binary chunks (~1.2MB each for 120MB file)
+- **Staggered Downloads**: Queue-based system maintains exactly 5 concurrent downloads
+- **Parallel Assembly**: Chunks concatenated in-browser using Blob API
+- **Single File Load**: Prevents race conditions and rendering artifacts from multiple splat files
+- **See PLY_DEPLOYMENT_GUIDE.md** for complete deployment workflow
 
 #### Technical Details
-- **SuperSplat Integration**: Uses SuperSplat's native Gaussian splat rendering system via .ply files
-- **Performance Optimization**: Large splat files (120MB+) served via local proxy with proper CORS headers
-- **DeepEarth Integration**: Splat files stored in DeepEarth bucket and proxied through local server
+- **SuperSplat Integration**: Uses SuperSplat's native Gaussian splat rendering via .ply files
+- **Performance Optimization**: Binary chunk approach enables fast parallel downloads
+- **DeepEarth Integration**: Chunks stored at `gs://deepearth/datasets/splats/chunks/`
+- **Manifest System**: JSON manifests define chunk locations and assembly order
 - **Camera Positioning**: Automatic optimal viewpoint when splat loads
 
 #### DeepEarth Storage Integration
-- **server.py**: Proxies `/data/<site-id>/splat.ply` requests to DeepEarth bucket with CORS headers
-- **Proxy Solution**: Local server streams files from `gs://deepearth/datasets/terrain3d/<site-id>/splat.ply`
-- **CORS Handling**: Server-side proxy provides proper Access-Control-Allow-Origin headers
+- **GCS Direct Access**: Browser downloads chunks directly from Google Cloud Storage
+- **CORS Configuration**: DeepEarth bucket configured for browser access
+- **CDN-Ready**: Small chunks cache efficiently for improved performance
+- **No Proxy Needed**: Direct GCS URLs in manifest eliminate server bottleneck
 
 #### Polygon Overlay System
 - **Shader-Based Rendering**: Custom fragment shaders render polygons above splat data

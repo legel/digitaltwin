@@ -12,7 +12,7 @@ class CoordinateTransform {
     /**
      * Load site bounds data from JSON file
      */
-    async loadSiteBounds(siteId = 'scott-boyd-residence') {
+    async loadSiteBounds(siteId = 'demo-site') {
         try {
             const response = await fetch(`/data/${siteId}/site-bounds.json`);
             if (!response.ok) {
