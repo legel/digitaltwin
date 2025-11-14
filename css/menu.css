@@ -156,28 +156,7 @@
     padding: 0;
 }
 
-/* Individual icon button backgrounds */
-.tilt-0-button {
-    background-image: url('/images/down_0_degrees.png');
-}
-
-.tilt-45-button {
-    background-image: url('/images/down_45_degrees.png');
-}
-
-.rotate-right-button {
-    background-image: url('/images/right_90_degrees.png');
-}
-
-.rotate-left-button {
-    background-image: url('/images/left_90_degrees.png');
-}
-
-.home-button {
-    background-image: url('/images/home.png');
-}
-
-/* New mode toggle buttons with Unicode icons */
+/* Mode toggle buttons with Unicode icons */
 .globe-icon-button,
 .supersplat-icon-button {
     display: flex;
