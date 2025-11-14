@@ -396,7 +396,7 @@ class PlantRecommendationsPage {
         // Find the selected PA feature
         const selectedPAName = window.layerState.selectedGroup;
         const paFeature = window.currentSiteData.features.find(feature => {
-            const parsed = window.parseBoydName(feature.properties.name);
+            const parsed = window.parseEcologicalName(feature.properties.name);
             return (parsed.description || parsed.id) === selectedPAName;
         });
 
@@ -405,7 +405,7 @@ class PlantRecommendationsPage {
         }
 
         // Extract ecological data from the feature description
-        return window.parseBoydEcologicalData(paFeature.properties.description || '');
+        return window.parseEcologicalData(paFeature.properties.description || '');
     }
 
     /**

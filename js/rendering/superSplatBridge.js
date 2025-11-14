@@ -364,7 +364,7 @@ class SuperSplatBridge {
 
 
             const geoBounds = window.coordinateTransform.calculateGeoJSONBounds(geoJsonData);
-            const geoJsonFormat = window.detectGeoJsonFormat ? window.detectGeoJsonFormat(geoJsonData.features[0]) : 'boyd';
+            const geoJsonFormat = window.detectGeoJsonFormat ? window.detectGeoJsonFormat(geoJsonData.features[0]) : 'ecological';
 
             // Clear existing polygons from polygon manager
             this.polygonManager.clearPolygons();
@@ -484,9 +484,9 @@ class SuperSplatBridge {
     }
 
     /**
-     * Parse Boyd format feature names (same logic as layerControls.js)
+     * Parse ecological data format feature names (same logic as layerControls.js)
      */
-    parseBoydName(name) {
+    parseEcologicalName(name) {
         if (!name) return { id: null, description: null, number: null };
 
         const match = name.match(/^(PA|NPA)(\d+)=?"?([^"]*)"?$/);
@@ -505,7 +505,7 @@ class SuperSplatBridge {
      * Determine if feature is plantable area based on format and properties
      */
     isPlantableFeature(feature, geoJsonFormat) {
-        if (geoJsonFormat === 'boyd') {
+        if (geoJsonFormat === 'ecological') {
             const name = feature.properties.name;
             if (!name) return false;
 

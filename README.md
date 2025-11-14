@@ -1,29 +1,22 @@
-# Terrain 3D
-
+# 3D Ecological Digital Twin Platform
 
 
 **Ecological Digital Twin Platform for Landscape Design**
 
 
 
-Terrain 3D is a 3D visualization platform for landscape designers working with photorealistic digital twins. The platform integrates 3D Gaussian Splatting with ecological modeling to support native plant-based landscape design decisions.
+This is a 3D visualization platform for landscape designers working with photorealistic digital twins. It integrates 3D Gaussian Splatting with ecological modeling to support native plant-based landscape design decisions.
 
+![3D Gaussian Splat Digital Twin](docs/digital_twin.png)
 
 
 ## 🦋 Platform Overview
-
-
 
 ### Photorealistic Precision
 
 * 3D Gaussian Splatting uses advanced neural network reconstruction for lifelike rendering
 * Geospatially accurate capture from drone and ground surveys
 * Minimal visual difference between digital interface and reality
-
-
-
-![3D Gaussian Splat Digital Twin](docs/Digital%20Twin.png)
-
 
 
 ### Landscape Design Tool
@@ -61,9 +54,9 @@ Terrain 3D is a 3D visualization platform for landscape designers working with p
 
 ```bash
 
-git clone https://github.com/legel/terrain-3d.git
+git clone https://github.com/legel/digitaltwin.git
 
-cd terrain-3d
+cd digitaltwin
 
 pip install -r requirements.txt
 
@@ -111,13 +104,13 @@ npm run deploy:supersplat
 
 
 
-**Fully Decoupled**: All SuperSplat source code is maintained locally in the `supersplat-build/` directory. The SuperSplat application files are built in `supersplat-build/dist/` and copied to `supersplat/` where they are served by the terrain-3d server. No external repositories or complex dependency management required.
+**Fully Decoupled**: All SuperSplat source code is maintained locally in the `supersplat-build/` directory. The SuperSplat application files are built in `supersplat-build/dist/` and copied to `supersplat/` where they are served by the digitaltwin server. No external repositories or complex dependency management required.
 
 
 
 ### 3. Server File Serving (Already Configured)
 
-The terrain-3d `server.py` serves SuperSplat files through its generic static file route:
+The digitaltwin `server.py` serves SuperSplat files through its generic static file route:
 
 
 
@@ -135,7 +128,7 @@ def serve_static(path):
 
 
 
-This automatically serves SuperSplat files from the `supersplat/` directory, allowing the terrain-3d interface to load SuperSplat in iframe mode at `/supersplat/index.html`.
+This automatically serves SuperSplat files from the `supersplat/` directory, allowing the digitaltwin interface to load SuperSplat in iframe mode at `/supersplat/index.html`.
 
 
 
@@ -178,7 +171,7 @@ python server.py
 
 
 
-Terrain 3D directly supports Ecodash's mission to **"Cultivate thriving ecosystems across the planet through computational ecology and human creativity"** by providing:
+The digital twin platform directly supports Ecodash's mission to **"Cultivate thriving ecosystems across the planet through computational ecology and human creativity"** by providing:
 
 
 
@@ -214,4 +207,6 @@ Copyright Ecological Intelligence, Inc.
 - **[SuperSplat](https://github.com/playcanvas/supersplat)**: Advanced 3D Gaussian Splat rendering and visualization
 - **Native Plant Community**: Growers, researchers, and designers preserving genetic heritage
 - **Landscape Professionals**: Practitioners shaping millions of acres annually for ecological function
+
+
 
