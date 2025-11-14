@@ -414,7 +414,7 @@ Follow your deployment workflow (see your internal deployment documentation).
 ### Required Files per Site
 
 ```
-terrain-3d/
+digitaltwin/
 ├── manifests/
 │   └── ${SITE_ID}_manifest.json          # Chunk locations and metadata
 ├── data/
@@ -504,4 +504,4 @@ See CLOUD_CONFIG.md for complete environment setup instructions.
 
 ## License
 
-This deployment system is part of the Terrain 3D project. See repository LICENSE for details.
+This deployment system is part of the digital twin platform project. See repository LICENSE for details.

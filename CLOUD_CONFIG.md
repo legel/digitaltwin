@@ -1,10 +1,10 @@
 # Cloud Configuration Guide
 
-This document provides instructions for setting up Google Cloud Platform resources required for the Terrain 3D application.
+This document provides instructions for setting up Google Cloud Platform resources required for the digital twin platform.
 
 ## Overview
 
-Terrain 3D uses Google Cloud Storage to serve large Gaussian splat files via progressive chunk loading. You'll need:
+The digital twin platform uses Google Cloud Storage to serve large Gaussian splat files via progressive chunk loading. You'll need:
 1. A Google Cloud Platform account
 2. A Google Cloud Storage bucket
 3. CORS configuration for browser access
@@ -18,7 +18,7 @@ If you don't already have a GCP project:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click "Select a project" → "New Project"
-3. Enter a project name (e.g., "terrain-3d-production")
+3. Enter a project name (e.g., "digital-twin-production")
 4. Note your **Project ID** (you'll need this later)
 
 ### 2. Enable Cloud Storage API
@@ -42,7 +42,7 @@ gsutil mb -p YOUR_PROJECT_ID -c STANDARD -l US gs://${GCS_BUCKET}
 **Bucket naming guidelines:**
 - Use lowercase letters, numbers, hyphens, and underscores
 - Must be globally unique across all of Google Cloud
-- Example: `terrain3d-mycompany-prod`
+- Example: `digital-twin-mycompany-prod`
 
 ### 4. Configure CORS for Browser Access
 
@@ -90,7 +90,7 @@ Or for more granular control, set permissions per object during upload.
 
 ## Environment Variables
 
-Terrain 3D uses environment variables to keep sensitive configuration out of the repository.
+The digital twin platform uses environment variables to keep sensitive configuration out of the repository.
 
 ### Required Variables
 
@@ -128,7 +128,7 @@ export DEPLOY_PATH="/path/to/deployment"
 
 3. Allow the `.envrc` file:
    ```bash
-   cd /path/to/terrain-3d
+   cd /path/to/digitaltwin
    direnv allow
    ```
 
@@ -254,17 +254,17 @@ For server deployments, use service accounts instead of personal credentials:
 
 ```bash
 # Create service account
-gcloud iam service-accounts create terrain3d-uploader \
-    --display-name="Terrain3D Splat Uploader"
+gcloud iam service-accounts create digitaltwin-uploader \
+    --display-name="Digital Twin Splat Uploader"
 
 # Grant storage permissions
 gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-    --member="serviceAccount:terrain3d-uploader@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --member="serviceAccount:digitaltwin-uploader@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/storage.objectAdmin"
 
 # Create key
 gcloud iam service-accounts keys create key.json \
-    --iam-account=terrain3d-uploader@YOUR_PROJECT_ID.iam.gserviceaccount.com
+    --iam-account=digitaltwin-uploader@YOUR_PROJECT_ID.iam.gserviceaccount.com
 ```
 
 ### 2. Restrict CORS Origins
@@ -354,7 +354,7 @@ gcloud config list
 
 ## Support
 
-For Terrain 3D specific issues:
+For digital twin platform specific issues:
 - See PLY_DEPLOYMENT_GUIDE.md for splat deployment
 - See README.md for general setup
 - Check GitHub Issues for known problems

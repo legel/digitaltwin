@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Application Overview
 
-Terrain 3D is a sophisticated 3D ecological digital twin platform designed to revolutionize landscape design through computational ecology. This application serves as the visualization and interaction layer for Ecodash's mission to maximize ecosystem services through native plant-based landscape design.
+The digital twin platform is a sophisticated 3D ecological visualization system designed to revolutionize landscape design through computational ecology. This application serves as the visualization and interaction layer for Ecodash's mission to maximize ecosystem services through native plant-based landscape design.
 
 ### Core Mission
 Support landscape designers in creating ecologically functional and beautiful landscapes by providing:
@@ -81,7 +81,7 @@ Site Selection (dropdown)
 - **Gaussian Splat Rendering**: 3D digital twins loaded via SuperSplat (.ply files with progressive loading)
 - **Progressive Loading System**: Binary chunk approach (100 chunks, 5 concurrent downloads) - see PLY_DEPLOYMENT_GUIDE.md
 - **Polygon Overlay System**: Custom shader-based polygon rendering on top of splat data
-- **Event Bridge**: SuperSplatBridge.js connects terrain-3d UI to SuperSplat polygon system
+- **Event Bridge**: SuperSplatBridge.js connects platform UI to SuperSplat polygon system
 - **Coordinate Transformation**: Geographic coordinates converted to SuperSplat world space
 
 ### Coordinate System
@@ -208,7 +208,7 @@ A sophisticated animation sequence for the focus panel that provides smooth visu
 - **Smooth transitions** between different PA selections
 
 ### SuperSplat Camera Integration
-Camera control is handled natively by SuperSplat with terrain-3d providing minimal integration:
+Camera control is handled natively by SuperSplat with the platform providing minimal integration:
 - **Native Controls**: SuperSplat handles all camera movement and positioning
 - **Polygon Focus**: Focus panel integration works independently of camera system
 - **Tour System**: Currently disabled with SuperSplat

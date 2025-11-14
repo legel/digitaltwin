@@ -46,7 +46,7 @@ This is a 3D visualization platform for landscape designers working with photore
 
 
 
-### 1. Clone and Setup Terrain 3D
+### 1. Clone and Setup the Digital Twin Platform
 
 **Requirements**: Python 3.7+, Node.js 18+ and npm
 
