@@ -314,15 +314,15 @@ class SuperSplatManager {
         if (siteSelector && siteSelector.value) {
             const filename = siteSelector.value;
             // Map the GeoJSON filename to the corresponding site directory
-            if (filename === 'Boyd_Residence_Aerial_and_Ground.geojson') {
-                return 'scott-boyd-residence';
+            if (filename === 'plantable-area-data.geojson') {
+                return 'demo-site';
             }
             // For other sites, extract the directory name from filename
             return filename.replace('.geojson', '');
         }
         
         // Fallback to default site
-        return 'scott-boyd-residence';
+        return 'demo-site';
     }
 
 
@@ -330,14 +330,14 @@ class SuperSplatManager {
      * Configures UI elements
      */
     configureUI() {
-        // Show layer controls for Boyd format sites
+        // Show layer controls for ecological data format sites
         const layerControls = document.getElementById('layerControls');
         if (layerControls && window.currentSiteData) {
-            // Check if current site is Boyd format (which supports layer controls)
+            // Check if current site uses ecological data format (which supports layer controls)
             const geoJsonFormat = window.detectGeoJsonFormat ?
                 window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
 
-            if (geoJsonFormat === 'boyd') {
+            if (geoJsonFormat === 'ecological') {
                 layerControls.style.display = 'block';
 
                 // Initialize layer controls with current site data
@@ -356,7 +356,7 @@ class SuperSplatManager {
                         const geoJsonFormat = window.detectGeoJsonFormat ?
                             window.detectGeoJsonFormat(window.currentSiteData.features?.[0]) : 'legacy';
 
-                        if (geoJsonFormat === 'boyd') {
+                        if (geoJsonFormat === 'ecological') {
                             layerControls.style.display = 'block';
 
                             if (window.initializeLayerControls) {

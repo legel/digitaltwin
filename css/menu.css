@@ -757,7 +757,7 @@
 
 /* Ensure layer controls are visible */
 #layerControls {
-    display: none; /* Hidden by default, shown when Boyd site selected */
+    display: none; /* Hidden by default, shown when ecological data site is selected */
 }
 
 /* Allow selected items to extend outside containers */
