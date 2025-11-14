@@ -60,7 +60,7 @@ make
 ./ply_to_spz_converter input.ply output.spz
 
 # Example
-./ply_to_spz_converter scott_boyd_residence.ply scott_boyd_residence.spz
+./ply_to_spz_converter demo_site.ply demo_site.spz
 ```
 
 ### Performance Benefits
@@ -132,7 +132,7 @@ python spz_converter.py input.spz output_directory/
 python spz_converter.py input.spz output_directory/ --content-name my_model.glb
 
 # Examples
-python spz_converter.py ./data/scott_boyd_residence.spz ./output/
+python spz_converter.py ./data/demo_site.spz ./output/
 python spz_converter.py ./data/my_model.spz ./cesium_assets/ --content-name gaussian_splats.glb
 ```
 
@@ -146,7 +146,7 @@ mvn exec:java -Dexec.mainClass="de.javagl.jspz.examples.SpzToTileset" \
 
 # Example
 mvn exec:java -Dexec.mainClass="de.javagl.jspz.examples.SpzToTileset" \
-  -Dexec.args="scott_boyd_residence.spz ./output/ content.glb" \
+  -Dexec.args="demo_site.spz ./output/ content.glb" \
   -pl jspz-main
 ```
 
@@ -283,8 +283,8 @@ python splat_bounds_processor.py input.spz
 # Recommended settings for Cesium integration
 python splat_bounds_processor.py input.spz --bounds-method polygonal_prism
 
-# Example with Scott Boyd Residence
-python splat_bounds_processor.py scott_boyd_residence.spz --bounds-method polygonal_prism
+# Example with Demo Site
+python splat_bounds_processor.py demo_site.spz --bounds-method polygonal_prism
 ```
 
 ### Output Format
@@ -369,16 +369,16 @@ cp clipping-polygon.json data/my-site-name/
 cp site-data.geojson data/my-site-name/My_Site_Name.geojson
 ```
 
-### Example: Scott Boyd Residence
+### Example: Demo Site
 
 Reference implementation showing proper file organization:
 
 ```
-data/scott-boyd-residence/
+data/demo-site/
 ├── tileset.json                        # Cesium 3D Tiles metadata
 ├── content.glb                         # Compressed Gaussian splat data
 ├── clipping-polygon.json               # 3D boundary definition
-└── Boyd_Residence_Aerial_and_Ground.geojson  # Additional site data
+└── plantable-area-data.geojson  # Additional site data
 ```
 
 ### Integration with Terrain 3D
@@ -390,7 +390,7 @@ data/scott-boyd-residence/
 
 ### File Naming Conventions
 
-- **Directory names**: Use lowercase with hyphens (e.g., `scott-boyd-residence`)
+- **Directory names**: Use lowercase with hyphens (e.g., `demo-site`)
 - **Required files**: `tileset.json` and `content.glb` must be present
 - **Optional files**: `clipping-polygon.json` for clipping, `.geojson` for overlays
 - **GeoJSON naming**: Can match site name or describe content purpose

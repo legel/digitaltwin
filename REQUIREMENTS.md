@@ -91,7 +91,7 @@ The platform features an elegant focus panel that provides landscape architects 
 **Data Integration**:
 - **Real-time Updates**: Instantly displays metrics when plantable area is selected
 - **Project-wide Ranges**: Calculates min/max values across all site areas
-- **Boyd Format Support**: Parses M1-M10 ecological niche model data
+- **Ecological Data Format Support**: Parses M1-M10 ecological niche model data
 - **Metric Reordering**: Optimized order based on landscape design priorities
 
 #### 2.4 Scientific Accuracy & Validation

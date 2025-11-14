@@ -95,7 +95,7 @@ chmod +x /tmp/binary_split.sh
 Split your PLY file into 100 chunks:
 
 ```bash
-# Example: Split scott-boyd-residence splat
+# Example: Split demo-site splat
 /tmp/binary_split.sh \
     /path/to/splat.ply \
     /tmp/splat_chunks \
@@ -158,7 +158,7 @@ Upload all chunks in parallel using `gsutil`:
 gsutil -m cp /tmp/splat_chunks/*.bin gs://deepearth/datasets/splats/chunks/
 
 # Upload chunks (multi-site - recommended for future)
-SITE_ID="scott-boyd-residence"
+SITE_ID="demo-site"
 gsutil -m cp /tmp/splat_chunks/*.bin gs://deepearth/datasets/splats/chunks/${SITE_ID}/
 ```
 
@@ -216,7 +216,7 @@ Create `manifests/[site-id]_manifest.json`:
 
 ```json
 {
-  "site_id": "scott-boyd-residence",
+  "site_id": "demo-site",
   "total_parts": 100,
   "total_size": 126564033,
   "chunk_size": 1265640,
@@ -250,7 +250,7 @@ OUTPUT_FILE="manifests/${SITE_ID}_manifest.json"
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <site_id> <chunks_dir>"
-    echo "Example: $0 scott-boyd-residence /tmp/splat_chunks"
+    echo "Example: $0 demo-site /tmp/splat_chunks"
     exit 1
 fi
 
@@ -305,7 +305,7 @@ echo "Manifest created: $OUTPUT_FILE"
 Usage:
 ```bash
 chmod +x generate_manifest.sh
-./generate_manifest.sh scott-boyd-residence /tmp/splat_chunks
+./generate_manifest.sh demo-site /tmp/splat_chunks
 ```
 
 ### Multi-Site Manifest
@@ -376,7 +376,7 @@ The server runs on `http://localhost:5001` (configurable in `server.py`).
 
 Expected console output:
 ```
-[ProgressivePlyLoader] Fetching manifest: /manifests/scott-boyd-residence_manifest.json
+[ProgressivePlyLoader] Fetching manifest: /manifests/demo-site_manifest.json
 [ProgressivePlyLoader] Manifest loaded: 100 parts, 126564033 bytes total
 [ProgressivePlyLoader] Starting staggered downloads (5 concurrent)
 [ProgressivePlyLoader] Downloaded part 0/100 (1265640 bytes)
@@ -554,7 +554,7 @@ gs://deepearth/datasets/splats/chunks/
 
 # Multi-site structure (recommended for future):
 gs://deepearth/datasets/splats/chunks/
-├── scott-boyd-residence/
+├── demo-site/
 │   ├── chunk_000.bin
 │   └── ...
 └── new-site-name/
@@ -564,7 +564,7 @@ gs://deepearth/datasets/splats/chunks/
 
 ## Performance Metrics
 
-### Scott Boyd Residence Example
+### Demo Site Example
 
 - **Original PLY size**: 126.5 MB
 - **Chunk count**: 100

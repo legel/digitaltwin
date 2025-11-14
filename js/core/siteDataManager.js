@@ -12,14 +12,14 @@ async function loadSiteData() {
 
     // Define the GeoJSON files to load
     const files = [
-        { filename: 'Boyd_Residence_Aerial_and_Ground.geojson', name: 'Winter Garden Residence' }
+        { filename: 'plantable-area-data.geojson', name: 'Winter Garden Residence' }
     ];
 
     for (const file of files) {
         try {
             const dataUrl = window.TerrainConfig ?
-                window.TerrainConfig.getDataUrl(`scott-boyd-residence/${file.filename}`) :
-                `/data/scott-boyd-residence/${file.filename}`;
+                window.TerrainConfig.getDataUrl(`demo-site/${file.filename}`) :
+                `/data/demo-site/${file.filename}`;
             const response = await fetch(dataUrl);
             const geoJsonData = await response.json();
 
@@ -69,7 +69,7 @@ async function initializeSiteSelector() {
     if (winterGardenOption) {
         siteDropdown.value = winterGardenOption.value;
 
-        // Since Scott Boyd site uses Boyd format, show the layer controls immediately
+        // Since this site uses ecological data format, show the layer controls immediately
         const layerControls = document.getElementById('layerControls');
         if (layerControls) {
             layerControls.style.display = 'block';
@@ -182,10 +182,10 @@ async function initializeSupersplatSiteData() {
     // Load site data
     const sites = await loadSiteData();
 
-    // Find the default site (Winter Garden Residence / scott-boyd-residence)
+    // Find the default site (Winter Garden Residence / demo-site)
     const defaultSite = sites.find(site =>
         site.name === 'Winter Garden Residence' ||
-        site.filename.includes('scott-boyd-residence')
+        site.filename.includes('demo-site')
     );
 
     if (!defaultSite) {
@@ -193,7 +193,7 @@ async function initializeSupersplatSiteData() {
         return;
     }
 
-    // Show layer controls for Boyd format
+    // Show layer controls for ecological data format
     const layerControls = document.getElementById('layerControls');
     if (layerControls) {
         layerControls.style.display = 'block';
