@@ -38,7 +38,7 @@ Support landscape designers in creating ecologically functional and beautiful la
 7. **main.js** - Simple but critical bootstrap sequence
 
 ### Common Pitfalls
-- Layer controls only show for Boyd format sites
+- Layer controls only show for sites with ecological data format
 - Polygon rendering requires SuperSplat initialization completion
 - Height adjustment system uses global `currentHeightOffset`
 - **Direct Calls**: Polygon rendering uses direct `window.superSplatBridge.renderGeoJSONPolygons()` calls
@@ -55,8 +55,8 @@ Support landscape designers in creating ecologically functional and beautiful la
 ```
 Site Selection (dropdown)
 → loadSiteData()
-→ detectGeoJsonFormat() ['boyd'|'legacy']
-→ if boyd: initializeLayerControlsForSite() → analyzePA/NPACategories()
+→ detectGeoJsonFormat() ['ecological'|'legacy']
+→ if ecological: initializeLayerControlsForSite() → analyzePA/NPACategories()
 → SuperSplatBridge.renderGeoJSONPolygons() [main rendering function]
 → Layer controls become interactive
 → User clicks PA/layer OR polygon → SuperSplat polygon selection

@@ -32,7 +32,7 @@ This document tracks the migration from a dual Cesium/SuperSplat system to a Sup
 - [x] **Migrate right panel (layer controls) to Lab mode**
   - Show plantable areas panel in Lab mode (previously hidden by `hideUIForLabMode()`)
   - Show environmental metrics panel in Lab mode
-  - Boyd format site data loading works in Lab mode
+  - Ecological format site data loading works in Lab mode
   - Positioned to avoid SuperSplat view-cube-container (top-right)
 - [x] **UI positioning adjustments for SuperSplat compatibility**
   - Added `.supersplat-mode` CSS class with `top: 120px` for proper clearance
@@ -274,7 +274,7 @@ class PolygonOverlay extends Element {
 
     updateFromGeoJSON(geoJsonData: any) {
         // Convert GeoJSON features to PlayCanvas meshes
-        // Handle Boyd format ecological data
+        // Handle Ecological format ecological data
         // Apply current layer filtering
     }
 }
@@ -699,7 +699,7 @@ The site-bounds.json format has been simplified to contain only essential inform
 
 ```json
 {
-  "site": "scott-boyd-residence",
+  "site": "demo-site",
   "center": {
     "longitude": -81.6570725,
     "latitude": 28.5217321
