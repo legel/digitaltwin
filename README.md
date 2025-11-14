@@ -7,7 +7,7 @@
 
 This is a 3D visualization platform for landscape designers working with photorealistic digital twins. It integrates 3D Gaussian Splatting with ecological modeling to support native plant-based landscape design decisions.
 
-![3D Gaussian Splat Digital Twin](docs/digital_twin.png)
+![3D Gaussian Splat Digital Twin](docs/media/digital_twin.png)
 
 
 ## 🦋 Platform Overview
@@ -26,7 +26,7 @@ This is a 3D visualization platform for landscape designers working with photore
 
 
 
-![Layer Controls Interface](docs/Dropdown%20UI.png)
+![Layer Controls Interface](docs/media/Dropdown%20UI.png)
 
 
 
@@ -38,7 +38,7 @@ This is a 3D visualization platform for landscape designers working with photore
 
 
 
-![Ecological Metrics Visualization](docs/Ecological%20Metrics.png)
+![Ecological Metrics Visualization](docs/media/Ecological%20Metrics.png)
 
 
 
