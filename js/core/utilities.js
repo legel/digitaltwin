@@ -287,7 +287,7 @@ function parseEcologicalData(description) {
         'M7': 'organicMatter', // Organic Matter
         'M8': 'droughtRisk',   // Drought Risk
         'M9': 'floodRisk',     // Flood Risk
-        'M10': 'windExposure'  // Wind Exposure
+        'M10': 'windExposure'  // Extreme Wind Exposure
     };
 
     Object.entries(params).forEach(([key, paramName]) => {

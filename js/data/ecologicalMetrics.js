@@ -261,7 +261,7 @@ function createColorLegend(paramType, minVal, maxVal) {
                 unit = '%';
                 break;
             case 'windExposure':
-                unit = ' (scale)';
+                unit = '%';
                 break;
         }
 
@@ -293,7 +293,7 @@ function getParameterDisplayName(paramType) {
         'organicMatter': 'Organic Matter',
         'droughtRisk': 'Drought Risk',
         'floodRisk': 'Flood Risk',
-        'windExposure': 'Wind Exposure'
+        'windExposure': 'Extreme Wind Exposure'
     };
     return names[paramType] || paramType;
 }
