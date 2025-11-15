@@ -26,19 +26,15 @@ This is a 3D visualization platform for landscape designers working with photore
 
 
 
-![Layer Controls Interface](docs/media/Dropdown%20UI.png)
-
-
-
 ### Scientific Model Integration: View ecological metrics as color coded UI overlays
 
 - **Soil Chemistry**: pH, nutrient levels (NPK), and composition analysis
 - **Microclimate Mapping**: Solar exposure, moisture gradients, and wind patterns
 - **Environmental Risk**: Drought, flood, and extreme weather vulnerability assessment
 
+![Sunlight Exposure Analysis](docs/media/sunlight_exposure.jpg)
 
-
-![Ecological Metrics Visualization](docs/media/Ecological%20Metrics.png)
+![Wind Exposure Mapping](docs/media/wind_exposure.jpg)
 
 
 
