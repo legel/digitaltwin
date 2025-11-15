@@ -1,4 +1,0 @@
-STRANDED FILE REPORT
-================================================================================
-
-stranded_files_report.txt	0 bytes
