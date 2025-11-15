@@ -34,7 +34,7 @@ This is a 3D visualization platform for landscape designers working with photore
 
 ![Sunlight Exposure Analysis](docs/media/sunlight_exposure.jpg)
 
-![Wind Exposure Mapping](docs/media/wind_exposure.jpg)
+![Flood Risk Mapping](docs/media/flood_risk.jpg)
 
 
 
