@@ -70,6 +70,25 @@ Site Selection (dropdown)
 3. Edit any JS/CSS file
 4. Refresh browser (no build needed)
 
+## Deployment Protocol
+
+**CRITICAL RULE**: All deployments must follow this staged deployment process:
+
+1. **Local Development**: Test changes thoroughly at `http://localhost:5001`
+2. **Staging Deployment**:
+   - Deploy to staging server (`https://staging.ecodash.ai`)
+   - Restart staging service only
+   - **STOP and wait for user approval**
+3. **User Sign-Off Required**:
+   - User must manually review `https://staging.ecodash.ai`
+   - User must explicitly authorize production deployment
+4. **Production Deployment**:
+   - Only after explicit user approval
+   - Deploy to production server (`https://digitaltwin.ecodash.ai`)
+   - Restart production service
+
+**Never deploy directly to production without staging sign-off.**
+
 ## Key Implementation Details
 
 ### Cloud Services
