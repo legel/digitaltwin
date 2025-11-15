@@ -182,7 +182,7 @@ content-length: 1265640
 
 The manifest file tells the browser where to find all chunks and how to assemble them.
 
-Create `manifests/${SITE_ID}_manifest.json`:
+Create `data/${SITE_ID}/${SITE_ID}_manifest.json`:
 
 ```json
 {
@@ -216,7 +216,7 @@ Use this script to generate the manifest from your chunks:
 
 SITE_ID="$1"
 CHUNKS_DIR="$2"
-OUTPUT_FILE="manifests/${SITE_ID}_manifest.json"
+OUTPUT_FILE="data/${SITE_ID}/${SITE_ID}_manifest.json"
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <site_id> <chunks_dir>"
@@ -328,7 +328,7 @@ The server runs on `http://localhost:5001` by default.
 
 Expected console output:
 ```
-[ProgressivePlyLoader] Fetching manifest: /manifests/your-site_manifest.json
+[ProgressivePlyLoader] Fetching manifest: /api/splat-manifest/your-site
 [ProgressivePlyLoader] Manifest loaded: 100 parts, 126564033 bytes total
 [ProgressivePlyLoader] Starting staggered downloads (5 concurrent)
 [ProgressivePlyLoader] Downloaded part 0/100 (1265640 bytes)
@@ -353,7 +353,7 @@ Watch the loading screen progress bar:
 
 ```bash
 # Add manifest and site data
-git add manifests/${SITE_ID}_manifest.json
+git add data/${SITE_ID}/${SITE_ID}_manifest.json
 git add data/${SITE_ID}/site-bounds.json
 
 # Commit with descriptive message
@@ -415,10 +415,9 @@ Follow your deployment workflow (see your internal deployment documentation).
 
 ```
 digitaltwin/
-├── manifests/
-│   └── ${SITE_ID}_manifest.json          # Chunk locations and metadata
 ├── data/
 │   └── ${SITE_ID}/
+│       ├── ${SITE_ID}_manifest.json      # Chunk locations and metadata
 │       ├── site-bounds.json              # Coordinate transformation config
 │       └── plantable-areas.geojson       # Plantable areas (optional)
 └── js/
