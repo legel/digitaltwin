@@ -479,9 +479,6 @@ class PlantRecommendationsPage {
             // Build matches between our species and nursery inventory
             await window.nurseryDataManager.buildSpeciesMatches(ourSpeciesList);
 
-            // Log summary statistics
-            const stats = window.nurseryDataManager.getMatchStats();
-            console.log('PlantRecommendationsPage: Nursery data initialized', stats);
 
         } catch (error) {
             console.error('PlantRecommendationsPage: Error initializing nursery data:', error);
@@ -1064,7 +1061,6 @@ class PlantRecommendationsPage {
      * Handle plant selection (legacy method - now mostly handled by direct clicks)
      */
     onPlantSelected(plantName) {
-        console.log('Plant selected (legacy):', plantName);
     }
 
     /**
@@ -1140,6 +1136,9 @@ class PlantRecommendationsPage {
 
         // Attach event listeners
         this.attachPurchaseWidgetListeners();
+
+        // Reset quantity displays to default values
+        this.resetQuantityDisplays();
     }
 
     /**
@@ -1155,8 +1154,13 @@ class PlantRecommendationsPage {
             `;
         }
 
-        // Generate cards for each inventory item
-        return inventoryItems.map((item, index) => {
+        // Convert to ProductNurseryPlant instances for consistent handling
+        const products = ProductNurseryPlant.fromInventoryArray(plantName, speciesKey, inventoryItems);
+
+        // Generate cards for each product
+        return products.map((product, index) => {
+            const item = product.getNurseryData();
+
             // Calculate quantity already in cart for this specific inventory item
             const cartQuantity = window.cartManager ?
                 window.cartManager.getItemQuantity(plantName, speciesKey, item) : 0;
@@ -1175,7 +1179,7 @@ class PlantRecommendationsPage {
             const containerInfo = `${item.container_size || ''} ${item.container_type || 'GALLON'}`;
 
             return `
-                <div class="inventory-card" data-item-index="${index}" data-max-quantity="${maxQuantity}">
+                <div class="inventory-card" data-item-index="${index}" data-max-quantity="${maxQuantity}" data-product-id="${product.uniqueId}">
                     <div class="card-image-container">
                         <img src="${item.picture_1_url || this.getFallbackImageUrl()}"
                              alt="${item.common_name || plantName}"
@@ -1205,7 +1209,7 @@ class PlantRecommendationsPage {
                                 <div class="card-quantity-controls" style="display: none;">
                                     <div class="quantity-selector">
                                         <button class="quantity-btn quantity-minus" data-action="decrease" data-item-index="${index}">−</button>
-                                        <span class="quantity-display">1</span>
+                                        <span class="quantity-display">${Math.min(10, remainingInventory)}</span>
                                         <button class="quantity-btn quantity-plus" data-action="increase" data-item-index="${index}">+</button>
                                     </div>
                                     <button class="add-to-cart-btn" data-item-index="${index}">Add to Cart</button>
@@ -1242,8 +1246,6 @@ class PlantRecommendationsPage {
             inventoryItems = window.nurseryDataManager.getInventoryForSpecies(plantName);
             matchCount = inventoryItems.length;
         }
-
-        console.log(`PlantRecommendationsPage: Found ${matchCount} nursery matches for "${plantName}"`);
 
         // Return all inventory items for multi-card display
         return inventoryItems;
@@ -1353,10 +1355,32 @@ class PlantRecommendationsPage {
 
         const buyButton = card.querySelector('.card-buy-btn');
         const quantityControls = card.querySelector('.card-quantity-controls');
+        const quantityDisplay = card.querySelector('.quantity-display');
+        const quantityAvailableElement = card.querySelector('.qty-number');
 
         if (buyButton && quantityControls) {
             buyButton.style.display = 'none';
             quantityControls.style.display = 'flex';
+
+            // Update quantity available display to reflect the default quantity selection
+            if (quantityDisplay && quantityAvailableElement) {
+                const currentQuantity = parseInt(quantityDisplay.textContent) || 10;
+                const plantName = this.activePurchaseWidget?.dataset.plant;
+                const speciesKey = this.activePurchaseWidget?.dataset.speciesKey;
+                const inventoryItems = this.getNurseryInventoryData(plantName);
+                const inventoryItem = inventoryItems[itemIndex];
+
+                if (inventoryItem) {
+                    // Calculate remaining inventory after cart items and current selection
+                    const cartQuantity = window.cartManager ?
+                        window.cartManager.getItemQuantity(plantName, speciesKey, inventoryItem) : 0;
+                    const totalAvailable = inventoryItem.quantity_available || 0;
+                    const remainingAfterCart = Math.max(0, totalAvailable - cartQuantity);
+                    const remainingAfterSelection = remainingAfterCart - currentQuantity;
+
+                    quantityAvailableElement.textContent = remainingAfterSelection;
+                }
+            }
         }
     }
 
@@ -1365,14 +1389,14 @@ class PlantRecommendationsPage {
      */
     getCardQuantity(itemIndex) {
         const card = this.activePurchaseWidget.querySelector(`[data-item-index="${itemIndex}"]`);
-        if (!card) return 1;
+        if (!card) return 10;
 
         const quantityDisplay = card.querySelector('.quantity-display');
-        return quantityDisplay ? parseInt(quantityDisplay.textContent) : 1;
+        return quantityDisplay ? parseInt(quantityDisplay.textContent) : 10;
     }
 
     /**
-     * Update quantity for a specific card with inventory limits
+     * Update quantity for a specific card with 10-unit intervals and remainder handling
      */
     updateCardQuantity(action, itemIndex, inventoryItem) {
         const card = this.activePurchaseWidget.querySelector(`[data-item-index="${itemIndex}"]`);
@@ -1381,10 +1405,11 @@ class PlantRecommendationsPage {
         const quantityDisplay = card.querySelector('.quantity-display');
         const minusBtn = card.querySelector('.quantity-minus');
         const plusBtn = card.querySelector('.quantity-plus');
+        const quantityAvailableElement = card.querySelector('.qty-number');
 
-        if (!quantityDisplay) return;
+        if (!quantityDisplay || !quantityAvailableElement) return;
 
-        let currentQuantity = parseInt(quantityDisplay.textContent) || 1;
+        let currentQuantity = parseInt(quantityDisplay.textContent) || 10;
 
         // Calculate quantity already in cart for this specific inventory item
         const plantName = this.activePurchaseWidget?.dataset.plant;
@@ -1392,21 +1417,58 @@ class PlantRecommendationsPage {
         const cartQuantity = window.cartManager ?
             window.cartManager.getItemQuantity(plantName, speciesKey, inventoryItem) : 0;
 
-        // Calculate max quantity: available inventory minus what's already in cart, capped at 20 per transaction
-        const remainingInventory = Math.max(0, (inventoryItem.quantity_available || 0) - cartQuantity);
-        const maxQuantity = Math.min(remainingInventory, 20);
+        // Calculate remaining inventory after cart items
+        const totalAvailable = inventoryItem.quantity_available || 0;
+        const remainingInventory = Math.max(0, totalAvailable - cartQuantity);
 
-        if (action === 'increase' && currentQuantity < maxQuantity) {
-            currentQuantity++;
-        } else if (action === 'decrease' && currentQuantity > 1) {
-            currentQuantity--;
+        // Handle quantity changes with 10-unit intervals
+        if (action === 'increase') {
+            if (remainingInventory < 10) {
+                // If less than 10 available, lock to available amount
+                currentQuantity = remainingInventory;
+            } else {
+                const currentMultiple = Math.floor(currentQuantity / 10) * 10;
+                const remainder = remainingInventory % 10;
+
+                if (currentQuantity === currentMultiple && currentQuantity + 10 <= remainingInventory) {
+                    // Normal increment by 10
+                    currentQuantity += 10;
+                } else if (remainder > 0 && currentQuantity === Math.floor(remainingInventory / 10) * 10) {
+                    // Add remainder when at highest multiple of 10
+                    currentQuantity = remainingInventory;
+                }
+            }
+        } else if (action === 'decrease') {
+            if (remainingInventory < 10) {
+                // Can't decrease if locked to available amount less than 10
+                return;
+            } else {
+                const currentMultiple = Math.floor(currentQuantity / 10) * 10;
+
+                if (currentQuantity > currentMultiple) {
+                    // Go back to nearest multiple of 10
+                    currentQuantity = currentMultiple;
+                } else if (currentQuantity >= 20) {
+                    // Normal decrement by 10
+                    currentQuantity -= 10;
+                } else {
+                    // At minimum (10), can't decrease further
+                    return;
+                }
+            }
         }
 
+        // Update displays
         quantityDisplay.textContent = currentQuantity;
 
-        // Update button states based on limits
-        if (minusBtn) minusBtn.disabled = currentQuantity <= 1;
-        if (plusBtn) plusBtn.disabled = currentQuantity >= maxQuantity;
+        // Update quantity available display to reflect selection
+        const updatedRemaining = remainingInventory - currentQuantity;
+        quantityAvailableElement.textContent = updatedRemaining;
+
+        // Update button states
+        const minQuantity = remainingInventory < 10 ? remainingInventory : 10;
+        if (minusBtn) minusBtn.disabled = currentQuantity <= minQuantity;
+        if (plusBtn) plusBtn.disabled = currentQuantity >= remainingInventory;
     }
 
     /**
@@ -1451,6 +1513,46 @@ class PlantRecommendationsPage {
     }
 
     /**
+     * Reset quantity displays to original values when widget is recreated
+     */
+    resetQuantityDisplays() {
+        if (!this.activePurchaseWidget) return;
+
+        const plantName = this.activePurchaseWidget.dataset.plant;
+        const speciesKey = this.activePurchaseWidget.dataset.speciesKey;
+        const inventoryItems = this.getNurseryInventoryData(plantName);
+
+        inventoryItems.forEach((item, index) => {
+            const card = this.activePurchaseWidget.querySelector(`[data-item-index="${index}"]`);
+            if (!card) return;
+
+            // Reset quantity display to default (10 or available if less than 10)
+            const quantityDisplay = card.querySelector('.quantity-display');
+            const quantityAvailableElement = card.querySelector('.qty-number');
+
+            if (quantityDisplay && quantityAvailableElement) {
+                // Calculate current cart quantity and remaining inventory
+                const cartQuantity = window.cartManager ?
+                    window.cartManager.getItemQuantity(plantName, speciesKey, item) : 0;
+                const remainingInventory = Math.max(0, (item.quantity_available || 0) - cartQuantity);
+
+                // Reset to default quantity and display
+                const defaultQuantity = Math.min(10, remainingInventory);
+                quantityDisplay.textContent = defaultQuantity;
+                quantityAvailableElement.textContent = remainingInventory;
+
+                // Reset quantity controls to be hidden
+                const buyButton = card.querySelector('.card-buy-btn');
+                const quantityControls = card.querySelector('.card-quantity-controls');
+                if (buyButton && quantityControls) {
+                    buyButton.style.display = 'block';
+                    quantityControls.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    /**
      * Update plant spacing to accommodate active widget
      */
     updatePlantSpacing(activeItem, isShowing, isNoInventory = false) {
@@ -1488,7 +1590,6 @@ class PlantRecommendationsPage {
      * Update recommendations based on ecological metrics
      */
     updateRecommendationsForMetrics(metrics) {
-        console.log('Updating recommendations for metrics:', metrics);
     }
 
     /**

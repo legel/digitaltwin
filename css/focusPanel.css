@@ -992,6 +992,34 @@
     padding: 40px 20px;
 }
 
+/* Cart summary */
+.cart-summary {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 20px;
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.cart-summary-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+}
+
+.cart-summary-line.cart-total {
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    margin-top: 10px;
+    padding-top: 15px;
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+}
+
 /* Cart overlay */
 .cart-overlay {
     position: fixed;
@@ -1031,6 +1059,8 @@
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    cursor: default; /* Override parent plant-item cursor: pointer */
+    pointer-events: auto; /* Ensure widget can still receive interactions for its buttons */
 }
 
 .plant-purchase-widget.visible {
@@ -1049,7 +1079,7 @@
 
 .purchase-widget-close {
     position: absolute;
-    top: -5px;
+    top: -15px;
     right: -5px;
     width: 24px;
     height: 24px;
@@ -1895,15 +1925,9 @@
     background: #072b2e; /* Ecodash blue background */
     border: 2px solid white; /* White outline as shown in mockup */
     border-radius: 12px;
-    margin-bottom: 10px;
-    overflow: hidden;
+    margin-bottom: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease;
     position: relative;
-}
-
-.inventory-card:hover {
-    transform: translateY(-1px);
 }
 
 .inventory-card:last-child {
@@ -1920,6 +1944,8 @@
     align-items: center;
     justify-content: center;
     background-color: #072b2e; /* Ecodash blue background for aspect ratio gaps */
+    border-top-left-radius: 10px; /* Match card radius minus border */
+    border-top-right-radius: 10px;
 }
 
 .card-image {
@@ -1927,7 +1953,7 @@
     height: auto; /* Allow height to adjust for aspect ratio */
     min-height: 120px;
     max-height: 300px;
-    object-fit: contain; /* Preserve aspect ratio within bounds */
+    object-fit: cover; /* Fill full width, crop top/bottom if needed */
     object-position: center;
 }
 
@@ -2128,18 +2154,22 @@
 }
 
 /* White horizontal divider between cards */
-.card-divider {
+.inventory-card:not(:last-child)::after {
+    content: '';
     position: absolute;
-    bottom: -5px;
-    left: 20px;
-    right: 20px;
+    bottom: -12px; /* Exactly in middle of 20px margin-bottom */
+    left: 0;
+    right: 0;
     height: 1px;
     background: white;
-    opacity: 0.3;
+    opacity: 0.8;
+    z-index: 10; /* Above widget background, same level as card borders */
+    pointer-events: none; /* Prevent interaction with dividers */
 }
 
-.inventory-card:last-child .card-divider {
-    display: none; /* No divider after last card */
+/* Hide the HTML card-divider elements since we're using CSS pseudo-elements */
+.card-divider {
+    display: none;
 }
 
 /* No inventory message */

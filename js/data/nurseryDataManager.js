@@ -22,7 +22,6 @@ class NurseryDataManager {
             const response = await fetch('/data/nursery-inventories/cherrylake_inventory_20251114.csv');
             const csvText = await response.text();
             this.cherrylakeInventory = this.parseCSV(csvText);
-            console.log('NurseryDataManager: Loaded Cherrylake inventory with', this.cherrylakeInventory.length, 'items');
             return this.cherrylakeInventory;
         } catch (error) {
             console.error('NurseryDataManager: Error loading Cherrylake inventory:', error);
@@ -190,12 +189,6 @@ class NurseryDataManager {
             }
         });
 
-        console.log(`NurseryDataManager: Processed ${totalProcessed} inventory items`);
-        console.log(`NurseryDataManager: Matched ${totalMatched} items to our species`);
-        console.log(`NurseryDataManager: Skipped ${totalSkipped} items (no match)`);
-        console.log(`NurseryDataManager: Null parsed ${totalNullParsed} items (invalid format)`);
-        console.log(`NurseryDataManager: Found matches for ${this.speciesMatches.size} unique species`);
-        console.log(`NurseryDataManager: ${unmatchedSpecies.size} unique species had no matches`);
 
         return this.speciesMatches;
     }
@@ -206,11 +199,8 @@ class NurseryDataManager {
     getInventoryForSpecies(speciesName) {
         const matches = this.speciesMatches.get(speciesName);
         if (!matches || matches.length === 0) {
-            console.log(`NurseryDataManager: No inventory found for "${speciesName}"`);
             return [];
         }
-
-        console.log(`NurseryDataManager: Found ${matches.length} inventory items for "${speciesName}"`);
 
         // Return formatted inventory data with the fields we need
         return matches.map(item => ({

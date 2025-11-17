@@ -20,8 +20,14 @@ def get_splat_manifest(site_id):
     Return the manifest for a site's partitioned splat files.
     The manifest contains URLs for all PLY parts that should be loaded from GCS CDN.
     """
-    manifest_dir = Path(f'./data/{site_id}')
+    # Try new sites/ directory structure first
+    manifest_dir = Path(f'./data/sites/{site_id}')
     manifest_path = manifest_dir / f"{site_id}_manifest.json"
+
+    # Fall back to legacy directory structure
+    if not manifest_path.exists():
+        manifest_dir = Path(f'./data/{site_id}')
+        manifest_path = manifest_dir / f"{site_id}_manifest.json"
 
     if not manifest_path.exists():
         # Fallback: return single-file manifest for legacy sites

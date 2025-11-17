@@ -94,10 +94,12 @@ class CartManager {
      * Add item to cart with inventory details
      */
     addToCart(plantName, speciesKey, quantity, inventoryItem = null) {
-        // Create unique identifier for specific inventory items
-        const itemId = inventoryItem ?
-            `${plantName}-${speciesKey}-${inventoryItem.item_code || inventoryItem.container_size}` :
-            `${plantName}-${speciesKey}`;
+        // Create ProductNurseryPlant for proper unique identification
+        const product = inventoryItem ?
+            new ProductNurseryPlant(plantName, speciesKey, inventoryItem) :
+            null;
+
+        const itemId = product ? product.uniqueId : `${plantName}-${speciesKey}`;
 
         // Check if this specific item already exists in cart
         const existingItem = this.cart.find(item => item.itemId === itemId);
@@ -110,18 +112,14 @@ class CartManager {
                 plantName,
                 speciesKey,
                 quantity,
-                inventoryDetails: inventoryItem ? {
-                    nursery: inventoryItem.nursery,
-                    containerSize: inventoryItem.container_size,
-                    containerType: inventoryItem.container_type,
-                    price: inventoryItem.wholesale_price,
-                    itemCode: inventoryItem.item_code
-                } : null
+                // Store the COMPLETE inventory data for perfect 1:1 mapping
+                inventoryData: inventoryItem ? { ...inventoryItem } : null,
+                // Also store the product instance for consistent access to methods
+                product: product
             });
         }
 
         this.updateCartDisplay();
-        console.log(`Added to cart: ${quantity}x ${plantName}`);
     }
 
     /**
@@ -131,7 +129,6 @@ class CartManager {
         const item = this.cart.find(item => item.itemId === itemId);
         this.cart = this.cart.filter(item => item.itemId !== itemId);
         this.updateCartDisplay();
-        console.log(`Removed from cart: ${item ? item.plantName : 'Unknown item'}`);
     }
 
     /**
@@ -142,7 +139,6 @@ class CartManager {
             !(item.plantName === plantName && item.speciesKey === speciesKey)
         );
         this.updateCartDisplay();
-        console.log(`Removed from cart: ${plantName}`);
     }
 
     /**
@@ -156,9 +152,12 @@ class CartManager {
      * Get quantity of specific inventory item already in cart
      */
     getItemQuantity(plantName, speciesKey, inventoryItem) {
-        const itemId = inventoryItem ?
-            `${plantName}-${speciesKey}-${inventoryItem.item_code || inventoryItem.container_size}` :
-            `${plantName}-${speciesKey}`;
+        // Create ProductNurseryPlant for proper unique identification
+        const product = inventoryItem ?
+            new ProductNurseryPlant(plantName, speciesKey, inventoryItem) :
+            null;
+
+        const itemId = product ? product.uniqueId : `${plantName}-${speciesKey}`;
 
         const existingItem = this.cart.find(item => item.itemId === itemId);
         return existingItem ? existingItem.quantity : 0;
@@ -185,6 +184,52 @@ class CartManager {
     }
 
     /**
+     * Get shipping cost (placeholder)
+     */
+    getShippingCost() {
+        return 150.00;
+    }
+
+    /**
+     * Get sales tax rate (placeholder)
+     */
+    getSalesTaxRate() {
+        return 1.06;
+    }
+
+    /**
+     * Calculate subtotal for all plants
+     */
+    getSubtotal() {
+        return this.cart.reduce((total, item) => {
+            const unitPrice = this.getItemUnitPrice(item);
+            return total + (unitPrice * item.quantity);
+        }, 0);
+    }
+
+    /**
+     * Get unit price for a cart item
+     */
+    getItemUnitPrice(item) {
+        if (item.product) {
+            return parseFloat(item.product.nurseryData.wholesale_price) || 0;
+        } else if (item.inventoryData) {
+            return parseFloat(item.inventoryData.wholesale_price) || 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Calculate total cost including shipping and tax
+     */
+    getTotalCost() {
+        const subtotal = this.getSubtotal();
+        const shipping = this.getShippingCost();
+        const beforeTax = subtotal + shipping;
+        return beforeTax * this.getSalesTaxRate();
+    }
+
+    /**
      * Update cart popup content
      */
     updateCartPopup() {
@@ -194,24 +239,47 @@ class CartManager {
         if (this.cart.length === 0) {
             cartEmpty.style.display = 'block';
             cartItems.querySelectorAll('.cart-item').forEach(item => item.remove());
+            cartItems.querySelectorAll('.cart-summary').forEach(summary => summary.remove());
         } else {
             cartEmpty.style.display = 'none';
 
-            // Clear existing items
+            // Clear existing items and summary
             cartItems.querySelectorAll('.cart-item').forEach(item => item.remove());
+            cartItems.querySelectorAll('.cart-summary').forEach(summary => summary.remove());
 
             // Add current cart items
             this.cart.forEach((item, index) => {
-                const inventoryInfo = item.inventoryDetails ?
-                    `<div class="cart-item-details">${item.inventoryDetails.containerSize} ${item.inventoryDetails.containerType} - ${item.inventoryDetails.nursery}</div>` :
-                    '';
+                // Use the stored product for consistent display, fallback to legacy data
+                let inventoryInfo = '';
+                if (item.product) {
+                    // Use ProductNurseryPlant methods for consistent formatting
+                    const containerInfo = item.product.getContainerInfo();
+                    const dimensions = item.product.getDimensions();
+                    const nursery = item.product.getNurseryDisplayName();
+
+                    inventoryInfo = `<div class="cart-item-details">${containerInfo}${dimensions ? ' - ' + dimensions : ''} - ${nursery}</div>`;
+                } else if (item.inventoryData) {
+                    // Fallback using complete inventory data
+                    const containerInfo = `${item.inventoryData.container_size || ''} ${item.inventoryData.container_type || ''}`.trim();
+                    const dimensions = item.inventoryData.published_height && item.inventoryData.published_spread ?
+                        `${item.inventoryData.published_height} x ${item.inventoryData.published_spread} ft` : '';
+                    const nursery = item.inventoryData.nursery || '';
+
+                    inventoryInfo = `<div class="cart-item-details">${containerInfo}${dimensions ? ' - ' + dimensions : ''} - ${nursery}</div>`;
+                } else if (item.inventoryDetails) {
+                    // Legacy fallback
+                    inventoryInfo = `<div class="cart-item-details">${item.inventoryDetails.containerSize} ${item.inventoryDetails.containerType} - ${item.inventoryDetails.nursery}</div>`;
+                }
+
+                const unitPrice = this.getItemUnitPrice(item);
+                const itemTotal = unitPrice * item.quantity;
 
                 const itemHTML = `
-                    <div class="cart-item" data-index="${index}">
+                    <div class="cart-item" data-index="${index}" data-item-id="${item.itemId}">
                         <div class="cart-item-info">
                             <div class="cart-item-name">${item.plantName}</div>
                             ${inventoryInfo}
-                            <div class="cart-item-quantity">Quantity: ${item.quantity}</div>
+                            <div class="cart-item-quantity">Quantity: ${item.quantity} × $${unitPrice.toFixed(2)} = $${itemTotal.toFixed(2)}</div>
                         </div>
                         <button class="cart-item-remove"
                                 data-item-id="${item.itemId}">
@@ -221,6 +289,33 @@ class CartManager {
                 `;
                 cartItems.insertAdjacentHTML('beforeend', itemHTML);
             });
+
+            // Add cart summary
+            const subtotal = this.getSubtotal();
+            const shipping = this.getShippingCost();
+            const totalCost = this.getTotalCost();
+
+            const summaryHTML = `
+                <div class="cart-summary">
+                    <div class="cart-summary-line">
+                        <span>Subtotal:</span>
+                        <span>$${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div class="cart-summary-line">
+                        <span>Shipping:</span>
+                        <span>$${shipping.toFixed(2)}</span>
+                    </div>
+                    <div class="cart-summary-line">
+                        <span>Tax (6%):</span>
+                        <span>$${((subtotal + shipping) * 0.06).toFixed(2)}</span>
+                    </div>
+                    <div class="cart-summary-line cart-total">
+                        <span>Total:</span>
+                        <span>$${totalCost.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+            cartItems.insertAdjacentHTML('beforeend', summaryHTML);
 
             // Attach remove event listeners
             cartItems.querySelectorAll('.cart-item-remove').forEach(btn => {
