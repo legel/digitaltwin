@@ -1,0 +1,18 @@
+# Digital Twin Platform Environment Configuration Template
+# Copy this file to .envrc and fill in your actual values
+# .envrc is gitignored and will not be committed to the repository
+
+# Google Cloud Storage Configuration
+export GCS_BUCKET="your-bucket-name"
+export GCS_PROJECT="your-gcp-project-id"
+
+# Deployment Configuration (Optional - for automated deployments)
+export DEPLOY_SERVER_IP="your.server.ip.address"
+export DEPLOY_SSH_KEY="~/.ssh/your_private_key"
+export DEPLOY_USER="your-username"
+export DEPLOY_PATH_PROD="/path/to/production/deployment"
+export DEPLOY_PATH_STAGING="/path/to/staging/deployment"
+
+# Service Names (Optional - for systemd service management)
+export SERVICE_NAME_PROD="your-prod-service"
+export SERVICE_NAME_STAGING="your-staging-service"

@@ -1,12 +1,12 @@
 # PLY Deployment Guide for Progressive Loading
 
-This guide details the complete process for deploying Gaussian Splat PLY files to Terrain 3D using the progressive binary chunk loading system. This system enables fast, parallel downloads of large splat files for optimal user experience.
+This guide details the process for deploying Gaussian Splat PLY files using the progressive binary chunk loading system. This system enables fast, parallel downloads of large splat files for optimal user experience.
 
 ## Overview
 
 The progressive loading system works by:
 1. Splitting a large PLY file into 100 binary chunks
-2. Uploading chunks to Google Cloud Storage (DeepEarth bucket)
+2. Uploading chunks to Google Cloud Storage
 3. Creating a manifest file that references all chunks
 4. The browser downloads chunks in parallel (5 at a time)
 5. Chunks are concatenated back into the original PLY file
@@ -22,9 +22,10 @@ The progressive loading system works by:
 ## Prerequisites
 
 - Google Cloud SDK (`gcloud` CLI) installed and configured
-- Access to the DeepEarth GCS bucket (`gs://deepearth/`)
+- Access to your Google Cloud Storage bucket
 - Original uncompressed PLY file from Gaussian splatting pipeline
 - Bash environment (Linux/Mac or WSL on Windows)
+- Environment variables configured (see CLOUD_CONFIG.md)
 
 ## Step 1: Split PLY into Binary Chunks
 
@@ -97,7 +98,7 @@ Split your PLY file into 100 chunks:
 ```bash
 # Example: Split demo-site splat
 /tmp/binary_split.sh \
-    /path/to/splat.ply \
+    /path/to/your/splat.ply \
     /tmp/splat_chunks \
     100
 ```
@@ -128,11 +129,11 @@ du -sh /tmp/splat_chunks        # Should match original file size
 
 ## Step 2: Upload Chunks to Google Cloud Storage
 
-### DeepEarth Bucket Structure
+### Bucket Structure
 
-All splat chunks are stored in the DeepEarth bucket with this structure:
+Store chunks in your GCS bucket with this structure:
 ```
-gs://deepearth/datasets/splats/chunks/
+gs://${GCS_BUCKET}/splats/chunks/${SITE_ID}/
 ├── chunk_000.bin
 ├── chunk_001.bin
 ├── chunk_002.bin
@@ -140,62 +141,31 @@ gs://deepearth/datasets/splats/chunks/
 └── chunk_099.bin
 ```
 
-**Important**: All sites share the same chunks directory. This works because we currently only have one splat file deployed. If deploying multiple sites, use site-specific subdirectories:
-
-```
-gs://deepearth/datasets/splats/chunks/[site-id]/
-├── chunk_000.bin
-├── chunk_001.bin
-...
-```
-
 ### Upload to GCS
 
 Upload all chunks in parallel using `gsutil`:
 
 ```bash
-# Upload chunks (single site - current setup)
-gsutil -m cp /tmp/splat_chunks/*.bin gs://deepearth/datasets/splats/chunks/
+# Set your site ID
+SITE_ID="your-site-name"
 
-# Upload chunks (multi-site - recommended for future)
-SITE_ID="demo-site"
-gsutil -m cp /tmp/splat_chunks/*.bin gs://deepearth/datasets/splats/chunks/${SITE_ID}/
+# Upload chunks (using environment variable for bucket name)
+gsutil -m cp /tmp/splat_chunks/*.bin gs://${GCS_BUCKET}/splats/chunks/${SITE_ID}/
 ```
 
 The `-m` flag enables parallel uploads for faster transfer.
-
-### Set CORS Configuration
-
-Ensure the DeepEarth bucket has proper CORS headers for browser access:
-
-```bash
-# Create cors.json
-cat > /tmp/cors.json <<'EOF'
-[
-  {
-    "origin": ["*"],
-    "method": ["GET", "HEAD"],
-    "responseHeader": ["Content-Type", "Content-Length", "Content-Range"],
-    "maxAgeSeconds": 3600
-  }
-]
-EOF
-
-# Apply CORS configuration
-gsutil cors set /tmp/cors.json gs://deepearth
-```
 
 ### Verify Upload
 
 ```bash
 # List uploaded chunks
-gsutil ls gs://deepearth/datasets/splats/chunks/ | wc -l  # Should be 100
+gsutil ls gs://${GCS_BUCKET}/splats/chunks/${SITE_ID}/ | wc -l  # Should be 100
 
 # Check total size
-gsutil du -sh gs://deepearth/datasets/splats/chunks/
+gsutil du -sh gs://${GCS_BUCKET}/splats/chunks/${SITE_ID}/
 
 # Test a single chunk URL (should return binary data)
-curl -I https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_000.bin
+curl -I https://storage.googleapis.com/${GCS_BUCKET}/splats/chunks/${SITE_ID}/chunk_000.bin
 ```
 
 Expected response headers:
@@ -212,25 +182,25 @@ content-length: 1265640
 
 The manifest file tells the browser where to find all chunks and how to assemble them.
 
-Create `manifests/[site-id]_manifest.json`:
+Create `data/${SITE_ID}/${SITE_ID}_manifest.json`:
 
 ```json
 {
-  "site_id": "demo-site",
+  "site_id": "your-site-name",
   "total_parts": 100,
   "total_size": 126564033,
   "chunk_size": 1265640,
-  "base_url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks",
+  "base_url": "https://storage.googleapis.com/${GCS_BUCKET}/splats/chunks/your-site-name",
   "parts": [
     {
       "index": 0,
       "filename": "chunk_000.bin",
-      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_000.bin"
+      "url": "https://storage.googleapis.com/${GCS_BUCKET}/splats/chunks/your-site-name/chunk_000.bin"
     },
     {
       "index": 1,
       "filename": "chunk_001.bin",
-      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_001.bin"
+      "url": "https://storage.googleapis.com/${GCS_BUCKET}/splats/chunks/your-site-name/chunk_001.bin"
     }
   ]
 }
@@ -246,7 +216,7 @@ Use this script to generate the manifest from your chunks:
 
 SITE_ID="$1"
 CHUNKS_DIR="$2"
-OUTPUT_FILE="manifests/${SITE_ID}_manifest.json"
+OUTPUT_FILE="data/${SITE_ID}/${SITE_ID}_manifest.json"
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <site_id> <chunks_dir>"
@@ -268,7 +238,7 @@ cat > "$OUTPUT_FILE" <<EOF
   "total_parts": $NUM_FILES,
   "total_size": $TOTAL_SIZE,
   "chunk_size": $CHUNK_SIZE,
-  "base_url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks",
+  "base_url": "https://storage.googleapis.com/${GCS_BUCKET}/splats/chunks/${SITE_ID}",
   "parts": [
 EOF
 
@@ -285,7 +255,7 @@ for FILE in "$CHUNKS_DIR"/*.bin; do
     {
       "index": $INDEX,
       "filename": "$FILENAME",
-      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/$FILENAME"
+      "url": "https://storage.googleapis.com/${GCS_BUCKET}/splats/chunks/${SITE_ID}/$FILENAME"
     }
 EOF
 
@@ -300,37 +270,20 @@ cat >> "$OUTPUT_FILE" <<EOF
 EOF
 
 echo "Manifest created: $OUTPUT_FILE"
+echo "Remember to replace \${GCS_BUCKET} with your actual bucket name"
 ```
 
 Usage:
 ```bash
 chmod +x generate_manifest.sh
-./generate_manifest.sh demo-site /tmp/splat_chunks
-```
-
-### Multi-Site Manifest
-
-For multiple sites, adjust the URLs to include site-specific paths:
-
-```json
-{
-  "site_id": "my-new-site",
-  "base_url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/my-new-site",
-  "parts": [
-    {
-      "index": 0,
-      "filename": "chunk_000.bin",
-      "url": "https://storage.googleapis.com/deepearth/datasets/splats/chunks/my-new-site/chunk_000.bin"
-    }
-  ]
-}
+./generate_manifest.sh your-site-name /tmp/splat_chunks
 ```
 
 ## Step 4: Configure Site Data
 
 ### Site Bounds Configuration
 
-Create or update `data/[site-id]/site-bounds.json` with coordinate transformation parameters:
+Create or update `data/${SITE_ID}/site-bounds.json` with coordinate transformation parameters:
 
 ```json
 {
@@ -362,28 +315,26 @@ These values are used to:
 ### Start Development Server
 
 ```bash
-cd /path/to/terrain-3d
 python server.py
 ```
 
-The server runs on `http://localhost:5001` (configurable in `server.py`).
+The server runs on `http://localhost:5001` by default.
 
 ### Test the Loading Sequence
 
 1. Open browser to `http://localhost:5001`
 2. Open Developer Console (F12)
-3. Watch for progressive loading messages:
+3. Watch for progressive loading messages
 
 Expected console output:
 ```
-[ProgressivePlyLoader] Fetching manifest: /manifests/demo-site_manifest.json
+[ProgressivePlyLoader] Fetching manifest: /api/splat-manifest/your-site
 [ProgressivePlyLoader] Manifest loaded: 100 parts, 126564033 bytes total
 [ProgressivePlyLoader] Starting staggered downloads (5 concurrent)
 [ProgressivePlyLoader] Downloaded part 0/100 (1265640 bytes)
-[ProgressivePlyLoader] Downloaded part 1/100 (1265640 bytes)
 ...
 [ProgressivePlyLoader] All parts downloaded, concatenating...
-[SuperSplatManager] Loading complete PLY file (126 MB)
+[SuperSplatManager] Loading complete PLY file
 [SuperSplatManager] Rendering complete
 ```
 
@@ -392,72 +343,29 @@ Expected console output:
 Watch the loading screen progress bar:
 - **0-10%**: Initialization and manifest fetch
 - **10-70%**: Downloading 100 chunks (staggered, 5 concurrent)
-- **70-99%**: Counting up while SuperSplat loads (1% per second)
+- **70-99%**: Counting up while SuperSplat loads
 - **99%**: Hangs until rendering complete
 - **100%**: Fade out
-
-### Check Loading Messages
-
-Verify that ecological loading messages rotate every 3 seconds:
-- "Analyzing the microbial community beneath your feet..."
-- "Calculating optimal sun angles for native plant placement..."
-- "Simulating pollinator flight paths through the landscape..."
-- (300+ messages total)
 
 ## Step 6: Deploy to Production
 
 ### Commit Changes
 
 ```bash
-cd /path/to/terrain-3d
-
 # Add manifest and site data
-git add manifests/[site-id]_manifest.json
-git add data/[site-id]/site-bounds.json
+git add data/${SITE_ID}/${SITE_ID}_manifest.json
+git add data/${SITE_ID}/site-bounds.json
 
 # Commit with descriptive message
-git commit -m "Add progressive loading for [site-name] Gaussian splat
-
-- Split 120MB PLY into 100 binary chunks
-- Uploaded to gs://deepearth/datasets/splats/chunks/
-- Created manifest with staggered download configuration
-- Configured site bounds for coordinate transformation"
+git commit -m "Add progressive loading for ${SITE_NAME} Gaussian splat"
 
 # Push to repository
 git push origin main
 ```
 
-### Deploy to Remote Server
+### Deploy to Server
 
-SSH into the production server and pull changes:
-
-```bash
-# SSH into server
-ssh -i ~/.ssh/ecodash_key photon@34.71.213.117
-
-# Navigate to deployment directory
-cd /var/www/ecodash/private/terrain-3d
-
-# Pull latest changes
-git pull origin main
-
-# Restart the service
-sudo systemctl restart testing
-
-# Verify service is running
-sudo systemctl status testing
-
-# Check logs for errors
-tail -f /var/www/ecodash/private/logs/terrain3d-testing-error.log
-```
-
-### Verify Production Deployment
-
-1. Visit `https://testing.ecodash.ai`
-2. Check that the new site appears in the dropdown (if applicable)
-3. Verify progressive loading works correctly
-4. Test on multiple browsers and devices
-5. Monitor server logs for any errors
+Follow your deployment workflow (see your internal deployment documentation).
 
 ## Troubleshooting
 
@@ -466,9 +374,9 @@ tail -f /var/www/ecodash/private/logs/terrain3d-testing-error.log
 **Symptoms**: Progress stuck at 10%, browser console shows 404 errors
 
 **Solutions**:
-1. Verify chunks uploaded to GCS: `gsutil ls gs://deepearth/datasets/splats/chunks/`
-2. Check CORS configuration: `gsutil cors get gs://deepearth`
-3. Test direct chunk URL in browser: `https://storage.googleapis.com/deepearth/datasets/splats/chunks/chunk_000.bin`
+1. Verify chunks uploaded to GCS: `gsutil ls gs://${GCS_BUCKET}/splats/chunks/${SITE_ID}/`
+2. Check CORS configuration (see CLOUD_CONFIG.md)
+3. Test direct chunk URL in browser
 4. Verify manifest URLs match actual GCS paths
 
 ### Progress Jumps from 70% to 100%
@@ -479,7 +387,6 @@ tail -f /var/www/ecodash/private/logs/terrain3d-testing-error.log
 1. Check browser console for JavaScript errors
 2. Verify `superSplatManager.js` has `countUpProgressWithLoading()` method
 3. Test with smaller splat file to isolate timing issues
-4. Check that SuperSplat iframe loads correctly
 
 ### Concatenation Fails
 
@@ -499,43 +406,20 @@ tail -f /var/www/ecodash/private/logs/terrain3d-testing-error.log
 1. Verify original PLY file is valid (test in SuperSplat desktop app)
 2. Check that concatenated file size matches original
 3. Verify SuperSplat scene initialized: `window.scene` should exist
-4. Check for memory issues (120MB+ files require sufficient RAM)
+4. Check for memory issues (large files require sufficient RAM)
 5. Review browser console for SuperSplat errors
-
-### Slow Download Speed
-
-**Symptoms**: Downloads take longer than expected
-
-**Solutions**:
-1. Verify 5 concurrent downloads are happening (check Network tab)
-2. Test GCS bucket performance from your location
-3. Consider enabling GCS CDN for global distribution
-4. Check user's internet connection speed
-5. Consider reducing chunk count for smaller files
-
-### Split Script Fails
-
-**Symptoms**: Error during binary splitting process
-
-**Solutions**:
-1. Check disk space: `df -h /tmp`
-2. Verify input file exists and is readable
-3. Test with smaller file first
-4. Use GNU coreutils version of `dd` and `stat`
-5. Check permissions on output directory
 
 ## File Reference
 
 ### Required Files per Site
 
 ```
-terrain-3d/
-├── manifests/
-│   └── [site-id]_manifest.json          # Chunk locations and metadata
+digitaltwin/
 ├── data/
-│   └── [site-id]/
+│   └── ${SITE_ID}/
+│       ├── ${SITE_ID}_manifest.json      # Chunk locations and metadata
 │       ├── site-bounds.json              # Coordinate transformation config
-│       └── [site-name].geojson           # Plantable areas (optional)
+│       └── plantable-areas.geojson       # Plantable areas (optional)
 └── js/
     ├── core/
     │   └── progressivePlyLoader.js       # Download and concatenation logic
@@ -546,31 +430,26 @@ terrain-3d/
 ### GCS Storage Structure
 
 ```
-gs://deepearth/datasets/splats/chunks/
-├── chunk_000.bin
-├── chunk_001.bin
-├── ...
-└── chunk_099.bin
-
-# Multi-site structure (recommended for future):
-gs://deepearth/datasets/splats/chunks/
-├── demo-site/
+gs://${GCS_BUCKET}/splats/chunks/
+├── site-1/
 │   ├── chunk_000.bin
+│   ├── chunk_001.bin
 │   └── ...
-└── new-site-name/
+└── site-2/
     ├── chunk_000.bin
+    ├── chunk_001.bin
     └── ...
 ```
 
 ## Performance Metrics
 
-### Demo Site Example
+### Typical Example
 
-- **Original PLY size**: 126.5 MB
+- **Original PLY size**: 100-150 MB
 - **Chunk count**: 100
-- **Average chunk size**: 1.26 MB
+- **Average chunk size**: 1-1.5 MB
 - **Concurrent downloads**: 5
-- **Total download time**: ~15-30 seconds (varies by connection)
+- **Total download time**: 15-30 seconds (varies by connection)
 - **Progress accuracy**: ±2%
 - **Assembly time**: <1 second
 - **SuperSplat load time**: 5-10 seconds
@@ -581,7 +460,6 @@ gs://deepearth/datasets/splats/chunks/
 - **Concurrent downloads**: 5 prevents browser throttling
 - **Chunk size range**: 1-2 MB per chunk is ideal
 - **CDN**: Consider CloudFlare or GCS CDN for global users
-- **Compression**: Binary chunks compress well with gzip (consider enabling)
 
 ## Advanced Configuration
 
@@ -615,42 +493,14 @@ constructor() {
 - **5 concurrent**: Balanced, default setting
 - **10 concurrent**: Aggressive, risk of browser throttling
 
-### Progress Stage Customization
+## Environment Variables
 
-Edit `js/rendering/superSplatManager.js`:
+This guide uses environment variables for sensitive configuration:
+- `GCS_BUCKET`: Your Google Cloud Storage bucket name
+- `GCS_PROJECT`: Your Google Cloud project ID
 
-```javascript
-// Downloads progress range (default: 10-70%, 60% of total)
-const progressPercent = 10 + Math.round(downloadProgress * 60);
-
-// Counting range (default: 70-99%, 29 seconds)
-await this.countUpProgressWithLoading(70, 99, 1000, plyFile);
-
-// Timeout duration (default: 2 minutes)
-const timeoutDuration = 120000;
-```
-
-## Future Enhancements
-
-### Planned Features
-
-- **Compression**: Serve chunks as gzip for smaller transfer size
-- **Resumable downloads**: Retry failed chunks without restarting
-- **Chunk caching**: Browser caches chunks for faster subsequent loads
-- **Progressive rendering**: Start rendering before all chunks download
-- **Multi-resolution**: Load low-res quickly, then upgrade to high-res
-
-### Migration Path
-
-When adding these features, maintain backward compatibility with existing manifests and chunk structure.
-
-## Contact & Support
-
-For issues or questions:
-- **GitHub Issues**: https://github.com/legel/terrain-3d/issues
-- **Documentation**: See other MD files in repository root
-- **Server Logs**: `/var/www/ecodash/private/logs/terrain3d-testing-error.log`
+See CLOUD_CONFIG.md for complete environment setup instructions.
 
 ## License
 
-This deployment system is part of the Terrain 3D project. See repository LICENSE for details.
+This deployment system is part of the digital twin platform project. See repository LICENSE for details.

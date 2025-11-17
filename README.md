@@ -7,7 +7,9 @@
 
 This is a 3D visualization platform for landscape designers working with photorealistic digital twins. It integrates 3D Gaussian Splatting with ecological modeling to support native plant-based landscape design decisions.
 
-![3D Gaussian Splat Digital Twin](docs/digital_twin.png)
+See live demo at [https://digitaltwin.ecodash.ai](https://digitaltwin.ecodash.ai).
+
+![3D Gaussian Splat Digital Twin](docs/media/digital_twin.png)
 
 
 ## 🦋 Platform Overview
@@ -26,19 +28,15 @@ This is a 3D visualization platform for landscape designers working with photore
 
 
 
-![Layer Controls Interface](docs/Dropdown%20UI.png)
-
-
-
 ### Scientific Model Integration: View ecological metrics as color coded UI overlays
 
 - **Soil Chemistry**: pH, nutrient levels (NPK), and composition analysis
 - **Microclimate Mapping**: Solar exposure, moisture gradients, and wind patterns
 - **Environmental Risk**: Drought, flood, and extreme weather vulnerability assessment
 
+![Sunlight Exposure Analysis](docs/media/sunlight_exposure.jpg)
 
-
-![Ecological Metrics Visualization](docs/Ecological%20Metrics.png)
+![Flood Risk Mapping](docs/media/flood_risk.jpg)
 
 
 
@@ -46,7 +44,7 @@ This is a 3D visualization platform for landscape designers working with photore
 
 
 
-### 1. Clone and Setup Terrain 3D
+### 1. Clone and Setup the Digital Twin Platform
 
 **Requirements**: Python 3.7+, Node.js 18+ and npm
 
@@ -207,6 +205,7 @@ Copyright Ecological Intelligence, Inc.
 - **[SuperSplat](https://github.com/playcanvas/supersplat)**: Advanced 3D Gaussian Splat rendering and visualization
 - **Native Plant Community**: Growers, researchers, and designers preserving genetic heritage
 - **Landscape Professionals**: Practitioners shaping millions of acres annually for ecological function
+
 
 
 

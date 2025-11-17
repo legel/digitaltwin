@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Application Overview
 
-Terrain 3D is a sophisticated 3D ecological digital twin platform designed to revolutionize landscape design through computational ecology. This application serves as the visualization and interaction layer for Ecodash's mission to maximize ecosystem services through native plant-based landscape design.
+The digital twin platform is a sophisticated 3D ecological visualization system designed to revolutionize landscape design through computational ecology. This application serves as the visualization and interaction layer for Ecodash's mission to maximize ecosystem services through native plant-based landscape design.
 
 ### Core Mission
 Support landscape designers in creating ecologically functional and beautiful landscapes by providing:
@@ -22,11 +22,12 @@ Support landscape designers in creating ecologically functional and beautiful la
 ## Architecture - AI Agent Guide
 
 ### Critical Understanding
-1. **SuperSplat-Only Application** - Uses SuperSplat for all 3D rendering (no Cesium)
+1. **SuperSplat-Only Application** - Uses SuperSplat for all 3D rendering (pure JavaScript, no bundler)
 2. **No build system** - Edit files directly, refresh browser to test
 3. **Global state on window** - All managers and state accessible via `window.X`
 4. **Manager pattern** - Each domain has a dedicated manager class
 5. **Event-driven UI** - Layer controls drive visualization through state changes
+6. **Flask backend** - Simple Python server serving static files and manifests
 
 ### File Hierarchy (by importance)
 1. **utilities.js** - Core initialization and application logic
@@ -69,16 +70,37 @@ Site Selection (dropdown)
 3. Edit any JS/CSS file
 4. Refresh browser (no build needed)
 
+## Deployment Protocol
+
+**CRITICAL RULE**: All deployments must follow this staged deployment process:
+
+1. **Local Development**: Test changes thoroughly at `http://localhost:5001`
+2. **Staging Deployment**:
+   - Deploy to staging server (`https://staging.ecodash.ai`)
+   - Restart staging service only
+   - **STOP and wait for user approval**
+3. **User Sign-Off Required**:
+   - User must manually review `https://staging.ecodash.ai`
+   - User must explicitly authorize production deployment
+4. **Production Deployment**:
+   - Only after explicit user approval
+   - Deploy to production server (`https://digitaltwin.ecodash.ai`)
+   - Restart production service
+
+**Never deploy directly to production without staging sign-off.**
+
 ## Key Implementation Details
 
-### API Keys and Services
-- Google Cloud Storage serves large Gaussian splat files (.glb assets)
+### Cloud Services
+- Google Cloud Storage serves Gaussian splat chunk files (configured via environment variables)
+- CORS-enabled bucket for direct browser downloads
+- See CLOUD_CONFIG.md for setup instructions
 
 ### SuperSplat Integration
 - **Gaussian Splat Rendering**: 3D digital twins loaded via SuperSplat (.ply files with progressive loading)
 - **Progressive Loading System**: Binary chunk approach (100 chunks, 5 concurrent downloads) - see PLY_DEPLOYMENT_GUIDE.md
 - **Polygon Overlay System**: Custom shader-based polygon rendering on top of splat data
-- **Event Bridge**: SuperSplatBridge.js connects terrain-3d UI to SuperSplat polygon system
+- **Event Bridge**: SuperSplatBridge.js connects platform UI to SuperSplat polygon system
 - **Coordinate Transformation**: Geographic coordinates converted to SuperSplat world space
 
 ### Coordinate System
@@ -111,16 +133,16 @@ Site Selection (dropdown)
 - **Actionable Intelligence**: Bias towards tools that directly improve landscape design execution
 
 ### Data Integration Standards
-- **3D Gaussian Splats**: Prepare for integration with .spz file format and new Cesium standards
 - **GIS Layer Support**: Seamlessly blend scientific models (soil pH, moisture, sunlight) with 3D visualization
 - **Real-time Plant Models**: Support for 3D plant models with seasonal growth simulation
 - **Supply Chain Integration**: Connect design decisions with actual nursery inventory and availability
 
 ### Development Workflow Priorities
-1. **Mesh-based rendering** (current phase): PIX4Dmatic integration with Cesium
-2. **Gaussian Splat integration** (current phase): Advanced photorealistic rendering - IMPLEMENTED
-3. **Ecological model overlay**: Scientific data visualization on 3D twins
-4. **Commercial platform features**: Native plant marketplace integration
+1. **Gaussian Splat visualization** - IMPLEMENTED: SuperSplat-based photorealistic 3D digital twins
+2. **Ecological model overlay** - IMPLEMENTED: Interactive visualization of scientific data layers
+3. **Progressive loading optimization** - IMPLEMENTED: Binary chunk download system
+4. **Plant selection tools** - IN PROGRESS: Native plant recommendation and placement
+5. **Commercial integration** - PLANNED: Nursery inventory and e-commerce features
 
 ### Code Quality Standards
 When refactoring or creating new code, maintain clean and professional code standards:
@@ -165,15 +187,16 @@ A comprehensive system for loading and managing 3D Gaussian Splat digital twins 
 #### Technical Details
 - **SuperSplat Integration**: Uses SuperSplat's native Gaussian splat rendering via .ply files
 - **Performance Optimization**: Binary chunk approach enables fast parallel downloads
-- **DeepEarth Integration**: Chunks stored at `gs://deepearth/datasets/splats/chunks/`
+- **Cloud Storage**: Chunks stored in Google Cloud Storage bucket (configured per deployment)
 - **Manifest System**: JSON manifests define chunk locations and assembly order
 - **Camera Positioning**: Automatic optimal viewpoint when splat loads
 
-#### DeepEarth Storage Integration
+#### Cloud Storage Integration
 - **GCS Direct Access**: Browser downloads chunks directly from Google Cloud Storage
-- **CORS Configuration**: DeepEarth bucket configured for browser access
+- **CORS Configuration**: Bucket configured for browser access (see CLOUD_CONFIG.md)
 - **CDN-Ready**: Small chunks cache efficiently for improved performance
 - **No Proxy Needed**: Direct GCS URLs in manifest eliminate server bottleneck
+- **Environment Variables**: Bucket name and URLs configured via `.envrc` (not in repo)
 
 #### Polygon Overlay System
 - **Shader-Based Rendering**: Custom fragment shaders render polygons above splat data
@@ -203,7 +226,7 @@ A sophisticated animation sequence for the focus panel that provides smooth visu
 - **Smooth transitions** between different PA selections
 
 ### SuperSplat Camera Integration
-Camera control is handled natively by SuperSplat with terrain-3d providing minimal integration:
+Camera control is handled natively by SuperSplat with the platform providing minimal integration:
 - **Native Controls**: SuperSplat handles all camera movement and positioning
 - **Polygon Focus**: Focus panel integration works independently of camera system
 - **Tour System**: Currently disabled with SuperSplat

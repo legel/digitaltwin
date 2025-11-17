@@ -242,6 +242,7 @@ function createColorLegend(paramType, minVal, maxVal) {
         let minLabel = minVal.toFixed(1);
         let maxLabel = maxVal.toFixed(1);
         let unit = '';
+        let suffix = '';
 
         switch (paramType) {
             case 'sunlight':
@@ -256,18 +257,19 @@ function createColorLegend(paramType, minVal, maxVal) {
                 unit = ' ppm';
                 break;
             case 'organicMatter':
-            case 'droughtRisk':
-            case 'floodRisk':
                 unit = '%';
                 break;
+            case 'droughtRisk':
+            case 'floodRisk':
             case 'windExposure':
-                unit = ' (scale)';
+                unit = '%';
+                suffix = ' annual probability';
                 break;
         }
 
         labelsDiv.innerHTML = `
             <div style="font-weight: 700;">${getParameterDisplayName(paramType)}</div>
-            <div style="font-size: 12px;">${minLabel}${unit} - ${maxLabel}${unit}</div>
+            <div style="font-size: 12px;">${minLabel}${unit} - ${maxLabel}${unit}${suffix}</div>
         `;
 
         legend.appendChild(gradientBar);
@@ -293,7 +295,7 @@ function getParameterDisplayName(paramType) {
         'organicMatter': 'Organic Matter',
         'droughtRisk': 'Drought Risk',
         'floodRisk': 'Flood Risk',
-        'windExposure': 'Wind Exposure'
+        'windExposure': 'Extreme Wind Exposure'
     };
     return names[paramType] || paramType;
 }

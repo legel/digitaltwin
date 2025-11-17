@@ -143,9 +143,9 @@ class FocusPanel {
                 thresholds: [5, 20]
             },
             windExposure: {
-                name: 'Wind Exposure',
-                unit: '%/year',
-                definition: 'Annual severe wind probability',
+                name: 'Extreme Wind Exposure',
+                unit: '%',
+                definition: 'Annual probability',
                 interpretations: {
                     low: 'Low',
                     medium: 'Moderate',
