@@ -374,7 +374,7 @@ cp site-data.geojson data/my-site-name/My_Site_Name.geojson
 Reference implementation showing proper file organization:
 
 ```
-data/demo-site/
+data/sites/demo-site/
 ├── tileset.json                        # Cesium 3D Tiles metadata
 ├── content.glb                         # Compressed Gaussian splat data
 ├── clipping-polygon.json               # 3D boundary definition

@@ -14,7 +14,7 @@ class CoordinateTransform {
      */
     async loadSiteBounds(siteId = 'demo-site') {
         try {
-            const response = await fetch(`/data/${siteId}/site-bounds.json`);
+            const response = await fetch(`/data/sites/${siteId}/site-bounds.json`);
             if (!response.ok) {
                 throw new Error(`Failed to load site-bounds.json: ${response.status}`);
             }

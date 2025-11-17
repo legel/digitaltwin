@@ -91,21 +91,32 @@ class CartManager {
     }
 
     /**
-     * Add item to cart
+     * Add item to cart with inventory details
      */
-    addToCart(plantName, speciesKey, quantity) {
-        // Check if item already exists in cart
-        const existingItem = this.cart.find(item =>
-            item.plantName === plantName && item.speciesKey === speciesKey
-        );
+    addToCart(plantName, speciesKey, quantity, inventoryItem = null) {
+        // Create unique identifier for specific inventory items
+        const itemId = inventoryItem ?
+            `${plantName}-${speciesKey}-${inventoryItem.item_code || inventoryItem.container_size}` :
+            `${plantName}-${speciesKey}`;
+
+        // Check if this specific item already exists in cart
+        const existingItem = this.cart.find(item => item.itemId === itemId);
 
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
             this.cart.push({
+                itemId,
                 plantName,
                 speciesKey,
-                quantity
+                quantity,
+                inventoryDetails: inventoryItem ? {
+                    nursery: inventoryItem.nursery,
+                    containerSize: inventoryItem.container_size,
+                    containerType: inventoryItem.container_type,
+                    price: inventoryItem.wholesale_price,
+                    itemCode: inventoryItem.item_code
+                } : null
             });
         }
 
@@ -114,7 +125,17 @@ class CartManager {
     }
 
     /**
-     * Remove item from cart
+     * Remove item from cart by item ID
+     */
+    removeFromCartById(itemId) {
+        const item = this.cart.find(item => item.itemId === itemId);
+        this.cart = this.cart.filter(item => item.itemId !== itemId);
+        this.updateCartDisplay();
+        console.log(`Removed from cart: ${item ? item.plantName : 'Unknown item'}`);
+    }
+
+    /**
+     * Remove item from cart (legacy method)
      */
     removeFromCart(plantName, speciesKey) {
         this.cart = this.cart.filter(item =>
@@ -129,6 +150,18 @@ class CartManager {
      */
     getTotalQuantity() {
         return this.cart.reduce((total, item) => total + item.quantity, 0);
+    }
+
+    /**
+     * Get quantity of specific inventory item already in cart
+     */
+    getItemQuantity(plantName, speciesKey, inventoryItem) {
+        const itemId = inventoryItem ?
+            `${plantName}-${speciesKey}-${inventoryItem.item_code || inventoryItem.container_size}` :
+            `${plantName}-${speciesKey}`;
+
+        const existingItem = this.cart.find(item => item.itemId === itemId);
+        return existingItem ? existingItem.quantity : 0;
     }
 
     /**
@@ -169,15 +202,19 @@ class CartManager {
 
             // Add current cart items
             this.cart.forEach((item, index) => {
+                const inventoryInfo = item.inventoryDetails ?
+                    `<div class="cart-item-details">${item.inventoryDetails.containerSize} ${item.inventoryDetails.containerType} - ${item.inventoryDetails.nursery}</div>` :
+                    '';
+
                 const itemHTML = `
                     <div class="cart-item" data-index="${index}">
                         <div class="cart-item-info">
                             <div class="cart-item-name">${item.plantName}</div>
+                            ${inventoryInfo}
                             <div class="cart-item-quantity">Quantity: ${item.quantity}</div>
                         </div>
                         <button class="cart-item-remove"
-                                data-plant-name="${item.plantName}"
-                                data-species-key="${item.speciesKey}">
+                                data-item-id="${item.itemId}">
                             Remove
                         </button>
                     </div>
@@ -188,9 +225,8 @@ class CartManager {
             // Attach remove event listeners
             cartItems.querySelectorAll('.cart-item-remove').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const plantName = e.target.dataset.plantName;
-                    const speciesKey = e.target.dataset.speciesKey;
-                    this.removeFromCart(plantName, speciesKey);
+                    const itemId = e.target.dataset.itemId;
+                    this.removeFromCartById(itemId);
                 });
             });
         }
