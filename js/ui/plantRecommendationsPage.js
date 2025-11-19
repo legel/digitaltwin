@@ -308,7 +308,6 @@ class PlantRecommendationsPage {
                 return {
                     name: scientificName,
                     speciesKey: data.speciesKey,
-                    commonName: this.extractCommonName(scientificName),
                     photos: data.photos || {},
                     photoTypes: photoTypes,
                     currentPhotoType: defaultPhotoType,
@@ -324,6 +323,9 @@ class PlantRecommendationsPage {
             if (!this.dataProcessor && window.PlantDataProcessor) {
                 await this.initializeDataProcessor(speciesData);
             }
+
+            // Initialize nursery data matching
+            await this.initializeNurseryData();
 
             // Apply default filter with data processor available
             this.filteredPlants = this.applyDefaultFilter(plants);
@@ -462,21 +464,25 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Extract common name from scientific name (simplified)
+     * Initialize nursery data matching for the current plant list
      */
-    extractCommonName(scientificName) {
-        const commonNames = {
-            'Serenoa repens': 'Saw Palmetto',
-            'Zamia integrifolia': 'Coontie',
-            'Ilex vomitoria': 'Yaupon Holly',
-            'Myrica cerifera': 'Southern Wax Myrtle',
-            'Quercus virginiana': 'Live Oak',
-            'Spartina patens': 'Saltmeadow Cordgrass',
-            'Pinus elliottii': 'Slash Pine',
-            'Taxodium distichum': 'Bald Cypress'
-        };
+    async initializeNurseryData() {
+        try {
+            if (!window.nurseryDataManager) {
+                console.warn('PlantRecommendationsPage: Nursery data manager not available');
+                return;
+            }
 
-        return commonNames[scientificName] || scientificName.split(' ')[0];
+            // Get list of all our species names
+            const ourSpeciesList = this.currentPlants.map(plant => plant.name);
+
+            // Build matches between our species and nursery inventory
+            await window.nurseryDataManager.buildSpeciesMatches(ourSpeciesList);
+
+
+        } catch (error) {
+            console.error('PlantRecommendationsPage: Error initializing nursery data:', error);
+        }
     }
 
     /**
@@ -1055,7 +1061,6 @@ class PlantRecommendationsPage {
      * Handle plant selection (legacy method - now mostly handled by direct clicks)
      */
     onPlantSelected(plantName) {
-        console.log('Plant selected (legacy):', plantName);
     }
 
     /**
@@ -1091,27 +1096,19 @@ class PlantRecommendationsPage {
      * Create and show purchase widget below the selected plant
      */
     showPurchaseWidget(plantItem, plantName, speciesKey) {
-        // Generate mock inventory data (will be replaced with real data later)
-        const mockInventoryData = this.generateMockInventoryData(plantName);
+        // Get all nursery inventory data
+        const inventoryItems = this.getNurseryInventoryData(plantName);
+
+        const hasInventory = inventoryItems && inventoryItems.length > 0;
+        const widgetClass = hasInventory ? 'plant-purchase-widget' : 'plant-purchase-widget no-inventory';
 
         const widgetHTML = `
-            <div class="plant-purchase-widget" data-plant="${plantName}" data-species-key="${speciesKey}">
+            <div class="${widgetClass}" data-plant="${plantName}" data-species-key="${speciesKey}">
                 <div class="purchase-widget-header">
                     <button class="purchase-widget-close" aria-label="Close purchase options">×</button>
-                    <div class="purchase-inventory-info">
-                        <div class="inventory-available">${mockInventoryData.available} AVAILABLE</div>
-                        <div class="inventory-location">${mockInventoryData.location}</div>
-                        <div class="inventory-price">$${mockInventoryData.price}</div>
-                        <div class="inventory-size">${mockInventoryData.size}</div>
-                    </div>
                 </div>
-                <div class="purchase-widget-controls">
-                    <button class="add-to-cart-btn">Add to Cart</button>
-                    <div class="quantity-selector">
-                        <button class="quantity-btn quantity-minus" data-action="decrease">−</button>
-                        <div class="quantity-display">${this.currentQuantity}</div>
-                        <button class="quantity-btn quantity-plus" data-action="increase">+</button>
-                    </div>
+                <div class="purchase-cards-container">
+                    ${this.generateInventoryCards(inventoryItems, plantName, speciesKey)}
                 </div>
             </div>
         `;
@@ -1128,7 +1125,7 @@ class PlantRecommendationsPage {
         }
 
         // Add spacing classes to handle grid layout
-        this.updatePlantSpacing(plantItem, true);
+        this.updatePlantSpacing(plantItem, true, !hasInventory);
 
         // Show widget with animation
         setTimeout(() => {
@@ -1139,6 +1136,119 @@ class PlantRecommendationsPage {
 
         // Attach event listeners
         this.attachPurchaseWidgetListeners();
+
+        // Reset quantity displays to default values
+        this.resetQuantityDisplays();
+    }
+
+    /**
+     * Generate inventory cards HTML for the purchase widget
+     */
+    generateInventoryCards(inventoryItems, plantName, speciesKey) {
+        if (!inventoryItems || inventoryItems.length === 0) {
+            // No matching nursery inventory
+            return `
+                <div class="no-inventory-message">
+                    <p>No participating nurseries currently stock this plant</p>
+                </div>
+            `;
+        }
+
+        // Convert to ProductNurseryPlant instances for consistent handling
+        const products = ProductNurseryPlant.fromInventoryArray(plantName, speciesKey, inventoryItems);
+
+        // Generate cards for each product
+        return products.map((product, index) => {
+            const item = product.getNurseryData();
+
+            // Calculate quantity already in cart for this specific inventory item
+            const cartQuantity = window.cartManager ?
+                window.cartManager.getItemQuantity(plantName, speciesKey, item) : 0;
+
+            // Calculate max quantity: available inventory minus what's already in cart, capped at 20 per transaction
+            const remainingInventory = Math.max(0, (item.quantity_available || 0) - cartQuantity);
+            const maxQuantity = Math.min(remainingInventory, 20);
+            const isOutOfStock = maxQuantity === 0;
+
+            // Map nursery names to display format
+            const nurseryDisplayName = this.getNurseryDisplayName(item.nursery || 'NURSERY');
+
+            // Extract dimensions with proper formatting
+            const height = item.published_height || '';
+            const spread = item.published_spread || '';
+            const containerInfo = `${item.container_size || ''} ${item.container_type || 'GALLON'}`;
+
+            return `
+                <div class="inventory-card" data-item-index="${index}" data-max-quantity="${maxQuantity}" data-product-id="${product.uniqueId}">
+                    <div class="card-image-container">
+                        <img src="${item.picture_1_url || this.getFallbackImageUrl()}"
+                             alt="${item.common_name || plantName}"
+                             class="card-image"
+                             onerror="this.src='${this.getFallbackImageUrl()}'">
+                        <div class="card-caption">${item.common_name || ''}</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-info-top">
+                            <div class="card-left-info">
+                                <div class="quantity-available"><span class="qty-number">${remainingInventory}</span> AVAILABLE${cartQuantity > 0 ? ` (${cartQuantity} in cart)` : ''}</div>
+                                <div class="nursery-name">${nurseryDisplayName}</div>
+                            </div>
+                            <div class="card-price">$${(item.wholesale_price || 0).toFixed(2)}</div>
+                        </div>
+                        <div class="card-info-bottom">
+                            <div class="card-size">
+                                <div class="container-size">${containerInfo}</div>
+                                <div class="plant-dimensions"><span class="dimension-numbers">${height} x ${spread}</span> ft</div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="card-buy-btn ${isOutOfStock ? 'disabled' : ''}"
+                                        ${isOutOfStock ? 'disabled' : ''}
+                                        data-item-index="${index}">
+                                    BUY
+                                </button>
+                                <div class="card-quantity-controls" style="display: none;">
+                                    <div class="quantity-selector">
+                                        <button class="quantity-btn quantity-minus" data-action="decrease" data-item-index="${index}">−</button>
+                                        <span class="quantity-display">${Math.min(10, remainingInventory)}</span>
+                                        <button class="quantity-btn quantity-plus" data-action="increase" data-item-index="${index}">+</button>
+                                    </div>
+                                    <button class="add-to-cart-btn" data-item-index="${index}">Add to Cart</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-divider"></div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Map nursery names to display format as shown in mockup
+     */
+    getNurseryDisplayName(nurseryCode) {
+        const nurseryMapping = {
+            'CHERRYLAKE': 'CHERRYLAKE, INC.'
+        };
+
+        return nurseryMapping[nurseryCode] || nurseryCode;
+    }
+
+    /**
+     * Get all nursery inventory data for a plant species
+     */
+    getNurseryInventoryData(plantName) {
+        // Log the number of matches for debugging (as requested)
+        let matchCount = 0;
+        let inventoryItems = [];
+
+        if (window.nurseryDataManager) {
+            inventoryItems = window.nurseryDataManager.getInventoryForSpecies(plantName);
+            matchCount = inventoryItems.length;
+        }
+
+        // Return all inventory items for multi-card display
+        return inventoryItems;
     }
 
     /**
@@ -1173,7 +1283,7 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Attach event listeners to purchase widget elements
+     * Attach event listeners to purchase widget elements (multi-card system)
      */
     attachPurchaseWidgetListeners() {
         if (!this.activePurchaseWidget) return;
@@ -1184,37 +1294,52 @@ class PlantRecommendationsPage {
         }
         this.activePurchaseWidget.dataset.listenersAttached = 'true';
 
+        // Store reference to inventory data for event handlers
+        const plantName = this.activePurchaseWidget.dataset.plant;
+        const speciesKey = this.activePurchaseWidget.dataset.speciesKey;
+        const inventoryItems = this.getNurseryInventoryData(plantName);
+
         // Close button
         const closeBtn = this.activePurchaseWidget.querySelector('.purchase-widget-close');
-        closeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Prevent event bubbling to plant item
-            this.closePurchaseWidget();
-        });
-
-        // Quantity buttons - use event delegation to prevent duplicate handlers
-        this.activePurchaseWidget.addEventListener('click', (e) => {
-            if (e.target.classList.contains('quantity-btn')) {
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Prevent event bubbling to plant item
-                const action = e.target.dataset.action;
-                this.updateQuantity(action);
+                e.stopPropagation();
+                this.closePurchaseWidget();
+            });
+        }
+
+        // Use event delegation for all card interactions
+        this.activePurchaseWidget.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Handle BUY button clicks
+            if (e.target.classList.contains('card-buy-btn') && !e.target.disabled) {
+                const itemIndex = parseInt(e.target.dataset.itemIndex);
+                this.showQuantityControls(itemIndex);
                 return;
             }
 
-            if (e.target.classList.contains('add-to-cart-btn')) {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent event bubbling to plant item
-                const plantName = this.activePurchaseWidget.dataset.plant;
-                const speciesKey = this.activePurchaseWidget.dataset.speciesKey;
+            // Handle quantity adjustment buttons
+            if (e.target.classList.contains('quantity-btn')) {
+                const action = e.target.dataset.action;
+                const itemIndex = parseInt(e.target.dataset.itemIndex);
+                this.updateCardQuantity(action, itemIndex, inventoryItems[itemIndex]);
+                return;
+            }
 
-                // Add to cart via cart manager
-                if (window.cartManager) {
-                    window.cartManager.addToCart(plantName, speciesKey, this.currentQuantity);
-                    // Close the purchase widget after adding to cart
+            // Handle Add to Cart button
+            if (e.target.classList.contains('add-to-cart-btn')) {
+                const itemIndex = parseInt(e.target.dataset.itemIndex);
+                const inventoryItem = inventoryItems[itemIndex];
+                const quantity = this.getCardQuantity(itemIndex);
+
+                if (window.cartManager && inventoryItem) {
+                    window.cartManager.addToCart(plantName, speciesKey, quantity, inventoryItem);
                     this.closePurchaseWidget();
                 } else {
-                    console.error('Cart manager not available');
+                    console.error('Cart manager not available or invalid inventory item');
                 }
                 return;
             }
@@ -1222,7 +1347,132 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Update quantity with +/- buttons (1-20 range)
+     * Show quantity controls for a specific inventory card
+     */
+    showQuantityControls(itemIndex) {
+        const card = this.activePurchaseWidget.querySelector(`[data-item-index="${itemIndex}"]`);
+        if (!card) return;
+
+        const buyButton = card.querySelector('.card-buy-btn');
+        const quantityControls = card.querySelector('.card-quantity-controls');
+        const quantityDisplay = card.querySelector('.quantity-display');
+        const quantityAvailableElement = card.querySelector('.qty-number');
+
+        if (buyButton && quantityControls) {
+            buyButton.style.display = 'none';
+            quantityControls.style.display = 'flex';
+
+            // Update quantity available display to reflect the default quantity selection
+            if (quantityDisplay && quantityAvailableElement) {
+                const currentQuantity = parseInt(quantityDisplay.textContent) || 10;
+                const plantName = this.activePurchaseWidget?.dataset.plant;
+                const speciesKey = this.activePurchaseWidget?.dataset.speciesKey;
+                const inventoryItems = this.getNurseryInventoryData(plantName);
+                const inventoryItem = inventoryItems[itemIndex];
+
+                if (inventoryItem) {
+                    // Calculate remaining inventory after cart items and current selection
+                    const cartQuantity = window.cartManager ?
+                        window.cartManager.getItemQuantity(plantName, speciesKey, inventoryItem) : 0;
+                    const totalAvailable = inventoryItem.quantity_available || 0;
+                    const remainingAfterCart = Math.max(0, totalAvailable - cartQuantity);
+                    const remainingAfterSelection = remainingAfterCart - currentQuantity;
+
+                    quantityAvailableElement.textContent = remainingAfterSelection;
+                }
+            }
+        }
+    }
+
+    /**
+     * Get current quantity for a specific card
+     */
+    getCardQuantity(itemIndex) {
+        const card = this.activePurchaseWidget.querySelector(`[data-item-index="${itemIndex}"]`);
+        if (!card) return 10;
+
+        const quantityDisplay = card.querySelector('.quantity-display');
+        return quantityDisplay ? parseInt(quantityDisplay.textContent) : 10;
+    }
+
+    /**
+     * Update quantity for a specific card with 10-unit intervals and remainder handling
+     */
+    updateCardQuantity(action, itemIndex, inventoryItem) {
+        const card = this.activePurchaseWidget.querySelector(`[data-item-index="${itemIndex}"]`);
+        if (!card) return;
+
+        const quantityDisplay = card.querySelector('.quantity-display');
+        const minusBtn = card.querySelector('.quantity-minus');
+        const plusBtn = card.querySelector('.quantity-plus');
+        const quantityAvailableElement = card.querySelector('.qty-number');
+
+        if (!quantityDisplay || !quantityAvailableElement) return;
+
+        let currentQuantity = parseInt(quantityDisplay.textContent) || 10;
+
+        // Calculate quantity already in cart for this specific inventory item
+        const plantName = this.activePurchaseWidget?.dataset.plant;
+        const speciesKey = this.activePurchaseWidget?.dataset.speciesKey;
+        const cartQuantity = window.cartManager ?
+            window.cartManager.getItemQuantity(plantName, speciesKey, inventoryItem) : 0;
+
+        // Calculate remaining inventory after cart items
+        const totalAvailable = inventoryItem.quantity_available || 0;
+        const remainingInventory = Math.max(0, totalAvailable - cartQuantity);
+
+        // Handle quantity changes with 10-unit intervals
+        if (action === 'increase') {
+            if (remainingInventory < 10) {
+                // If less than 10 available, lock to available amount
+                currentQuantity = remainingInventory;
+            } else {
+                const currentMultiple = Math.floor(currentQuantity / 10) * 10;
+                const remainder = remainingInventory % 10;
+
+                if (currentQuantity === currentMultiple && currentQuantity + 10 <= remainingInventory) {
+                    // Normal increment by 10
+                    currentQuantity += 10;
+                } else if (remainder > 0 && currentQuantity === Math.floor(remainingInventory / 10) * 10) {
+                    // Add remainder when at highest multiple of 10
+                    currentQuantity = remainingInventory;
+                }
+            }
+        } else if (action === 'decrease') {
+            if (remainingInventory < 10) {
+                // Can't decrease if locked to available amount less than 10
+                return;
+            } else {
+                const currentMultiple = Math.floor(currentQuantity / 10) * 10;
+
+                if (currentQuantity > currentMultiple) {
+                    // Go back to nearest multiple of 10
+                    currentQuantity = currentMultiple;
+                } else if (currentQuantity >= 20) {
+                    // Normal decrement by 10
+                    currentQuantity -= 10;
+                } else {
+                    // At minimum (10), can't decrease further
+                    return;
+                }
+            }
+        }
+
+        // Update displays
+        quantityDisplay.textContent = currentQuantity;
+
+        // Update quantity available display to reflect selection
+        const updatedRemaining = remainingInventory - currentQuantity;
+        quantityAvailableElement.textContent = updatedRemaining;
+
+        // Update button states
+        const minQuantity = remainingInventory < 10 ? remainingInventory : 10;
+        if (minusBtn) minusBtn.disabled = currentQuantity <= minQuantity;
+        if (plusBtn) plusBtn.disabled = currentQuantity >= remainingInventory;
+    }
+
+    /**
+     * Update quantity with +/- buttons (legacy method - now per-card)
      */
     updateQuantity(action) {
         if (!this.activePurchaseWidget) return;
@@ -1263,19 +1513,63 @@ class PlantRecommendationsPage {
     }
 
     /**
+     * Reset quantity displays to original values when widget is recreated
+     */
+    resetQuantityDisplays() {
+        if (!this.activePurchaseWidget) return;
+
+        const plantName = this.activePurchaseWidget.dataset.plant;
+        const speciesKey = this.activePurchaseWidget.dataset.speciesKey;
+        const inventoryItems = this.getNurseryInventoryData(plantName);
+
+        inventoryItems.forEach((item, index) => {
+            const card = this.activePurchaseWidget.querySelector(`[data-item-index="${index}"]`);
+            if (!card) return;
+
+            // Reset quantity display to default (10 or available if less than 10)
+            const quantityDisplay = card.querySelector('.quantity-display');
+            const quantityAvailableElement = card.querySelector('.qty-number');
+
+            if (quantityDisplay && quantityAvailableElement) {
+                // Calculate current cart quantity and remaining inventory
+                const cartQuantity = window.cartManager ?
+                    window.cartManager.getItemQuantity(plantName, speciesKey, item) : 0;
+                const remainingInventory = Math.max(0, (item.quantity_available || 0) - cartQuantity);
+
+                // Reset to default quantity and display
+                const defaultQuantity = Math.min(10, remainingInventory);
+                quantityDisplay.textContent = defaultQuantity;
+                quantityAvailableElement.textContent = remainingInventory;
+
+                // Reset quantity controls to be hidden
+                const buyButton = card.querySelector('.card-buy-btn');
+                const quantityControls = card.querySelector('.card-quantity-controls');
+                if (buyButton && quantityControls) {
+                    buyButton.style.display = 'block';
+                    quantityControls.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    /**
      * Update plant spacing to accommodate active widget
      */
-    updatePlantSpacing(activeItem, isShowing) {
+    updatePlantSpacing(activeItem, isShowing, isNoInventory = false) {
         const allPlantItems = document.querySelectorAll('.plant-item');
 
         // Clear all spacing classes first
         allPlantItems.forEach(item => {
-            item.classList.remove('has-active-widget', 'push-down');
+            item.classList.remove('has-active-widget', 'has-active-widget-small', 'push-down', 'push-down-small');
         });
 
         if (isShowing && activeItem) {
+            // Choose the appropriate spacing class based on widget type
+            const widgetClass = isNoInventory ? 'has-active-widget-small' : 'has-active-widget';
+            const pushDownClass = isNoInventory ? 'push-down-small' : 'push-down';
+
             // Mark the active item
-            activeItem.classList.add('has-active-widget');
+            activeItem.classList.add(widgetClass);
 
             // Find the grid column of the active item (0 or 1 for 2-column grid)
             const allItems = Array.from(allPlantItems);
@@ -1287,7 +1581,7 @@ class PlantRecommendationsPage {
 
             // Push down items starting from the next row
             for (let i = nextRowStart; i < allItems.length; i++) {
-                allItems[i].classList.add('push-down');
+                allItems[i].classList.add(pushDownClass);
             }
         }
     }
@@ -1296,7 +1590,6 @@ class PlantRecommendationsPage {
      * Update recommendations based on ecological metrics
      */
     updateRecommendationsForMetrics(metrics) {
-        console.log('Updating recommendations for metrics:', metrics);
     }
 
     /**

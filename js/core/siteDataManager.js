@@ -18,8 +18,8 @@ async function loadSiteData() {
     for (const file of files) {
         try {
             const dataUrl = window.TerrainConfig ?
-                window.TerrainConfig.getDataUrl(`demo-site/${file.filename}`) :
-                `/data/demo-site/${file.filename}`;
+                window.TerrainConfig.getDataUrl(`sites/demo-site/${file.filename}`) :
+                `/data/sites/demo-site/${file.filename}`;
             const response = await fetch(dataUrl);
             const geoJsonData = await response.json();
 

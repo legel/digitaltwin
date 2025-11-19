@@ -436,8 +436,8 @@ async function autoLoadSiteData() {
 
         // Use the same loading logic as the original loadSiteData function
         const dataUrl = window.TerrainConfig ?
-            window.TerrainConfig.getDataUrl('demo-site/plantable-area-data.geojson') :
-            '/data/demo-site/plantable-area-data.geojson';
+            window.TerrainConfig.getDataUrl('sites/demo-site/plantable-area-data.geojson') :
+            '/data/sites/demo-site/plantable-area-data.geojson';
 
 
         const response = await fetch(dataUrl);

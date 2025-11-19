@@ -766,7 +766,7 @@
 
 /* Plant item with active purchase widget */
 .plant-item.has-active-widget {
-    margin-bottom: 160px; /* Increased space for the taller purchase widget */
+    margin-bottom: 350px; /* Reduced spacing - widget extends ~320px + 30px gap */
 }
 
 /* Allow widget interactions when widget is active */
@@ -781,7 +781,16 @@
 
 /* Plant items that come after an active widget (push down) */
 .plant-item.push-down {
-    margin-top: 160px; /* Increased space for the taller purchase widget */
+    margin-top: 350px; /* Reduced spacing - widget extends ~320px + 30px gap */
+}
+
+/* Smaller spacing for no-inventory widgets */
+.plant-item.has-active-widget-small {
+    margin-bottom: 150px; /* Small widget height (~130px) + 20px gap */
+}
+
+.plant-item.push-down-small {
+    margin-top: 150px; /* Small widget height (~130px) + 20px gap */
 }
 
 .plant-item:hover {
@@ -983,6 +992,34 @@
     padding: 40px 20px;
 }
 
+/* Cart summary */
+.cart-summary {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 20px;
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.cart-summary-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+}
+
+.cart-summary-line.cart-total {
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    margin-top: 10px;
+    padding-top: 15px;
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+}
+
 /* Cart overlay */
 .cart-overlay {
     position: fixed;
@@ -1015,13 +1052,15 @@
     border-top: none;
     padding: 20px 20px 30px 20px; /* Extra bottom padding to extend height */
     padding-top: 45px; /* Extra top padding to push content down below image */
-    min-height: 120px; /* Ensure minimum height for content */
+    min-height: 468px; /* Accommodate full card with max image height (300px) */
     z-index: 1; /* Above plant image container (2), but below species banner (5), and navigation (6) */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     transform: translateY(-25px); /* Move up significantly to flow from behind plant image */
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    cursor: default; /* Override parent plant-item cursor: pointer */
+    pointer-events: auto; /* Ensure widget can still receive interactions for its buttons */
 }
 
 .plant-purchase-widget.visible {
@@ -1040,7 +1079,7 @@
 
 .purchase-widget-close {
     position: absolute;
-    top: -5px;
+    top: -15px;
     right: -5px;
     width: 24px;
     height: 24px;
@@ -1830,4 +1869,329 @@
         width: 95%;
         max-height: 85vh;
     }
+}
+
+/* Multi-Card Purchase Widget System */
+
+/* Update main widget container for card layout */
+.plant-purchase-widget {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-width: 360px;
+    background: #072b2e;
+    border: 1px solid #072b2e;
+    border-radius: 0 0 25px 25px;
+    border-top: none;
+    padding: 15px;
+    padding-top: 45px;
+    z-index: 1;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transform: translateY(-25px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    max-height: 400px; /* Constrain height for scrolling */
+}
+
+/* Cards container - scrollable for 3+ cards */
+.purchase-cards-container {
+    max-height: 468px; /* Accommodate full card with max image height */
+    overflow-y: auto;
+    padding-right: 5px; /* Space for scrollbar */
+}
+
+.purchase-cards-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.purchase-cards-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.purchase-cards-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+.purchase-cards-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Individual inventory card */
+.inventory-card {
+    background: #072b2e; /* Ecodash blue background */
+    border: 2px solid white; /* White outline as shown in mockup */
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.inventory-card:last-child {
+    margin-bottom: 0;
+}
+
+/* Card image container */
+.card-image-container {
+    position: relative;
+    min-height: 120px; /* Minimum height (current height) */
+    max-height: 300px; /* Maximum height (2.5x current) */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #072b2e; /* Ecodash blue background for aspect ratio gaps */
+    border-top-left-radius: 10px; /* Match card radius minus border */
+    border-top-right-radius: 10px;
+}
+
+.card-image {
+    width: 100%;
+    height: auto; /* Allow height to adjust for aspect ratio */
+    min-height: 120px;
+    max-height: 300px;
+    object-fit: cover; /* Fill full width, crop top/bottom if needed */
+    object-position: center;
+}
+
+/* Image caption with white outline as shown in mockup */
+.card-caption {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(7, 43, 46, 0.9); /* Semi-transparent Ecodash blue */
+    color: white;
+    padding: 8px 20px;
+    border-bottom-right-radius: 25px;
+    border-top-left-radius: 12px; /* Match card radius */
+    border: 1px solid white; /* Thin white outline */
+    font-size: 10pt;
+    font-weight: normal;
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: normal;
+    font-family: 'Nunito', sans-serif;
+}
+
+/* Card content section with JetBrains Mono font */
+.card-content {
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace; /* JetBrains Mono for all text content */
+    color: white;
+}
+
+/* Top section: quantity/nursery on left, price on right */
+.card-info-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.card-left-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.quantity-available {
+    font-size: 12pt; /* 12pt as specified */
+    font-weight: normal;
+    margin-bottom: 2px;
+}
+
+.qty-number {
+    font-weight: bold; /* Bold for quantity number only */
+}
+
+.nursery-name {
+    font-size: 12pt; /* 12pt as specified */
+    font-weight: normal;
+    font-style: italic; /* Italic as specified */
+}
+
+.card-price {
+    font-size: 21pt; /* 21pt as specified */
+    font-weight: normal;
+    margin: 0;
+}
+
+/* Bottom section: size on left, actions on right */
+.card-info-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 8px;
+}
+
+.card-size {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.container-size {
+    font-size: 12pt;
+    font-weight: normal;
+    margin-bottom: 2px;
+}
+
+.plant-dimensions {
+    font-size: 12pt;
+    font-weight: normal;
+}
+
+.dimension-numbers {
+    font-weight: bold; /* Bold for dimension numbers only */
+}
+
+.card-actions {
+    display: flex;
+    justify-content: flex-end;
+    min-height: 44px;
+    align-items: center;
+}
+
+.card-buy-btn {
+    background: #e0e0e0;
+    color: black;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Nunito', sans-serif; /* Use Nunito for buttons */
+}
+
+.card-buy-btn:hover {
+    background: #d0d0d0;
+    transform: translateY(-1px);
+}
+
+.card-buy-btn.disabled,
+.card-buy-btn:disabled {
+    background: #ccc;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Card quantity controls (replaces buy button in same space) */
+.card-quantity-controls {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-quantity-controls .quantity-selector {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-quantity-controls .quantity-btn {
+    background: none;
+    border: none;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #072b2e;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-family: 'Nunito', sans-serif;
+}
+
+.card-quantity-controls .quantity-btn:hover {
+    background: #f0f0f0;
+}
+
+.card-quantity-controls .quantity-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.card-quantity-controls .quantity-display {
+    min-width: 30px;
+    text-align: center;
+    font-weight: 600;
+    color: #072b2e;
+    font-size: 14px;
+    font-family: 'Nunito', sans-serif;
+}
+
+.card-quantity-controls .add-to-cart-btn {
+    background: #e0e0e0;
+    color: black;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Nunito', sans-serif;
+}
+
+.card-quantity-controls .add-to-cart-btn:hover {
+    background: #d0d0d0;
+}
+
+/* White horizontal divider between cards */
+.inventory-card:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: -12px; /* Exactly in middle of 20px margin-bottom */
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: white;
+    opacity: 0.8;
+    z-index: 10; /* Above widget background, same level as card borders */
+    pointer-events: none; /* Prevent interaction with dividers */
+}
+
+/* Hide the HTML card-divider elements since we're using CSS pseudo-elements */
+.card-divider {
+    display: none;
+}
+
+/* No inventory message */
+.no-inventory-message {
+    text-align: center;
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'Nunito', sans-serif;
+    font-style: italic;
+}
+
+.no-inventory-message p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Smaller widget variant for no inventory */
+.plant-purchase-widget.no-inventory {
+    min-height: 80px; /* Much smaller - just for message + close button */
+}
+
+.plant-purchase-widget.no-inventory .purchase-cards-container {
+    max-height: 80px; /* Match the smaller widget height */
+    overflow: visible; /* No need for scrolling with just a message */
 }
