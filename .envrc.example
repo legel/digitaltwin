@@ -1,0 +1,9 @@
+# Stripe Configuration
+# Replace these placeholder values with your actual Stripe test keys
+# Get your keys from: https://dashboard.stripe.com/test/apikeys
+
+export STRIPE_PUBLISHABLE_KEY="pk_test_YOUR_PUBLISHABLE_KEY_HERE"
+export STRIPE_SECRET_KEY="sk_test_YOUR_SECRET_KEY_HERE"
+
+# Note: Copy this file to .envrc and update with your actual keys
+# The .envrc file is gitignored to keep your keys secure

@@ -41,7 +41,6 @@ function initializeRealLoadingScreen() {
         }
     };
 
-    console.log('✅ Real progress loading screen initialized');
 
     // Set up safety timeout (60 seconds) - keeps trying, doesn't give up
     setTimeout(() => {
@@ -60,7 +59,6 @@ function completeLoadingScreen() {
         return;
     }
 
-    console.log('✅ Completing loading screen');
 
     // Update to 100%
     const progressBar = document.getElementById('loadingProgress');

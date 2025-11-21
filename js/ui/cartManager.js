@@ -17,8 +17,95 @@ class CartManager {
         this.successOverlay = null;
         this.successVisible = false;
 
+        // Stripe integration
+        this.stripe = null;
+        this.cardElement = null;
+        this.stripeReady = false;
+
+        // Initialize Stripe when window loads to ensure script is ready
+        if (document.readyState === 'loading') {
+            window.addEventListener('load', () => this.initializeStripe());
+        } else {
+            // DOM already loaded, check if Stripe is available
+            if (typeof Stripe !== 'undefined') {
+                this.initializeStripe();
+            } else {
+                // Wait for Stripe script to load
+                window.addEventListener('load', () => this.initializeStripe());
+            }
+        }
+
         this.init();
     }
+
+    /**
+     * Initialize Stripe Elements for PCI-compliant card collection
+     */
+    async initializeStripe() {
+        try {
+            // Check if Stripe is available
+            if (typeof Stripe === 'undefined') {
+                console.error('Stripe.js not loaded');
+                return;
+            }
+
+            // Fetch Stripe configuration from backend
+            const configResponse = await fetch('/api/stripe-config');
+            const config = await configResponse.json();
+
+            this.stripe = Stripe(config.publishable_key);
+
+            if (this.stripe) {
+                this.setupCardElement();
+                this.stripeReady = true;
+            } else {
+                console.error('Failed to create Stripe instance');
+            }
+        } catch (error) {
+            console.error('Failed to initialize Stripe:', error);
+        }
+    }
+
+    /**
+     * Set up Stripe Card Element
+     */
+    setupCardElement() {
+        if (!this.stripe) {
+            console.error('Stripe not initialized');
+            return;
+        }
+
+        const elements = this.stripe.elements();
+
+        // Create card element with minimal styling
+        this.cardElement = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                        color: '#aab7c4',
+                    },
+                }
+            }
+        });
+
+        // Listen for realtime validation errors from the card Element
+        this.cardElement.on('change', ({error}) => {
+            const displayError = document.getElementById('stripe-card-errors');
+            if (displayError) {
+                if (error) {
+                    displayError.textContent = error.message;
+                    displayError.style.display = 'block';
+                } else {
+                    displayError.style.display = 'none';
+                    displayError.textContent = '';
+                }
+            }
+        });
+
+    }
+
 
     /**
      * Initialize cart UI and event listeners
@@ -171,11 +258,11 @@ class CartManager {
                             <input type="date" class="checkout-input" id="checkout-date"
                                    placeholder="Delivery Date">
                             <select class="checkout-input" id="checkout-time">
-                                <option value="10:00">10:00 AM</option>
                                 <option value="08:00">8:00 AM</option>
                                 <option value="08:30">8:30 AM</option>
                                 <option value="09:00">9:00 AM</option>
                                 <option value="09:30">9:30 AM</option>
+                                <option value="10:00" selected>10:00 AM</option>
                                 <option value="10:30">10:30 AM</option>
                                 <option value="11:00">11:00 AM</option>
                                 <option value="11:30">11:30 AM</option>
@@ -200,18 +287,16 @@ class CartManager {
                     <div class="checkout-section">
                         <h3 class="checkout-section-title">Payment Information</h3>
                         <div class="checkout-form-row">
-                            <input type="text" class="checkout-input full-width" id="checkout-card-number"
-                                   placeholder="Card Number" autocomplete="cc-number">
-                        </div>
-                        <div class="checkout-form-row">
-                            <input type="text" class="checkout-input" id="checkout-expiry"
-                                   placeholder="MM/YY" autocomplete="cc-exp">
-                            <input type="text" class="checkout-input" id="checkout-cvv"
-                                   placeholder="CVV" autocomplete="cc-csc">
-                        </div>
-                        <div class="checkout-form-row">
-                            <input type="text" class="checkout-input full-width" id="checkout-cardholder-name"
-                                   placeholder="Cardholder Name" autocomplete="cc-name">
+                            <div id="stripe-card-element" style="
+                                padding: 10px;
+                                border: 1px solid #ccc;
+                                border-radius: 4px;
+                                background: white;
+                                height: 40px;
+                                width: 100%;
+                                box-sizing: border-box;
+                            "></div>
+                            <div id="stripe-card-errors" style="margin-top: 5px; display: none; color: #e25950; font-size: 14px;"></div>
                         </div>
                         <div class="checkout-form-row">
                             <select class="checkout-input full-width" id="checkout-billing-same">
@@ -221,7 +306,7 @@ class CartManager {
                         </div>
 
                         <!-- Billing Address Section (hidden by default) -->
-                        <div class="checkout-billing-address" id="checkout-billing-address" style="display: none;">
+                        <div class="checkout-billing-address" id="checkout-billing-address-section" style="display: none;">
                             <h4 class="checkout-subsection-title">Billing Address</h4>
                             <div class="checkout-form-row">
                                 <input type="text" class="checkout-input" id="checkout-billing-first-name"
@@ -236,8 +321,59 @@ class CartManager {
                             <div class="checkout-form-row">
                                 <input type="text" class="checkout-input" id="checkout-billing-city"
                                        placeholder="City" autocomplete="billing address-level2">
-                                <input type="text" class="checkout-input" id="checkout-billing-state"
-                                       placeholder="State" autocomplete="billing address-level1">
+                                <select class="checkout-input" id="checkout-billing-state" autocomplete="billing address-level1">
+                                    <option value="">Select State</option>
+                                    <option value="AL">Alabama</option>
+                                    <option value="AK">Alaska</option>
+                                    <option value="AZ">Arizona</option>
+                                    <option value="AR">Arkansas</option>
+                                    <option value="CA">California</option>
+                                    <option value="CO">Colorado</option>
+                                    <option value="CT">Connecticut</option>
+                                    <option value="DE">Delaware</option>
+                                    <option value="FL">Florida</option>
+                                    <option value="GA">Georgia</option>
+                                    <option value="HI">Hawaii</option>
+                                    <option value="ID">Idaho</option>
+                                    <option value="IL">Illinois</option>
+                                    <option value="IN">Indiana</option>
+                                    <option value="IA">Iowa</option>
+                                    <option value="KS">Kansas</option>
+                                    <option value="KY">Kentucky</option>
+                                    <option value="LA">Louisiana</option>
+                                    <option value="ME">Maine</option>
+                                    <option value="MD">Maryland</option>
+                                    <option value="MA">Massachusetts</option>
+                                    <option value="MI">Michigan</option>
+                                    <option value="MN">Minnesota</option>
+                                    <option value="MS">Mississippi</option>
+                                    <option value="MO">Missouri</option>
+                                    <option value="MT">Montana</option>
+                                    <option value="NE">Nebraska</option>
+                                    <option value="NV">Nevada</option>
+                                    <option value="NH">New Hampshire</option>
+                                    <option value="NJ">New Jersey</option>
+                                    <option value="NM">New Mexico</option>
+                                    <option value="NY">New York</option>
+                                    <option value="NC">North Carolina</option>
+                                    <option value="ND">North Dakota</option>
+                                    <option value="OH">Ohio</option>
+                                    <option value="OK">Oklahoma</option>
+                                    <option value="OR">Oregon</option>
+                                    <option value="PA">Pennsylvania</option>
+                                    <option value="RI">Rhode Island</option>
+                                    <option value="SC">South Carolina</option>
+                                    <option value="SD">South Dakota</option>
+                                    <option value="TN">Tennessee</option>
+                                    <option value="TX">Texas</option>
+                                    <option value="UT">Utah</option>
+                                    <option value="VT">Vermont</option>
+                                    <option value="VA">Virginia</option>
+                                    <option value="WA">Washington</option>
+                                    <option value="WV">West Virginia</option>
+                                    <option value="WI">Wisconsin</option>
+                                    <option value="WY">Wyoming</option>
+                                </select>
                                 <input type="text" class="checkout-input" id="checkout-billing-zip"
                                        placeholder="ZIP Code" autocomplete="billing postal-code">
                             </div>
@@ -487,6 +623,20 @@ class CartManager {
     }
 
     /**
+     * Get item description for Stripe
+     */
+    getItemDescription(item) {
+        if (item.product) {
+            const containerInfo = item.product.getContainerInfo();
+            return `${containerInfo} ${item.plantName}`;
+        } else if (item.inventoryData) {
+            const containerInfo = `${item.inventoryData.container_size || ''} ${item.inventoryData.container_type || ''}`.trim();
+            return `${containerInfo} ${item.plantName}`;
+        }
+        return item.plantName;
+    }
+
+    /**
      * Calculate total cost including shipping and tax
      */
     getTotalCost() {
@@ -635,6 +785,51 @@ class CartManager {
         this.initializeCheckoutDefaults();
         this.hideCart();
         this.showCheckout();
+
+        // Mount Stripe Element after checkout form is displayed
+        setTimeout(() => {
+            this.mountStripeElement();
+        }, 100);
+    }
+
+    /**
+     * Mount Stripe Card Element to the checkout form
+     */
+    mountStripeElement() {
+        if (!this.stripeReady || !this.cardElement) {
+            setTimeout(() => this.mountStripeElement(), 500);
+            return;
+        }
+
+        const cardElementContainer = document.getElementById('stripe-card-element');
+        if (!cardElementContainer) {
+            setTimeout(() => this.mountStripeElement(), 100);
+            return;
+        }
+
+        try {
+            // Clear the container completely first
+            cardElementContainer.innerHTML = '';
+
+            this.cardElement.mount(cardElementContainer);
+
+            // Force a reflow to ensure rendering
+            cardElementContainer.style.display = 'none';
+            cardElementContainer.offsetHeight;
+            cardElementContainer.style.display = 'block';
+
+        } catch (error) {
+            console.error('Failed to mount Stripe Element:', error);
+
+            // If mounting fails, try unmounting first then retry
+            try {
+                this.cardElement.unmount();
+            } catch (unmountError) {
+            }
+
+            // Show a user-friendly message if mounting completely fails
+            cardElementContainer.innerHTML = '<div style="color: #999; font-style: italic; padding: 10px;">Card input loading...</div>';
+        }
     }
 
     /**
@@ -671,7 +866,7 @@ class CartManager {
      * Handle billing address visibility toggle
      */
     handleBillingAddressToggle(showBillingAddress) {
-        const billingSection = document.getElementById('checkout-billing-address');
+        const billingSection = document.getElementById('checkout-billing-address-section');
         if (billingSection) {
             if (showBillingAddress) {
                 billingSection.style.display = 'block';
@@ -804,15 +999,8 @@ class CartManager {
                 this.showFieldError(error.field, error.message);
             });
         } else {
-            // Process payment (placeholder)
-            const paymentValid = this.validatePayment();
-
-            if (paymentValid) {
-                // Success flow
-                this.processSuccessfulPurchase();
-            } else {
-                this.showGeneralError('Payment processing failed. Please try again.');
-            }
+            // Process Stripe payment
+            this.processStripePayment();
         }
     }
 
@@ -854,6 +1042,32 @@ class CartManager {
         if (!date) errors.push({ field: 'checkout-date', message: 'Delivery date is required' });
         if (!time) errors.push({ field: 'checkout-time', message: 'Delivery time is required' });
 
+        // Payment validation - Stripe Elements handles card validation automatically
+        // We'll validate the card element completeness during payment processing
+
+        // Billing address validation (if different from delivery address)
+        const useDifferentBilling = document.getElementById('checkout-billing-same').value === 'false';
+        if (useDifferentBilling) {
+            const billingFirstName = document.getElementById('checkout-billing-first-name').value.trim();
+            const billingLastName = document.getElementById('checkout-billing-last-name').value.trim();
+            const billingAddress = document.getElementById('checkout-billing-address').value.trim();
+            const billingCity = document.getElementById('checkout-billing-city').value.trim();
+            const billingState = document.getElementById('checkout-billing-state').value;
+            const billingZip = document.getElementById('checkout-billing-zip').value.trim();
+
+            if (!billingFirstName) errors.push({ field: 'checkout-billing-first-name', message: 'First name is required' });
+            if (!billingLastName) errors.push({ field: 'checkout-billing-last-name', message: 'Last name is required' });
+            if (!billingAddress) errors.push({ field: 'checkout-billing-address', message: 'Address is required' });
+            if (!billingCity) errors.push({ field: 'checkout-billing-city', message: 'City is required' });
+            if (!billingState) errors.push({ field: 'checkout-billing-state', message: 'State is required' });
+            if (!billingZip) errors.push({ field: 'checkout-billing-zip', message: 'ZIP code is required' });
+
+            // Billing ZIP format validation
+            if (billingZip && !this.validateZipCode(billingZip)) {
+                errors.push({ field: 'checkout-billing-zip', message: 'Invalid ZIP code format' });
+            }
+        }
+
         // Format validation
         if (zip && !this.validateZipCode(zip)) {
             errors.push({ field: 'checkout-zip', message: 'Invalid ZIP code format' });
@@ -864,6 +1078,8 @@ class CartManager {
         if (email && !this.validateEmail(email)) {
             errors.push({ field: 'checkout-email', message: 'Invalid email format' });
         }
+
+        // Stripe Elements handles all card format validation automatically
 
         return errors;
     }
@@ -894,10 +1110,308 @@ class CartManager {
     }
 
     /**
-     * Placeholder payment validation
+     * Validate credit card number format
      */
-    validatePayment() {
-        return true; // Always return true for now
+    validateCardNumber(cardNumber) {
+        const cleanNumber = cardNumber.replace(/\s/g, '');
+        // Basic length and digit validation
+        return cleanNumber.length >= 13 && cleanNumber.length <= 19 && /^\d+$/.test(cleanNumber);
+    }
+
+    /**
+     * Validate expiry date format (MM/YY)
+     */
+    validateExpiryDate(expiry) {
+        const expiryPattern = /^(0[1-9]|1[0-2])\/\d{2}$/;
+        if (!expiryPattern.test(expiry)) {
+            return false;
+        }
+
+        // Check if date is not in the past
+        const [month, year] = expiry.split('/');
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear() % 100;
+        const currentMonth = currentDate.getMonth() + 1;
+
+        const expYear = parseInt(year);
+        const expMonth = parseInt(month);
+
+        if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate CVV format
+     */
+    validateCvv(cvv) {
+        // CVV should be 3 or 4 digits
+        const cvvPattern = /^\d{3,4}$/;
+        return cvvPattern.test(cvv);
+    }
+
+    /**
+     * Process Stripe payment
+     */
+    async processStripePayment() {
+        try {
+            // Disable purchase button to prevent double submission
+            const purchaseBtn = document.getElementById('checkout-purchase-btn');
+            purchaseBtn.disabled = true;
+            purchaseBtn.textContent = 'Processing...';
+
+            // Clear any existing errors
+            this.clearValidationErrors();
+
+            // Get billing address based on user selection
+            let billingAddress;
+            try {
+                billingAddress = this.getBillingAddress();
+            } catch (error) {
+                // Handle billing address field errors
+                if (error.message.includes('Missing billing address fields')) {
+                    this.showGeneralError('Please fill out the billing address information.');
+                    return;
+                } else if (error.message.includes('Missing delivery address fields')) {
+                    this.showGeneralError('Please complete the delivery address before processing payment.');
+                    return;
+                } else {
+                    this.showGeneralError('There was a problem with the address information. Please check your entries.');
+                    return;
+                }
+            }
+
+            // Check if Stripe is ready
+            if (!this.stripeReady || !this.stripe || !this.cardElement) {
+                this.showGeneralError('Payment system is not ready. Please try again in a moment.');
+                return;
+            }
+
+            // Create PaymentMethod using Stripe Elements
+            const {error, paymentMethod} = await this.stripe.createPaymentMethod({
+                type: 'card',
+                card: this.cardElement,
+                billing_details: {
+                    name: `${billingAddress.firstName} ${billingAddress.lastName}`,
+                    address: {
+                        line1: billingAddress.street,
+                        city: billingAddress.city,
+                        state: billingAddress.state,
+                        postal_code: billingAddress.zip,
+                        country: 'US'
+                    }
+                }
+            });
+
+            if (error) {
+                this.showGeneralError(error.message);
+                return;
+            }
+
+            // Prepare payment data with PaymentMethod ID (PCI compliant)
+            const paymentData = {
+                amount: this.calculateTotalAmount(),
+                currency: 'usd',
+                payment_method_id: paymentMethod.id,
+                billingAddress: billingAddress
+            };
+
+            // Process with Stripe Payment Intent using PaymentMethod ID
+            const paymentResult = await this.processStripePaymentIntent(paymentData);
+
+            if (paymentResult.success) {
+                this.processSuccessfulPurchase();
+            } else {
+                this.handleStripeError(paymentResult.error);
+            }
+
+        } catch (error) {
+            console.error('Payment processing error:', error);
+
+            // Convert technical errors to user-friendly messages
+            if (error.message && error.message.includes('fetch')) {
+                this.showGeneralError('Unable to connect to payment processor. Please check your internet connection and try again.');
+            } else if (error.message && error.message.includes('network')) {
+                this.showGeneralError('Network error. Please try again.');
+            } else {
+                this.showGeneralError('Payment processing failed. Please try again.');
+            }
+        } finally {
+            // Re-enable purchase button
+            const purchaseBtn = document.getElementById('checkout-purchase-btn');
+            purchaseBtn.disabled = false;
+            purchaseBtn.textContent = 'Complete Purchase';
+        }
+    }
+
+    /**
+     * Get billing address based on user selection
+     */
+    getBillingAddress() {
+        const billingDropdown = document.getElementById('checkout-billing-same');
+        if (!billingDropdown) {
+            throw new Error('Billing address dropdown not found');
+        }
+
+        const useSameAddress = billingDropdown.value === 'true';
+
+        if (useSameAddress) {
+            // Use delivery address as billing address
+            return this.getFieldValue('delivery', {
+                firstName: 'checkout-first-name',
+                lastName: 'checkout-last-name',
+                address: 'checkout-address',
+                city: 'checkout-city',
+                state: 'checkout-state',
+                zip: 'checkout-zip'
+            });
+        } else {
+            // Use separate billing address
+            return this.getFieldValue('billing', {
+                firstName: 'checkout-billing-first-name',
+                lastName: 'checkout-billing-last-name',
+                address: 'checkout-billing-address',
+                city: 'checkout-billing-city',
+                state: 'checkout-billing-state',
+                zip: 'checkout-billing-zip'
+            });
+        }
+    }
+
+    /**
+     * Helper to safely get form field values with error handling
+     */
+    getFieldValue(addressType, fieldMap) {
+        const result = {};
+        const missingFields = [];
+
+        for (const [key, fieldId] of Object.entries(fieldMap)) {
+            const element = document.getElementById(fieldId);
+            if (!element) {
+                missingFields.push(fieldId);
+                continue;
+            }
+            result[key] = element.value ? element.value.trim() : '';
+        }
+
+        if (missingFields.length > 0) {
+            throw new Error(`Missing ${addressType} address fields: ${missingFields.join(', ')}`);
+        }
+
+        return result;
+    }
+
+    /**
+     * Calculate total amount in cents for Stripe
+     */
+    calculateTotalAmount() {
+        return this.getTotalCost() * 100; // Convert to cents
+    }
+
+
+    /**
+     * Process Stripe payment using digitaltwin sandbox backend
+     */
+    async processStripePaymentIntent(paymentData) {
+        try {
+            // Prepare cart data for backend
+            const cartItems = this.cart.map(item => ({
+                name: this.getItemDescription(item),
+                quantity: item.quantity,
+                unit_amount: Math.round(this.getItemUnitPrice(item) * 100) // Convert to cents
+            }));
+
+            const paymentRequestData = {
+                amount: paymentData.amount,
+                currency: paymentData.currency,
+                cart_items: cartItems,
+                payment_method_id: paymentData.payment_method_id,
+                customer_data: {
+                    name: `${paymentData.billingAddress.firstName} ${paymentData.billingAddress.lastName}`,
+                    email: document.getElementById('checkout-email').value.trim(),
+                    phone: document.getElementById('checkout-phone').value.trim(),
+                    billing_address: paymentData.billingAddress
+                }
+            };
+
+            // Process payment through backend
+            const response = await fetch('/api/create-payment-intent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paymentRequestData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                return {
+                    success: false,
+                    error: 'payment_failed',
+                    message: errorData.message || 'Payment processing failed. Please try again.'
+                };
+            }
+
+            const result = await response.json();
+
+            if (result.success && result.payment_intent) {
+                return { success: true, payment_intent: result.payment_intent };
+            } else {
+                return {
+                    success: false,
+                    error: 'payment_failed',
+                    message: result.message || 'Payment processing failed. Please try again.'
+                };
+            }
+
+        } catch (error) {
+            console.error('Payment processing failed:', error);
+
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                return {
+                    success: false,
+                    error: 'network_error',
+                    message: 'Unable to connect to payment processor. Please check your internet connection and try again.'
+                };
+            }
+
+            return {
+                success: false,
+                error: 'payment_processing_error',
+                message: 'Payment processing failed. Please try again.'
+            };
+        }
+    }
+
+    /**
+     * Handle Stripe payment errors
+     */
+    handleStripeError(error) {
+        const errorMappings = {
+            'card_declined': 'Your card was declined. Please try a different payment method.',
+            'expired_card': 'Your card has expired.',
+            'incorrect_cvc': 'Your card\'s security code is incorrect.',
+            'invalid_number': 'Your card number is invalid.',
+            'invalid_expiry_month': 'Your card\'s expiration month is invalid.',
+            'invalid_expiry_year': 'Your card\'s expiration year is invalid.',
+            'processing_error': 'An error occurred while processing your card. Please try again.',
+            'payment_method_required': 'Please enter your card information.',
+            'payment_failed': 'Payment failed. Please try again.'
+        };
+
+        const message = errorMappings[error] || 'Payment failed. Please check your information and try again.';
+
+        // Show error in the Stripe card element area
+        const displayError = document.getElementById('stripe-card-errors');
+        if (displayError) {
+            displayError.textContent = message;
+            displayError.style.display = 'block';
+        }
+
+        // Also show general error message
+        this.showGeneralError(message);
     }
 
     /**

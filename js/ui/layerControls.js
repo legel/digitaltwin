@@ -604,7 +604,6 @@ function setupVisibilityToggleButtons() {
             // Update polygonManager visibility directly and trigger renderer update
             if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
                 const affectedCount = window.superSplatBridge.polygonManager.setGroupVisibility('plantable-areas', window.layerState.showPlantableAreas);
-                console.log(`👁️ PA visibility toggle: ${affectedCount} polygons ${window.layerState.showPlantableAreas ? 'shown' : 'hidden'}`);
 
                 // Trigger automatic renderer update
                 window.superSplatBridge.polygonManager.triggerAutoRendererUpdate();
@@ -658,7 +657,6 @@ function setupVisibilityToggleButtons() {
             // Update polygonManager visibility directly and trigger renderer update
             if (window.superSplatBridge && window.superSplatBridge.polygonManager) {
                 const affectedCount = window.superSplatBridge.polygonManager.setGroupVisibility('non-plantable-areas', window.layerState.showNonPlantableAreas);
-                console.log(`👁️ NPA visibility toggle: ${affectedCount} polygons ${window.layerState.showNonPlantableAreas ? 'shown' : 'hidden'}`);
 
                 // Trigger automatic renderer update
                 window.superSplatBridge.polygonManager.triggerAutoRendererUpdate();
@@ -1622,7 +1620,6 @@ function createAnimatedConnectionLine(paLabel, callback) {
                 }
                 setTimeout(() => {
                     if (!currentAnimationState.selectedLabel) {
-                        console.log('🚫 Connection line phase cancelled - aborting callback');
                         return;
                     }
                     if (callback) callback();
@@ -1666,7 +1663,6 @@ function createVerticalEdge(callback) {
             // Vertical edge animation completed, calling next phase
             // Check if animation was cancelled during this phase
             if (!currentAnimationState.selectedLabel) {
-                console.log('🚫 Vertical edge phase cancelled - aborting callback');
                 return;
             }
             callback();
@@ -1681,7 +1677,6 @@ function expandToFocusPanel(paName, paFeature, callback) {
     // Expanding to focus panel for PA: ${paName}
 
     if (!currentAnimationState.selectedLabel || currentAnimationState.selectedPA !== paName) {
-        console.log('🚫 Panel expansion cancelled - aborting');
         return;
     }
 
@@ -1743,7 +1738,6 @@ function expandToFocusPanel(paName, paFeature, callback) {
     // Make panel visible and animate expansion in next frame
     requestAnimationFrame(() => {
         if (!currentAnimationState.selectedLabel || currentAnimationState.selectedPA !== paName) {
-            console.log('🚫 Panel animation cancelled during setup - hiding panel');
             if (panel) {
                 panel.classList.remove('visible', 'animating-in');
                 panel.style.visibility = 'hidden';
@@ -1767,7 +1761,6 @@ function expandToFocusPanel(paName, paFeature, callback) {
 
         requestAnimationFrame(() => {
             if (!currentAnimationState.selectedLabel || currentAnimationState.selectedPA !== paName) {
-                console.log('🚫 Panel animation cancelled before final transform - hiding panel');
                 if (panel) {
                     panel.classList.remove('visible', 'animating-in');
                     panel.style.visibility = 'hidden';
@@ -1798,7 +1791,6 @@ function expandToFocusPanel(paName, paFeature, callback) {
 
         setTimeout(() => {
             if (!currentAnimationState.selectedLabel || currentAnimationState.selectedPA !== paName) {
-                console.log('🚫 Panel animation cancelled during final timeout - hiding panel');
                 if (panel) {
                     panel.classList.remove('visible', 'animating-in');
                     panel.style.visibility = 'hidden';
@@ -1973,7 +1965,6 @@ function setCameraTopDown() {
     if (window.superSplatManager) {
         const success = window.superSplatManager.setTopDownView();
         if (success) {
-            console.log('✅ Camera successfully set to top-down view');
         } else {
             console.warn('⚠️ Failed to set camera to top-down view');
         }
@@ -2010,11 +2001,9 @@ function positionCameraOnSelected() {
         return false;
     }
 
-    console.log(`📍 Positioning camera on ${selectedPolygons.length} selected polygons:`, selectedPolygons);
     const success = window.superSplatManager.positionCameraOnPolygons(selectedPolygons);
 
     if (success) {
-        console.log('✅ Camera successfully positioned on selected polygons');
     } else {
         console.warn('⚠️ Failed to position camera on selected polygons');
     }

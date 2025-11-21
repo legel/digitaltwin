@@ -208,41 +208,14 @@ class CoordinateTransform {
 
         const geoBounds = this.calculateGeoJSONBounds(geoJsonData);
 
-        console.log('📐 GeoJSON Geographic Bounds:', {
-            west: geoBounds.west.toFixed(8),
-            east: geoBounds.east.toFixed(8),
-            south: geoBounds.south.toFixed(8),
-            north: geoBounds.north.toFixed(8),
-            center: {
-                lon: geoBounds.center.longitude.toFixed(8),
-                lat: geoBounds.center.latitude.toFixed(8)
-            },
-            dimensions: {
-                width_degrees: geoBounds.dimensions.width_degrees.toFixed(8),
-                height_degrees: geoBounds.dimensions.height_degrees.toFixed(8),
-                width_meters: geoBounds.dimensions.width_meters.toFixed(2),
-                height_meters: geoBounds.dimensions.height_meters.toFixed(2)
-            }
-        });
 
         // Log splat bounds if available
         if (splatBounds) {
-            console.log('🎨 SuperSplat Bounds (from loaded splat):', {
-                center: splatBounds.center,
-                width: splatBounds.width.toFixed(3),
-                height: splatBounds.height.toFixed(3),
-                depth: splatBounds.depth.toFixed(3)
-            });
 
             // Calculate scale factors
             const scaleX = splatBounds.width / (geoBounds.east - geoBounds.west);
             const scaleZ = splatBounds.height / (geoBounds.north - geoBounds.south);
 
-            console.log('⚖️ Dynamic Scale Factors:', {
-                scaleX: scaleX.toFixed(6),
-                scaleZ: scaleZ.toFixed(6),
-                note: 'These scales map geographic degrees to SuperSplat units'
-            });
         }
 
         // Create rectangle vertices using dynamic scaling if available
