@@ -789,6 +789,7 @@ class CartManager {
         // Mount Stripe Element after checkout form is displayed
         setTimeout(() => {
             this.mountStripeElement();
+            this.setupPhoneNumberFormatting();
         }, 100);
     }
 
@@ -830,6 +831,133 @@ class CartManager {
             // Show a user-friendly message if mounting completely fails
             cardElementContainer.innerHTML = '<div style="color: #999; font-style: italic; padding: 10px;">Card input loading...</div>';
         }
+    }
+
+    /**
+     * Set up phone number auto-formatting
+     */
+    setupPhoneNumberFormatting() {
+        const phoneInput = document.getElementById('checkout-phone');
+        if (!phoneInput) return;
+
+        // Track if this is an autofill event
+        let isAutofill = false;
+
+        // Delay formatting to allow autofill to complete
+        phoneInput.addEventListener('input', (e) => {
+            // Check if this looks like autofill (large value change)
+            const inputType = e.inputType;
+            if (inputType === 'insertReplacementText' || e.data === null) {
+                isAutofill = true;
+                // Give autofill time to complete, then format
+                setTimeout(() => {
+                    this.formatPhoneNumber(e.target);
+                    isAutofill = false;
+                }, 50);
+            } else if (!isAutofill) {
+                // Normal typing - format immediately
+                this.formatPhoneNumber(e.target);
+            }
+        });
+
+        // Be less restrictive with keydown validation to allow autofill
+        phoneInput.addEventListener('keydown', (e) => {
+            // Allow backspace, delete, tab, escape, enter, and all navigation keys
+            if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true) ||
+                (e.keyCode === 90 && e.ctrlKey === true) ||
+                // Allow home, end, left, right, up, down arrows
+                (e.keyCode >= 35 && e.keyCode <= 40)) {
+                return;
+            }
+            // Only restrict non-numeric keys during manual typing (not during autofill)
+            if (!isAutofill && (e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+
+        // Listen for autofill events specifically
+        phoneInput.addEventListener('change', (e) => {
+            // Format after autofill completes
+            this.formatPhoneNumber(e.target);
+        });
+    }
+
+    /**
+     * Format phone number as user types with smart US formatting
+     * Handles: (XXX) XXX-XXXX or 1 (XXX) XXX-XXXX
+     */
+    formatPhoneNumber(input) {
+        const originalValue = input.value;
+
+        // Check if the value is already well-formatted (common with autofill)
+        const alreadyFormatted = /^(\d{10}|1\d{10}|\(\d{3}\)\s\d{3}-\d{4}|1\s\(\d{3}\)\s\d{3}-\d{4}|\d{3}-\d{3}-\d{4}|1-\d{3}-\d{3}-\d{4})$/.test(originalValue);
+
+        if (alreadyFormatted && originalValue.length >= 10) {
+            // Value is already formatted well, don't interfere
+            return;
+        }
+
+        // Get the input value and remove all non-digits
+        let value = originalValue.replace(/\D/g, '');
+
+        // Handle US country code (1) intelligently
+        let hasCountryCode = false;
+        if (value.charAt(0) === '1' && value.length > 1) {
+            // If starts with '1' and has more digits, treat as country code
+            hasCountryCode = true;
+            // Limit to 11 digits (1 + 10 digit US number)
+            if (value.length > 11) {
+                value = value.substring(0, 11);
+            }
+        } else if (value.length === 1 && value === '1') {
+            // Just "1" typed - could be country code, show as is for now
+            hasCountryCode = true;
+        } else {
+            // Standard US format - limit to 10 digits
+            if (value.length > 10) {
+                value = value.substring(0, 10);
+            }
+        }
+
+        // Format based on whether we have country code
+        let formattedValue = '';
+
+        if (hasCountryCode) {
+            // Format as: 1 (XXX) XXX-XXXX
+            const phoneDigits = value.substring(1); // Remove the '1'
+            if (phoneDigits.length >= 6) {
+                formattedValue = `1 (${phoneDigits.substring(0, 3)}) ${phoneDigits.substring(3, 6)}-${phoneDigits.substring(6)}`;
+            } else if (phoneDigits.length >= 3) {
+                formattedValue = `1 (${phoneDigits.substring(0, 3)}) ${phoneDigits.substring(3)}`;
+            } else if (phoneDigits.length > 0) {
+                formattedValue = `1 (${phoneDigits}`;
+            } else {
+                formattedValue = '1';
+            }
+        } else {
+            // Format as: (XXX) XXX-XXXX
+            if (value.length >= 6) {
+                formattedValue = `(${value.substring(0, 3)}) ${value.substring(3, 6)}-${value.substring(6)}`;
+            } else if (value.length >= 3) {
+                formattedValue = `(${value.substring(0, 3)}) ${value.substring(3)}`;
+            } else if (value.length > 0) {
+                formattedValue = value;
+            }
+        }
+
+        input.value = formattedValue;
+    }
+
+    /**
+     * Get clean phone number (digits only) from formatted input
+     */
+    getCleanPhoneNumber(formattedPhone) {
+        return formattedPhone.replace(/\D/g, '');
     }
 
     /**
@@ -1093,12 +1221,20 @@ class CartManager {
     }
 
     /**
-     * Validate phone number format
+     * Validate phone number format (US format: 10 digits or 11 with country code)
      */
     validatePhoneNumber(phone) {
-        const phonePattern = /^[\+]?[1-9][\d]{0,15}$/;
-        const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
-        return phonePattern.test(cleanPhone) && cleanPhone.length >= 10;
+        const cleanPhone = this.getCleanPhoneNumber(phone);
+
+        if (cleanPhone.length === 10) {
+            // Standard US format: 10 digits
+            return true;
+        } else if (cleanPhone.length === 11 && cleanPhone.charAt(0) === '1') {
+            // US format with country code: 1 + 10 digits
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1489,16 +1625,28 @@ class CartManager {
      * Process successful purchase
      */
     processSuccessfulPurchase() {
+        // Capture delivery details before hiding checkout
+        const deliveryDate = document.getElementById('checkout-date').value;
+        const deliveryTime = document.getElementById('checkout-time').value;
+
         this.hideCheckout();
         this.clearCart();
         this.updateCartDisplay();
-        this.showSuccess();
+        this.showSuccess(deliveryDate, deliveryTime);
     }
 
     /**
-     * Show success popup
+     * Show success popup with delivery details
      */
-    showSuccess() {
+    showSuccess(deliveryDate, deliveryTime) {
+        // Update the success message with specific delivery details
+        const successMessage = document.querySelector('.success-message');
+        if (successMessage && deliveryDate && deliveryTime) {
+            const formattedDate = this.formatDeliveryDate(deliveryDate);
+            const formattedTime = this.formatDeliveryTime(deliveryTime);
+            successMessage.textContent = `Thank you for your order! Your plants will be delivered on ${formattedDate} at ${formattedTime}.`;
+        }
+
         this.successOverlay.classList.add('visible');
         this.successPopup.classList.add('visible');
         this.successVisible = true;
@@ -1511,6 +1659,43 @@ class CartManager {
         this.successOverlay.classList.remove('visible');
         this.successPopup.classList.remove('visible');
         this.successVisible = false;
+    }
+
+    /**
+     * Format delivery date for display (e.g., "Friday, December 15, 2023")
+     */
+    formatDeliveryDate(dateString) {
+        if (!dateString) return 'the selected date';
+
+        try {
+            const date = new Date(dateString);
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            return date.toLocaleDateString('en-US', options);
+        } catch (error) {
+            return dateString; // Fallback to original string if parsing fails
+        }
+    }
+
+    /**
+     * Format delivery time for display (e.g., "10:00 AM")
+     */
+    formatDeliveryTime(timeString) {
+        if (!timeString) return 'the selected time';
+
+        try {
+            // Convert 24-hour format to 12-hour format with AM/PM
+            const [hours, minutes] = timeString.split(':');
+            const hour12 = hours % 12 || 12;
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            return `${hour12}:${minutes} ${ampm}`;
+        } catch (error) {
+            return timeString; // Fallback to original string if parsing fails
+        }
     }
 }
 

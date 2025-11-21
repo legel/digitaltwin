@@ -1193,7 +1193,7 @@ class PlantRecommendationsPage {
                                 <div class="quantity-available"><span class="qty-number">${remainingInventory}</span> AVAILABLE${cartQuantity > 0 ? ` (${cartQuantity} in cart)` : ''}</div>
                                 <div class="nursery-name">${nurseryDisplayName}</div>
                             </div>
-                            <div class="card-price">$${(item.wholesale_price || 0).toFixed(2)}</div>
+                            <div class="card-price">${window.pricingConfig ? window.pricingConfig.formatPrice(item.wholesale_price) : `$${(item.wholesale_price || 0).toFixed(2)}`}</div>
                         </div>
                         <div class="card-info-bottom">
                             <div class="card-size">

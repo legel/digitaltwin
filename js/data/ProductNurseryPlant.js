@@ -67,11 +67,11 @@ class ProductNurseryPlant {
     }
 
     /**
-     * Get formatted price
+     * Get formatted price (includes Ecodash markup)
      */
     getFormattedPrice() {
         const price = parseFloat(this.nurseryData.wholesale_price) || 0;
-        return `$${price.toFixed(2)}`;
+        return window.pricingConfig ? window.pricingConfig.formatPrice(price) : `$${price.toFixed(2)}`;
     }
 
     /**

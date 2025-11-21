@@ -46,6 +46,13 @@ class NurseryDataManager {
                 headers.forEach((header, index) => {
                     row[header.trim()] = values[index].trim();
                 });
+
+                // Filter out rows with invalid wholesale_price values
+                const price = parseFloat(row.wholesale_price);
+                if (isNaN(price) || price <= 0 || !row.wholesale_price || row.wholesale_price.trim() === '') {
+                    continue; // Skip this row
+                }
+
                 data.push(row);
             }
         }
@@ -211,7 +218,7 @@ class NurseryDataManager {
             quantity_available: parseInt(item.quantity_available) || 0,
             published_height: item.published_height || '',
             published_spread: item.published_spread || '',
-            wholesale_price: parseFloat(item.wholesale_price) || 0,
+            wholesale_price: window.pricingConfig ? window.pricingConfig.applyMarkup(item.wholesale_price) : (parseFloat(item.wholesale_price) || 0),
             picture_1_url: item.picture_1_url || '',
             item_code: item.item_code || '',
             description: item.description || ''

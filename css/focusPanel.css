@@ -1089,7 +1089,7 @@
     box-shadow:
         0 32px 64px rgba(0, 0, 0, 0.3),
         0 16px 32px rgba(0, 0, 0, 0.2);
-    z-index: 1002;
+    z-index: 1005;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -1509,7 +1509,7 @@ select.checkout-input option:hover {
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
-    z-index: 1001;
+    z-index: 1004;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
