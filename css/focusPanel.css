@@ -6,15 +6,15 @@
 /* Main focus panel container */
 .focus-panel {
     position: fixed;
-    left: -900px; /* Start completely off-screen to prevent blocking mouse events (800px + margin) */
-    top: 100px; /* Align with layer controls accounting for border radius */
-    bottom: 100px; /* Mirror top alignment */
-    width: 800px; /* Updated default width to match new panel design */
+    left: -1200px; /* Start completely off-screen to prevent blocking mouse events (1160px + margin) */
+    top: 0; /* Full screen height - starts at top */
+    bottom: 0; /* Full screen height - ends at bottom */
+    width: 1160px; /* Updated width for 3-column layout */
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Dynamic sizing variables */
-    --plant-panel-width: 800px; /* 2 plants: 2×360px + 20px gap + 2×20px padding */
-    --metrics-panel-width: 800px; /* Match plant panel width for consistency */
+    --plant-panel-width: 1160px; /* 3 plants: 3×360px + 2×20px gaps + 2×20px padding */
+    --metrics-panel-width: 1160px; /* Match plant panel width for consistency */
     background: rgba(255, 255, 255, 0.03); /* Very light, almost transparent white */
     backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
     -webkit-backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
@@ -208,7 +208,7 @@
     overflow-y: auto;
     flex: 1; /* Take remaining space in flex container */
     overflow-x: hidden; /* Prevent horizontal scroll */
-    min-height: 0; /* Allow flex shrinking */
+    min-height: auto; /* Allow natural content height */
 }
 
 /* Dynamic width classes */
@@ -253,30 +253,30 @@
     scrollbar-width: none;
 }
 
-/* Metric row styling - 2-column layout */
+/* Metric row styling - 3-column layout */
 .metric-row {
     margin-bottom: 15px;
     opacity: 0;
     transform: translateY(10px);
     animation: fadeInUp 0.4s ease forwards;
     width: 360px; /* Match plant tile width */
-    display: inline-block;
-    vertical-align: top;
-    margin-right: 20px; /* Gap between columns */
+    display: block;
 }
 
-/* 2-column grid container for metrics */
+/* 3-column grid container for metrics */
 .focus-panel.metrics-mode .focus-panel-content {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    align-content: flex-start;
+    display: grid;
+    grid-template-columns: 360px 360px 360px;
+    gap: 20px;
     padding: 20px; /* Match terrain padding */
+    justify-content: center;
 }
 
-/* Remove right margin from second column items */
-.focus-panel.metrics-mode .metric-row:nth-child(even) {
+/* Reset margins for grid layout - grid handles spacing */
+.focus-panel.metrics-mode .metric-row {
     margin-right: 0;
+    margin-bottom: 15px;
+    flex: none; /* Reset flex properties for grid */
 }
 
 /* Plant mode - use direct scrolling like metrics mode */
@@ -284,6 +284,7 @@
     display: flex;
     flex-direction: column;
     padding: 0; /* No padding needed - plant-grid handles all spacing */
+    min-height: auto; /* Ensure no height constraints for plant content */
 }
 
 .focus-panel.plant-mode .metric-row {
@@ -302,6 +303,8 @@
 .metric-row:nth-child(8) { animation-delay: 0.4s; }
 .metric-row:nth-child(9) { animation-delay: 0.45s; }
 .metric-row:nth-child(10) { animation-delay: 0.5s; }
+.metric-row:nth-child(11) { animation-delay: 0.55s; }
+.metric-row:nth-child(12) { animation-delay: 0.6s; }
 
 @keyframes fadeInUp {
     to {
@@ -368,7 +371,7 @@
 
 /* Interpretation text will use inline Viridis colors */
 
-/* Chart container - maintain height for 2-column layout */
+/* Chart container - maintain height for 3-column layout */
 .metric-chart {
     position: relative;
     height: 100px; /* Match canvas height exactly */
@@ -735,13 +738,14 @@
     width: 100%;
     height: auto;
     padding: 0;
-    flex: 1;
+    flex: none; /* Don't constrain height - let plants be their natural size */
     /* No overflow or scrollbar - parent .focus-panel-content handles scrolling */
 }
 
 .plant-grid {
     display: grid;
-    grid-template-columns: 360px 360px; /* Exact terrain sizing */
+    grid-template-columns: 360px 360px 360px; /* 3 columns for expanded layout */
+    grid-template-rows: auto; /* Allow natural row heights for square plants */
     gap: 20px; /* Match terrain gap */
     padding: 20px; /* Match terrain padding */
     box-sizing: border-box;
@@ -760,8 +764,7 @@
     cursor: pointer;
     transition: all 0.2s ease, margin-top 0.3s ease; /* Added margin transition for spacing adjustment */
     background: transparent;
-    flex: 0 0 auto;
-    display: block;
+    display: block; /* Grid child should be block */
 }
 
 /* Plant item with active purchase widget */
@@ -2386,9 +2389,13 @@ select.checkout-input option:hover {
         width: calc(100vw - 20px) !important;
     }
 
+    .focus-panel.metrics-mode .focus-panel-content {
+        grid-template-columns: 1fr; /* Single column on mobile */
+        gap: 15px; /* Smaller gap on mobile */
+    }
+
     .focus-panel.metrics-mode .metric-row {
-        width: 100%; /* Single column on mobile */
-        margin-right: 0;
+        width: 100%; /* Fill available width on mobile */
     }
 
     .plant-item {
@@ -2729,4 +2736,120 @@ select.checkout-input option:hover {
 .plant-purchase-widget.no-inventory .purchase-cards-container {
     max-height: 80px; /* Match the smaller widget height */
     overflow: visible; /* No need for scrolling with just a message */
+}
+
+/* ===================================
+   Plant Details Subpage Styles
+   Grid layout for nursery cards within focus panel
+   =================================== */
+
+/* Plant details content container */
+.plant-details-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.plant-details-grid-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 20px 20px;
+    /* No margin-right adjustment - let natural scrollbar appear like main plant page */
+}
+
+/* Styled scrollbar for plant details container - match focus panel content */
+.plant-details-grid-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.plant-details-grid-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.plant-details-grid-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.plant-details-grid-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Plant details grid layout - 3 columns like main plant recommendations */
+.plant-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 360px);
+    gap: 20px;
+    justify-content: flex-start;
+}
+
+/* Plant details cards use the existing inventory-card styles but in grid layout */
+.plant-details-grid .inventory-card {
+    position: relative;
+    /* All other styles inherited from existing .inventory-card rules */
+}
+
+/* Remove ALL bottom dividers for grid layout since cards are side-by-side */
+.plant-details-grid .inventory-card::after {
+    display: none;
+}
+
+/* Ensure consistent spacing for all inventory cards in grid layout */
+.plant-details-grid .inventory-card {
+    margin-bottom: 0 !important; /* Override the default 20px bottom margin for all cards in grid */
+    /* Grid gap handles spacing between cards instead of margin */
+}
+
+/* Back button section styling */
+.back-button-section {
+    margin-top: 15px;
+}
+
+#back-to-plants-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    border-radius: 25px;
+    padding: 8px 20px;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#back-to-plants-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+#back-to-plants-btn i {
+    font-size: 12px;
+}
+
+/* No inventory message for plant details */
+.plant-details-grid .no-inventory-message {
+    grid-column: 1 / -1; /* Span all columns */
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'Nunito', sans-serif;
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    margin: 20px 0;
+}
+
+/* Loading state for plant details */
+.loading-cards {
+    grid-column: 1 / -1; /* Span all columns */
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'Nunito', sans-serif;
 }

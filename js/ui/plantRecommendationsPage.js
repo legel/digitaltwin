@@ -35,9 +35,6 @@ class PlantRecommendationsPage {
         const content = document.querySelector('.focus-panel-content');
         if (!content) return;
 
-        // Close any existing purchase widget when loading new content
-        this.closePurchaseWidget();
-
         content.innerHTML = `
             <div class="plant-recommendations-content">
                 <div class="plant-grid-container">
@@ -1029,67 +1026,60 @@ class PlantRecommendationsPage {
             const speciesKey = item.dataset.speciesKey;
 
             item.addEventListener('click', (e) => {
-                // Check if navigation elements were clicked - don't show purchase widget
+                // Check if navigation elements were clicked - don't navigate to plant details
                 if (e.target.closest('.img-arrow') || e.target.closest('.indicator-wrapper')) {
                     return; // Let navigation handle this
                 }
 
-                // Check if purchase widget elements were clicked - don't close/reopen widget
-                if (e.target.closest('.plant-purchase-widget')) {
-                    return; // Let widget handle its own events
-                }
-
-                // Check if the purchase icon was clicked
+                // Check if the purchase icon was clicked - navigate to plant details
                 if (e.target.closest('.plant-purchase-icon')) {
                     e.preventDefault();
                     e.stopPropagation();
                     const purchaseIcon = e.target.closest('.plant-purchase-icon');
                     const plantName = purchaseIcon.dataset.plantName;
                     const speciesKey = purchaseIcon.dataset.speciesKey;
-                    this.onPurchaseIconClicked(plantName, speciesKey);
+                    this.navigateToPlantDetails(plantName, speciesKey);
                     return;
                 }
 
-                // Plant item click (including image clicks) - show purchase widget
-                // Directly show widget for this plant (onPurchaseIconClicked will handle closing existing)
-                this.onPurchaseIconClicked(plantName, speciesKey);
+                // Plant item click (including image clicks) - navigate to plant details subpage
+                this.navigateToPlantDetails(plantName, speciesKey);
             });
         });
     }
 
     /**
-     * Handle plant selection (legacy method - now mostly handled by direct clicks)
+     * Navigate to plant details subpage in focus panel
      */
-    onPlantSelected(plantName) {
+    navigateToPlantDetails(plantName, speciesKey) {
+        // Close any existing purchase widget before navigation
+        this.closePurchaseWidget();
+
+        // Navigate using the focus panel's new subpage system
+        if (window.focusPanel && typeof window.focusPanel.showPlantDetails === 'function') {
+            window.focusPanel.showPlantDetails(plantName, speciesKey);
+        } else {
+            console.error('Focus panel navigation not available');
+        }
     }
 
     /**
-     * Handle purchase icon click
+     * Handle plant selection (legacy method - now redirects to navigation)
+     */
+    onPlantSelected(plantName) {
+        // Legacy support - redirect to new navigation
+        const plantItem = document.querySelector(`[data-plant="${plantName}"].plant-item`);
+        if (plantItem) {
+            const speciesKey = plantItem.dataset.speciesKey;
+            this.navigateToPlantDetails(plantName, speciesKey);
+        }
+    }
+
+    /**
+     * Handle purchase icon click (legacy method - now redirects to navigation)
      */
     onPurchaseIconClicked(plantName, speciesKey) {
-        // Find the plant item - try by species key first, then by plant name
-        let plantItem = document.querySelector(`[data-species-key="${speciesKey}"].plant-item`);
-        if (!plantItem) {
-            plantItem = document.querySelector(`[data-plant="${plantName}"].plant-item`);
-        }
-
-        if (!plantItem) {
-            console.error('Could not find plant item for:', plantName, speciesKey);
-            return;
-        }
-
-        // Check if this is the same plant that already has a widget
-        if (this.activePurchaseWidget &&
-            this.activePurchaseWidget.dataset.plant === plantName &&
-            this.activePurchaseWidget.dataset.speciesKey === speciesKey) {
-            return; // Same plant, don't recreate widget
-        }
-
-        // Close any existing purchase widget
-        this.closePurchaseWidget();
-
-        // Immediately create new widget since cleanup is now immediate
-        this.showPurchaseWidget(plantItem, plantName, speciesKey);
+        this.navigateToPlantDetails(plantName, speciesKey);
     }
 
     /**
@@ -1571,13 +1561,13 @@ class PlantRecommendationsPage {
             // Mark the active item
             activeItem.classList.add(widgetClass);
 
-            // Find the grid column of the active item (0 or 1 for 2-column grid)
+            // Find the grid column of the active item (0, 1, or 2 for 3-column grid)
             const allItems = Array.from(allPlantItems);
             const activeIndex = allItems.indexOf(activeItem);
-            const activeColumn = activeIndex % 2; // 0 for left, 1 for right
+            const activeColumn = activeIndex % 3; // 0 for left, 1 for center, 2 for right
 
             // Find items in the next row that need to be pushed down
-            const nextRowStart = Math.ceil((activeIndex + 1) / 2) * 2;
+            const nextRowStart = Math.ceil((activeIndex + 1) / 3) * 3;
 
             // Push down items starting from the next row
             for (let i = nextRowStart; i < allItems.length; i++) {

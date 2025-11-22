@@ -9,6 +9,8 @@ class FocusPanel {
         this.isVisible = false;
         this.currentPA = null;
         this.currentPage = 'plantRecommendations'; // Default to plant recommendations page
+        this.currentSubpage = null; // For plant details subpage
+        this.selectedPlantData = null; // Store selected plant data for subpage
         this.pages = {
             plantRecommendations: {
                 title: 'Plant Recommendations',
@@ -19,6 +21,11 @@ class FocusPanel {
                 title: 'Ecological Metrics',
                 icon: '📊',
                 subtitle: 'Ecological Niche Metrics'
+            },
+            plantDetails: {
+                title: 'Plant Details',
+                icon: '🌿',
+                subtitle: 'Nursery Offers'
             }
         };
         this.metricOrder = [
@@ -218,9 +225,16 @@ class FocusPanel {
         
         // Update header with location name in ALL CAPS, page buttons, and close button
         const currentPageData = this.pages[this.currentPage];
+
+        // Handle plant details subpage header differently
+        const isPlantDetailsPage = this.currentPage === 'plantDetails';
+        const displayTitle = isPlantDetailsPage ?
+            this.formatPlantNameForTitle(this.selectedPlantData?.name || 'Plant Details') :
+            paName.toUpperCase();
+
         const headerHTML = `
             <div class="panel-title-section">
-                <h3 class="pa-name">${paName.toUpperCase()}</h3>
+                <h3 class="pa-name">${displayTitle}</h3>
                 <p class="pa-subtitle">${currentPageData.subtitle}</p>
                 ${this.currentPage === 'plantRecommendations' ? `
                 <div class="refine-plant-section">
@@ -231,16 +245,26 @@ class FocusPanel {
                     </button>
                 </div>
                 ` : ''}
+                ${isPlantDetailsPage ? `
+                <div class="back-button-section">
+                    <button id="back-to-plants-btn" class="action-button">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Plants</span>
+                    </button>
+                </div>
+                ` : ''}
             </div>
             <div class="page-controls">
-                <button class="page-button ${this.currentPage === 'plantRecommendations' ? 'active' : ''}"
-                        data-page="plantRecommendations"
-                        aria-label="Plant Recommendations"
-                        title="Plant Recommendations">${this.pages.plantRecommendations.icon}</button>
-                <button class="page-button ${this.currentPage === 'ecologicalMetrics' ? 'active' : ''}"
-                        data-page="ecologicalMetrics"
-                        aria-label="Ecological Metrics"
-                        title="Ecological Metrics">${this.pages.ecologicalMetrics.icon}</button>
+                ${!isPlantDetailsPage ? `
+                    <button class="page-button ${this.currentPage === 'plantRecommendations' ? 'active' : ''}"
+                            data-page="plantRecommendations"
+                            aria-label="Plant Recommendations"
+                            title="Plant Recommendations">${this.pages.plantRecommendations.icon}</button>
+                    <button class="page-button ${this.currentPage === 'ecologicalMetrics' ? 'active' : ''}"
+                            data-page="ecologicalMetrics"
+                            aria-label="Ecological Metrics"
+                            title="Ecological Metrics">${this.pages.ecologicalMetrics.icon}</button>
+                ` : ''}
                 <button class="close-button" aria-label="Close panel">×</button>
             </div>
         `;
@@ -631,6 +655,14 @@ class FocusPanel {
                 }
             });
         }
+
+        // Back to plants button
+        const backToPlantsBtn = this.panel.querySelector('#back-to-plants-btn');
+        if (backToPlantsBtn) {
+            backToPlantsBtn.addEventListener('click', () => {
+                this.navigateBackToPlants();
+            });
+        }
     }
 
     /**
@@ -710,6 +742,8 @@ class FocusPanel {
             this.displayMetrics(paData || this.currentPAData);
         } else if (this.currentPage === 'plantRecommendations') {
             this.displayPlantRecommendations(paData || this.currentPAData, resetFilters);
+        } else if (this.currentPage === 'plantDetails') {
+            this.displayPlantDetails();
         }
 
         // Store PA data for page switching
@@ -751,7 +785,7 @@ class FocusPanel {
         this.panel.classList.remove('plant-mode', 'metrics-mode');
 
         // Add appropriate width class
-        if (currentPage === 'plantRecommendations') {
+        if (currentPage === 'plantRecommendations' || currentPage === 'plantDetails') {
             this.panel.classList.add('plant-mode');
         } else if (currentPage === 'ecologicalMetrics') {
             this.panel.classList.add('metrics-mode');
@@ -877,6 +911,309 @@ class FocusPanel {
      */
     getFallbackImageUrl() {
         return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYwIiBoZWlnaHQ9IjM2MCIgdmlld0JveD0iMCAwIDM2MCAzNjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzNjAiIGhlaWdodD0iMzYwIiBmaWxsPSIjMDAwMDAwIi8+Cjwvc3ZnPgo=';
+    }
+
+    /**
+     * Format plant scientific name for title display
+     */
+    formatPlantNameForTitle(scientificName) {
+        if (!scientificName) return 'PLANT DETAILS';
+
+        // Convert to uppercase for header consistency
+        return scientificName.toUpperCase();
+    }
+
+    /**
+     * Navigate to plant details subpage
+     */
+    showPlantDetails(plantName, speciesKey) {
+        // Store plant data for the subpage
+        this.selectedPlantData = {
+            name: plantName,
+            speciesKey: speciesKey
+        };
+
+        // Store previous page state for back navigation
+        this.previousPage = this.currentPage;
+
+        // Switch to plant details page
+        this.currentPage = 'plantDetails';
+
+        // Update header (re-render with current PA name)
+        this.show(this.currentPA, this.currentPAData);
+    }
+
+    /**
+     * Navigate back to plants page
+     */
+    navigateBackToPlants() {
+        // Clear plant details data
+        this.selectedPlantData = null;
+
+        // Return to previous page (usually plant recommendations)
+        this.currentPage = this.previousPage || 'plantRecommendations';
+
+        // Update header and content (preserve PA data)
+        this.show(this.currentPA, this.currentPAData);
+    }
+
+    /**
+     * Display plant details subpage with nursery cards
+     */
+    displayPlantDetails() {
+        const content = this.panel.querySelector('.focus-panel-content');
+        if (!content || !this.selectedPlantData) return;
+
+        const plantName = this.selectedPlantData.name;
+        const speciesKey = this.selectedPlantData.speciesKey;
+
+        // Get nursery inventory data for this plant
+        const inventoryItems = window.plantRecommendations ?
+            window.plantRecommendations.getNurseryInventoryData(plantName) : [];
+
+        content.innerHTML = `
+            <div class="plant-details-content">
+                <div class="plant-details-grid-container">
+                    <div class="plant-details-grid" id="plant-details-grid">
+                        ${this.generatePlantDetailsCards(inventoryItems, plantName, speciesKey)}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Attach event listeners for the cards
+        this.attachPlantDetailsListeners(inventoryItems, plantName, speciesKey);
+    }
+
+    /**
+     * Generate inventory cards for plant details page (same as widget cards but in grid layout)
+     */
+    generatePlantDetailsCards(inventoryItems, plantName, speciesKey) {
+        if (!inventoryItems || inventoryItems.length === 0) {
+            return `
+                <div class="no-inventory-message">
+                    <p>No participating nurseries currently stock this plant</p>
+                </div>
+            `;
+        }
+
+        // Use the same card generation logic from plant recommendations
+        if (window.plantRecommendations && typeof window.plantRecommendations.generateInventoryCards === 'function') {
+            return window.plantRecommendations.generateInventoryCards(inventoryItems, plantName, speciesKey);
+        }
+
+        // Fallback if plant recommendations not available
+        return `
+            <div class="loading-cards">
+                <p>Loading nursery offers...</p>
+            </div>
+        `;
+    }
+
+    /**
+     * Attach event listeners for plant details cards
+     */
+    attachPlantDetailsListeners(inventoryItems, plantName, speciesKey) {
+        const detailsGrid = document.getElementById('plant-details-grid');
+        if (!detailsGrid) return;
+
+        // Use event delegation for all card interactions (same as widget)
+        detailsGrid.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Handle BUY button clicks
+            if (e.target.classList.contains('card-buy-btn') && !e.target.disabled) {
+                const itemIndex = parseInt(e.target.dataset.itemIndex);
+                this.showDetailsQuantityControls(itemIndex);
+                return;
+            }
+
+            // Handle quantity adjustment buttons
+            if (e.target.classList.contains('quantity-btn')) {
+                const action = e.target.dataset.action;
+                const itemIndex = parseInt(e.target.dataset.itemIndex);
+                this.updateDetailsCardQuantity(action, itemIndex, inventoryItems[itemIndex]);
+                return;
+            }
+
+            // Handle Add to Cart button
+            if (e.target.classList.contains('add-to-cart-btn')) {
+                const itemIndex = parseInt(e.target.dataset.itemIndex);
+                const inventoryItem = inventoryItems[itemIndex];
+                const quantity = this.getDetailsCardQuantity(itemIndex);
+
+                if (window.cartManager && inventoryItem) {
+                    window.cartManager.addToCart(plantName, speciesKey, quantity, inventoryItem);
+                    // Stay on details page after adding to cart (don't close like widget did)
+                    // Optionally refresh the card to show updated availability
+                    this.refreshDetailsCard(itemIndex, inventoryItem, plantName, speciesKey);
+                } else {
+                    console.error('Cart manager not available or invalid inventory item');
+                }
+                return;
+            }
+        });
+    }
+
+    /**
+     * Show quantity controls for a specific details card
+     */
+    showDetailsQuantityControls(itemIndex) {
+        const card = document.querySelector(`#plant-details-grid [data-item-index="${itemIndex}"]`);
+        if (!card) return;
+
+        const buyButton = card.querySelector('.card-buy-btn');
+        const quantityControls = card.querySelector('.card-quantity-controls');
+        const quantityDisplay = card.querySelector('.quantity-display');
+        const quantityAvailableElement = card.querySelector('.qty-number');
+
+        if (buyButton && quantityControls) {
+            buyButton.style.display = 'none';
+            quantityControls.style.display = 'flex';
+
+            // Update quantity available display to reflect the default quantity selection
+            if (quantityDisplay && quantityAvailableElement) {
+                const currentQuantity = parseInt(quantityDisplay.textContent) || 10;
+                const plantName = this.selectedPlantData?.name;
+                const speciesKey = this.selectedPlantData?.speciesKey;
+                const inventoryItems = window.plantRecommendations ?
+                    window.plantRecommendations.getNurseryInventoryData(plantName) : [];
+                const inventoryItem = inventoryItems[itemIndex];
+
+                if (inventoryItem) {
+                    const cartQuantity = window.cartManager ?
+                        window.cartManager.getItemQuantity(plantName, speciesKey, inventoryItem) : 0;
+                    const totalAvailable = inventoryItem.quantity_available || 0;
+                    const remainingAfterCart = Math.max(0, totalAvailable - cartQuantity);
+                    const remainingAfterSelection = remainingAfterCart - currentQuantity;
+
+                    quantityAvailableElement.textContent = remainingAfterSelection;
+                }
+            }
+        }
+    }
+
+    /**
+     * Get current quantity for a specific details card
+     */
+    getDetailsCardQuantity(itemIndex) {
+        const card = document.querySelector(`#plant-details-grid [data-item-index="${itemIndex}"]`);
+        if (!card) return 10;
+
+        const quantityDisplay = card.querySelector('.quantity-display');
+        return quantityDisplay ? parseInt(quantityDisplay.textContent) : 10;
+    }
+
+    /**
+     * Update quantity for a specific details card
+     */
+    updateDetailsCardQuantity(action, itemIndex, inventoryItem) {
+        const card = document.querySelector(`#plant-details-grid [data-item-index="${itemIndex}"]`);
+        if (!card) return;
+
+        const quantityDisplay = card.querySelector('.quantity-display');
+        const minusBtn = card.querySelector('.quantity-minus');
+        const plusBtn = card.querySelector('.quantity-plus');
+        const quantityAvailableElement = card.querySelector('.qty-number');
+
+        if (!quantityDisplay || !quantityAvailableElement) return;
+
+        let currentQuantity = parseInt(quantityDisplay.textContent) || 10;
+
+        // Calculate quantity already in cart for this specific inventory item
+        const plantName = this.selectedPlantData?.name;
+        const speciesKey = this.selectedPlantData?.speciesKey;
+        const cartQuantity = window.cartManager ?
+            window.cartManager.getItemQuantity(plantName, speciesKey, inventoryItem) : 0;
+
+        // Calculate remaining inventory after cart items
+        const totalAvailable = inventoryItem.quantity_available || 0;
+        const remainingInventory = Math.max(0, totalAvailable - cartQuantity);
+
+        // Handle quantity changes with 10-unit intervals (same logic as widget)
+        if (action === 'increase') {
+            if (remainingInventory < 10) {
+                currentQuantity = remainingInventory;
+            } else {
+                const currentMultiple = Math.floor(currentQuantity / 10) * 10;
+                const remainder = remainingInventory % 10;
+
+                if (currentQuantity === currentMultiple && currentQuantity + 10 <= remainingInventory) {
+                    currentQuantity += 10;
+                } else if (remainder > 0 && currentQuantity === Math.floor(remainingInventory / 10) * 10) {
+                    currentQuantity = remainingInventory;
+                }
+            }
+        } else if (action === 'decrease') {
+            if (remainingInventory < 10) {
+                return;
+            } else {
+                const currentMultiple = Math.floor(currentQuantity / 10) * 10;
+
+                if (currentQuantity > currentMultiple) {
+                    currentQuantity = currentMultiple;
+                } else if (currentQuantity >= 20) {
+                    currentQuantity -= 10;
+                } else {
+                    return;
+                }
+            }
+        }
+
+        // Update displays
+        quantityDisplay.textContent = currentQuantity;
+
+        // Update quantity available display to reflect selection
+        const updatedRemaining = remainingInventory - currentQuantity;
+        quantityAvailableElement.textContent = updatedRemaining;
+
+        // Update button states
+        const minQuantity = remainingInventory < 10 ? remainingInventory : 10;
+        if (minusBtn) minusBtn.disabled = currentQuantity <= minQuantity;
+        if (plusBtn) plusBtn.disabled = currentQuantity >= remainingInventory;
+    }
+
+    /**
+     * Refresh a specific details card after cart changes
+     */
+    refreshDetailsCard(itemIndex, inventoryItem, plantName, speciesKey) {
+        const card = document.querySelector(`#plant-details-grid [data-item-index="${itemIndex}"]`);
+        if (!card) return;
+
+        const quantityAvailableElement = card.querySelector('.qty-number');
+        const buyButton = card.querySelector('.card-buy-btn');
+        const quantityControls = card.querySelector('.card-quantity-controls');
+
+        if (quantityAvailableElement) {
+            // Recalculate availability
+            const cartQuantity = window.cartManager ?
+                window.cartManager.getItemQuantity(plantName, speciesKey, inventoryItem) : 0;
+            const totalAvailable = inventoryItem.quantity_available || 0;
+            const remainingInventory = Math.max(0, totalAvailable - cartQuantity);
+
+            // Update display with cart info
+            quantityAvailableElement.textContent = remainingInventory;
+            const qtyContainer = quantityAvailableElement.parentElement;
+            if (qtyContainer) {
+                qtyContainer.innerHTML = `<span class="qty-number">${remainingInventory}</span> AVAILABLE${cartQuantity > 0 ? ` (${cartQuantity} in cart)` : ''}`;
+            }
+
+            // Reset to buy button state
+            if (buyButton && quantityControls) {
+                buyButton.style.display = 'block';
+                quantityControls.style.display = 'none';
+
+                // Update button state based on availability
+                if (remainingInventory === 0) {
+                    buyButton.disabled = true;
+                    buyButton.classList.add('disabled');
+                } else {
+                    buyButton.disabled = false;
+                    buyButton.classList.remove('disabled');
+                }
+            }
+        }
     }
 }
 

@@ -1705,15 +1705,15 @@ function expandToFocusPanel(paName, paFeature, callback) {
     
     // Position panel at the connection line end point
     // Get actual panel width based on current mode
-    let panelWidth = 800; // Always use 800px for new design
+    let panelWidth = 1160; // Always use 1160px for new 3-column design
 
     // Verify computed width for debugging
     const computedStyle = getComputedStyle(panel);
     const computedWidth = parseInt(computedStyle.width);
-    if (computedWidth !== 800) {
-        console.warn(`Panel computed width (${computedWidth}px) doesn't match expected (800px)`);
+    if (computedWidth !== 1160) {
+        console.warn(`Panel computed width (${computedWidth}px) doesn't match expected (1160px)`);
         // Force the width to be correct before positioning
-        panel.style.setProperty('width', '800px', 'important');
+        panel.style.setProperty('width', '1160px', 'important');
     }
 
     const panelLeft = currentAnimationState.lineEndX - panelWidth;
@@ -1827,14 +1827,14 @@ function collapseFocusPanel(callback) {
     
     // Position panel at the connection line end point for collapse
     if (currentAnimationState.lineEndX) {
-        // Always use 800px width for consistency
-        let panelWidth = 800;
+        // Always use 1160px width for consistency
+        let panelWidth = 1160;
 
         // Verify computed width matches expected width
         const computedStyle = getComputedStyle(panel);
         const computedWidth = parseInt(computedStyle.width);
-        if (computedWidth !== 800) {
-            console.warn(`Panel collapse: computed width (${computedWidth}px) doesn't match expected (800px)`);
+        if (computedWidth !== 1160) {
+            console.warn(`Panel collapse: computed width (${computedWidth}px) doesn't match expected (1160px)`);
         }
 
         const panelLeft = currentAnimationState.lineEndX - panelWidth;
