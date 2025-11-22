@@ -128,10 +128,14 @@ class CartManager {
                     <div class="cart-counter" id="cart-counter">0</div>
                 </div>
             </div>
+            <div class="plant-browse-button" id="plant-browse-button">
+                <div class="plant-browse-icon">🌱</div>
+            </div>
         `;
 
         document.body.insertAdjacentHTML('beforeend', cartHTML);
         this.cartButton = document.getElementById('cart-button');
+        this.plantBrowseButton = document.getElementById('plant-browse-button');
     }
 
     /**
@@ -433,6 +437,11 @@ class CartManager {
         // Cart button click
         this.cartButton.addEventListener('click', () => {
             this.toggleCart();
+        });
+
+        // Plant browse button click
+        this.plantBrowseButton.addEventListener('click', () => {
+            this.openStandalonePlantRecommendations();
         });
 
         // Cart close button
@@ -1695,6 +1704,24 @@ class CartManager {
             return `${hour12}:${minutes} ${ampm}`;
         } catch (error) {
             return timeString; // Fallback to original string if parsing fails
+        }
+    }
+
+    /**
+     * Open standalone plant recommendations panel without PA selection
+     */
+    openStandalonePlantRecommendations() {
+        // Check if focus panel is already open for a PA
+        if (window.focusPanel && window.focusPanel.isVisible && window.focusPanel.currentPA) {
+            // PA-specific panel is open, close it first
+            window.focusPanel.hide();
+        }
+
+        // Open focus panel in standalone mode
+        if (window.focusPanel) {
+            window.focusPanel.showStandalone();
+        } else {
+            console.error('Focus panel not available');
         }
     }
 }

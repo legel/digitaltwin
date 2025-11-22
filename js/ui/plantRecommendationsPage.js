@@ -1599,6 +1599,125 @@ class PlantRecommendationsPage {
     }
 
     /**
+     * Display content for standalone button mode - bypasses PA-based filtering
+     */
+    displayStandaloneContent() {
+        const content = document.querySelector('.focus-panel-content');
+        if (!content) return;
+
+        content.innerHTML = `
+            <div class="plant-recommendations-content">
+                <div class="plant-grid-container">
+                    <div class="plant-grid" id="plant-grid">
+                        <div class="loading-plants">
+                            <div class="plant-spinner"></div>
+                            <p>Loading native plant recommendations...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Load plants without any PA-based filtering
+        this.loadOntologyAndPlantsStandalone();
+    }
+
+    /**
+     * Load plants for standalone mode without PA filtering
+     */
+    async loadOntologyAndPlantsStandalone() {
+        try {
+            // Load ontology data first if not already loaded
+            if (!this.ontologyData) {
+                console.log('PlantRecommendationsPage: Loading ontology data...');
+                const response = await fetch('data/plant-recommendations/ontology.json');
+                if (response.ok) {
+                    this.ontologyData = await response.json();
+                    console.log('PlantRecommendationsPage: Ontology data loaded successfully');
+                } else {
+                    console.warn('PlantRecommendationsPage: Failed to load ontology data');
+                }
+            }
+
+            // Now load plant recommendations for standalone (no PA filtering)
+            await this.loadPlantRecommendationsStandalone();
+
+        } catch (error) {
+            console.error('PlantRecommendationsPage: Error in loadOntologyAndPlantsStandalone:', error);
+            // Fallback: load plants without ontology
+            await this.loadPlantRecommendationsStandalone();
+        }
+    }
+
+    /**
+     * Load plants for standalone mode without any PA-based defaults
+     */
+    async loadPlantRecommendationsStandalone() {
+        try {
+            // Load the integrated species data if not already loaded
+            if (!this.currentPlants || this.currentPlants.length === 0) {
+                const response = await fetch('data/plant-recommendations/integrated_species_data.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load plant data');
+                }
+
+                const speciesData = await response.json();
+                const plantEntries = Object.entries(speciesData);
+
+                const plants = plantEntries.map(([scientificName, data]) => {
+                    const allPhotoKeys = Object.keys(data.photos || {});
+                    const photoTypes = allPhotoKeys.filter(photoType => {
+                        const photoInfo = data.photos[photoType];
+                        return photoInfo &&
+                               photoInfo.type !== 'empty' &&
+                               photoInfo.url !== null &&
+                               photoInfo.url !== 'no live occurrences' &&
+                               photoInfo.url !== '' &&
+                               data.speciesKey !== null &&
+                               data.speciesKey !== 'null' &&
+                               data.speciesKey !== undefined;
+                    });
+
+                    const defaultPhotoType = photoTypes.includes('mature_overall_1') ? 'mature_overall_1' :
+                                           photoTypes.includes('mature_overall_2') ? 'mature_overall_2' :
+                                           photoTypes[0] || null;
+
+                    return {
+                        name: scientificName,
+                        speciesKey: data.speciesKey,
+                        photos: data.photos || {},
+                        photoTypes: photoTypes,
+                        currentPhotoType: defaultPhotoType,
+                        currentIndex: 1,
+                        totalImages: photoTypes.length
+                    };
+                });
+
+                this.currentPlants = plants;
+
+                // Initialize PlantDataProcessor if needed
+                if (!this.dataProcessor && window.PlantDataProcessor) {
+                    await this.initializeDataProcessor(speciesData);
+                }
+
+                // Initialize nursery data matching
+                await this.initializeNurseryData();
+            }
+
+            // Show all plants initially (no filtering)
+            this.filteredPlants = [...this.currentPlants];
+
+            setTimeout(() => {
+                this.displayPlantGrid(this.filteredPlants);
+            }, 100);
+
+        } catch (error) {
+            console.error('Error loading standalone plant recommendations:', error);
+            this.displayError();
+        }
+    }
+
+    /**
      * Get current filter state
      */
     getCurrentFilters() {
@@ -1624,6 +1743,8 @@ class PlantRecommendationsPage {
      */
     onFocusPanelClose() {
         this.closePurchaseWidget();
+        // Also hide the filter panel if it's open
+        this.hideFilters();
     }
 }
 

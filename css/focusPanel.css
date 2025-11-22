@@ -843,6 +843,42 @@
     transform: translateY(-2px);
 }
 
+/* Plant browse button - positioned to the left of cart button */
+.plant-browse-button {
+    position: fixed;
+    top: 60px; /* Same level as cart button */
+    right: 290px; /* To the left of cart button (240px + 40px + 10px gap) */
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plant-browse-button:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.plant-browse-icon {
+    font-size: 20px;
+    color: #072b2e; /* Ecodash blue for the plant icon */
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.5); /* White glow for contrast */
+    transition: all 0.2s ease;
+}
+
+.plant-browse-button:hover .plant-browse-icon {
+    transform: scale(1.1);
+    color: #072b2e;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
 .cart-icon {
     width: 32px; /* Slightly larger for better visibility */
     height: 32px;

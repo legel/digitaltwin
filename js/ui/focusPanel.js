@@ -11,6 +11,15 @@ class FocusPanel {
         this.currentPage = 'plantRecommendations'; // Default to plant recommendations page
         this.currentSubpage = null; // For plant details subpage
         this.selectedPlantData = null; // Store selected plant data for subpage
+        this.isStandaloneMode = false; // Track if panel is in standalone mode (not linked to PA)
+
+        // State management for opening behavior
+        this.lastOpenedBy = null; // 'pa' or 'button' - tracks how panel was last opened
+        this.buttonState = { // State to restore when re-opening via button
+            currentPage: 'plantRecommendations',
+            selectedPlantData: null,
+            filters: [] // Array of filter indices to restore
+        };
         this.pages = {
             plantRecommendations: {
                 title: 'Plant Recommendations',
@@ -205,11 +214,7 @@ class FocusPanel {
         // Escape key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isVisible) {
-                if (window.clearPAConnection) {
-                    window.clearPAConnection();
-                } else {
-                    this.hide();
-                }
+                this.hide();
             }
         });
     }
@@ -218,7 +223,15 @@ class FocusPanel {
         if (!this.panel || !document.body.contains(this.panel)) {
             this.init();
         }
+
+        // Track how this was opened - PA mode
+        this.lastOpenedBy = 'pa';
+        this.isStandaloneMode = false;
         this.currentPA = paName;
+
+        // Always reset to main plant recommendations page when opening from PA
+        this.currentPage = 'plantRecommendations';
+        this.selectedPlantData = null;
 
         // Set initial panel width based on current page
         this.updatePanelWidth(null, this.currentPage);
@@ -228,9 +241,15 @@ class FocusPanel {
 
         // Handle plant details subpage header differently
         const isPlantDetailsPage = this.currentPage === 'plantDetails';
-        const displayTitle = isPlantDetailsPage ?
-            this.formatPlantNameForTitle(this.selectedPlantData?.name || 'Plant Details') :
-            paName.toUpperCase();
+        let displayTitle;
+
+        if (isPlantDetailsPage) {
+            displayTitle = this.formatPlantNameForTitle(this.selectedPlantData?.name || 'Plant Details');
+        } else if (this.isStandaloneMode) {
+            displayTitle = 'PLANT CATALOG';
+        } else {
+            displayTitle = paName.toUpperCase();
+        }
 
         const headerHTML = `
             <div class="panel-title-section">
@@ -255,7 +274,7 @@ class FocusPanel {
                 ` : ''}
             </div>
             <div class="page-controls">
-                ${!isPlantDetailsPage ? `
+                ${!isPlantDetailsPage && !this.isStandaloneMode ? `
                     <button class="page-button ${this.currentPage === 'plantRecommendations' ? 'active' : ''}"
                             data-page="plantRecommendations"
                             aria-label="Plant Recommendations"
@@ -286,15 +305,26 @@ class FocusPanel {
             window.plantRecommendations.onFocusPanelClose();
         }
 
-        // Only handle the panel visibility, let the animation system handle the rest
+        // Store mode before clearing
+        const wasStandaloneMode = this.isStandaloneMode;
+
+        // Instantly hide panel and clear all state
         this.panel.classList.remove('visible');
+        this.panel.classList.remove('animating-in');
+        this.panel.classList.remove('animating-out');
         this.isVisible = false;
         this.currentPA = null;
+        this.isStandaloneMode = false;
 
-        // If called directly (e.g., from close button), trigger the full animation
-        if (!this.panel.classList.contains('animating-out') && window.clearPAConnection) {
-            window.clearPAConnection();
-        }
+        // Reset panel styles
+        this.panel.style.opacity = '';
+        this.panel.style.visibility = '';
+        this.panel.style.pointerEvents = '';
+        this.panel.style.transform = '';
+        this.panel.style.transition = '';
+
+        // Always instantly clear all animation elements
+        this.clearAllAnimationElements();
     }
     
     displayMetrics(paData) {
@@ -628,11 +658,8 @@ class FocusPanel {
         // Close button
         const closeBtn = this.panel.querySelector('.close-button');
         closeBtn.addEventListener('click', () => {
-            if (window.clearPAConnection) {
-                window.clearPAConnection();
-            } else {
-                this.hide();
-            }
+            // Always use instant hide method
+            this.hide();
         });
 
         // Page buttons
@@ -939,8 +966,8 @@ class FocusPanel {
         // Switch to plant details page
         this.currentPage = 'plantDetails';
 
-        // Update header (re-render with current PA name)
-        this.show(this.currentPA, this.currentPAData);
+        // Update display without changing opening state tracking
+        this.updatePanelForCurrentPage();
     }
 
     /**
@@ -953,8 +980,112 @@ class FocusPanel {
         // Return to previous page (usually plant recommendations)
         this.currentPage = this.previousPage || 'plantRecommendations';
 
-        // Update header and content (preserve PA data)
-        this.show(this.currentPA, this.currentPAData);
+        // Update display without changing opening state tracking
+        this.updatePanelForCurrentPage();
+    }
+
+    /**
+     * Show focus panel in standalone mode (not linked to any PA)
+     */
+    showStandalone() {
+        // Store previous opening method before changing it
+        const previousOpenedBy = this.lastOpenedBy;
+
+        // Save current state if we're re-opening from button mode
+        if (previousOpenedBy === 'button') {
+            this.saveButtonState();
+        }
+
+        // Track how this was opened - button mode
+        this.lastOpenedBy = 'button';
+        this.isStandaloneMode = true;
+        this.currentPA = null;
+
+        // Determine state to restore based on PREVIOUS opening method
+        if (previousOpenedBy === 'pa') {
+            // Previous opened by PA - reset to clean state
+            this.currentPage = 'plantRecommendations';
+            this.selectedPlantData = null;
+        } else if (previousOpenedBy === 'button') {
+            // Previous opened by button - restore previous state
+            this.restoreButtonState();
+        } else {
+            // First time opening - default state
+            this.currentPage = 'plantRecommendations';
+            this.selectedPlantData = null;
+        }
+
+        // Initialize panel if needed
+        if (!this.panel || !document.body.contains(this.panel)) {
+            this.init();
+        }
+
+        // Set panel width for plant mode
+        this.updatePanelWidth(null, 'plantRecommendations');
+
+        // Update header for standalone mode
+        const currentPageData = this.pages[this.currentPage];
+        const headerHTML = `
+            <div class="panel-title-section">
+                <h3 class="pa-name">PLANT CATALOG</h3>
+                <p class="pa-subtitle">${currentPageData.subtitle}</p>
+                <div class="refine-plant-section">
+                    <button id="refine-plants-btn" class="action-button">
+                        <i class="fas fa-leaf"></i>
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Refine Plant List</span>
+                    </button>
+                </div>
+            </div>
+            <div class="page-controls">
+                <button class="close-button" aria-label="Close panel">×</button>
+            </div>
+        `;
+        this.panel.querySelector('.focus-panel-header').innerHTML = headerHTML;
+
+        // Re-attach event listeners for standalone mode
+        this.attachHeaderEventListeners();
+
+        // Display content based on current page (after state restoration)
+        if (this.currentPage === 'plantDetails') {
+            // Use updatePanelForCurrentPage which handles plant details correctly
+            this.updatePanelForCurrentPage();
+        } else {
+            // For plant recommendations page, use standalone method
+            this.displayStandalonePlantRecommendations();
+        }
+
+        // Show panel with direct positioning (no connection line animation)
+        this.positionPanelCorrectly();
+
+        // Add visible class instead of setting inline styles - this triggers CSS transform
+        this.panel.classList.add('visible');
+        this.isVisible = true;
+    }
+
+    /**
+     * Display plant recommendations in standalone mode (all plants, no PA filtering)
+     */
+    displayStandalonePlantRecommendations() {
+        const content = this.panel.querySelector('.focus-panel-content');
+        if (!content) return;
+
+        if (window.plantRecommendations) {
+            // Use clean standalone method that bypasses PA filtering
+            window.plantRecommendations.displayStandaloneContent();
+
+            // Apply saved filters immediately if we're restoring button state
+            if (this.buttonState.filters.length > 0) {
+                // Apply filters immediately after a minimal delay for content to load
+                setTimeout(() => this.applySavedFilters(), 50);
+            }
+        } else {
+            content.innerHTML = `
+                <div class="standalone-loading">
+                    <p>Loading plant catalog...</p>
+                </div>
+            `;
+        }
     }
 
     /**
@@ -1214,6 +1345,183 @@ class FocusPanel {
                 }
             }
         }
+    }
+
+    /**
+     * Position panel correctly relative to layer controls
+     * This unified method should be used for both standalone and PA modes
+     */
+    /**
+     * Instantly clear all animation elements (connection lines, vertical edges, highlights)
+     */
+    clearAllAnimationElements() {
+        // Clear connection lines
+        document.querySelectorAll('.connection-line').forEach(line => line.remove());
+
+        // Clear vertical edges
+        document.querySelectorAll('.vertical-edge').forEach(edge => edge.remove());
+
+        // Clear PA highlights
+        document.querySelectorAll('.pa-row-highlight').forEach(highlight => highlight.remove());
+
+        // Clear any animation state in layer controls
+        if (window.currentAnimationState) {
+            window.currentAnimationState.isAnimating = false;
+            window.currentAnimationState.selectedLabel = null;
+            window.currentAnimationState.selectedPA = null;
+            window.currentAnimationState.lineEndX = null;
+            window.currentAnimationState.verticalEdge = null;
+        }
+
+        // Force remove any in-progress animations by clearing transform and transitions
+        document.querySelectorAll('[style*="transform"], [style*="transition"]').forEach(el => {
+            if (el.classList.contains('connection-line') ||
+                el.classList.contains('vertical-edge') ||
+                el.classList.contains('pa-row-highlight')) {
+                el.remove();
+            }
+        });
+    }
+
+    /**
+     * Update panel display for current page without resetting opening method tracking
+     * Used for navigation within the same session (e.g., to plant details page)
+     */
+    updatePanelForCurrentPage() {
+        // Set panel width for current page
+        this.updatePanelWidth(null, this.currentPage);
+
+        // Update header
+        const currentPageData = this.pages[this.currentPage];
+        const isPlantDetailsPage = this.currentPage === 'plantDetails';
+
+        let displayTitle;
+        if (isPlantDetailsPage) {
+            displayTitle = this.formatPlantNameForTitle(this.selectedPlantData?.name || 'Plant Details');
+        } else if (this.isStandaloneMode) {
+            displayTitle = 'PLANT CATALOG';
+        } else {
+            displayTitle = this.currentPA ? this.currentPA.toUpperCase() : 'PLANT CATALOG';
+        }
+
+        const headerHTML = `
+            <div class="panel-title-section">
+                <h3 class="pa-name">${displayTitle}</h3>
+                <p class="pa-subtitle">${currentPageData.subtitle}</p>
+                ${this.currentPage === 'plantRecommendations' ? `
+                <div class="refine-plant-section">
+                    <button id="refine-plants-btn" class="action-button">
+                        <i class="fas fa-leaf"></i>
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Refine Plant List</span>
+                    </button>
+                </div>
+                ` : ''}
+                ${isPlantDetailsPage ? `
+                <div class="back-button-section">
+                    <button id="back-to-plants-btn" class="action-button">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Plants</span>
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+            <div class="page-controls">
+                ${!isPlantDetailsPage && !this.isStandaloneMode ? `
+                    <button class="page-button ${this.currentPage === 'plantRecommendations' ? 'active' : ''}"
+                            data-page="plantRecommendations"
+                            aria-label="Plant Recommendations"
+                            title="Plant Recommendations">${this.pages.plantRecommendations.icon}</button>
+                    <button class="page-button ${this.currentPage === 'ecologicalMetrics' ? 'active' : ''}"
+                            data-page="ecologicalMetrics"
+                            aria-label="Ecological Metrics"
+                            title="Ecological Metrics">${this.pages.ecologicalMetrics.icon}</button>
+                ` : ''}
+                <button class="close-button" aria-label="Close panel">×</button>
+            </div>
+        `;
+        this.panel.querySelector('.focus-panel-header').innerHTML = headerHTML;
+
+        // Re-attach event listeners
+        this.attachHeaderEventListeners();
+
+        // Display content for current page
+        if (this.currentPage === 'plantDetails') {
+            this.displayPlantDetails();
+        } else if (this.currentPage === 'plantRecommendations') {
+            if (this.isStandaloneMode) {
+                this.displayStandalonePlantRecommendations();
+            } else {
+                this.displayCurrentPage(this.currentPAData);
+            }
+        } else if (this.currentPage === 'ecologicalMetrics') {
+            this.displayCurrentPage(this.currentPAData);
+        }
+    }
+
+    /**
+     * Save current button mode state for restoration
+     */
+    saveButtonState() {
+        this.buttonState.currentPage = this.currentPage;
+        this.buttonState.selectedPlantData = this.selectedPlantData ? { ...this.selectedPlantData } : null;
+
+        // Save current filter state from plantRecommendations module
+        if (window.plantRecommendations && typeof window.plantRecommendations.getCurrentFilters === 'function') {
+            this.buttonState.filters = window.plantRecommendations.getCurrentFilters();
+        } else {
+            this.buttonState.filters = [];
+        }
+    }
+
+    /**
+     * Restore button mode state
+     */
+    restoreButtonState() {
+        this.currentPage = this.buttonState.currentPage;
+        this.selectedPlantData = this.buttonState.selectedPlantData ? { ...this.buttonState.selectedPlantData } : null;
+    }
+
+    /**
+     * Apply saved filters after plant recommendations content is loaded
+     */
+    applySavedFilters() {
+        if (this.buttonState.filters && this.buttonState.filters.length > 0 && window.plantRecommendations) {
+            // Restore filters to plantRecommendations module
+            window.plantRecommendations.selectedFilters.clear();
+            this.buttonState.filters.forEach(filterIndex => {
+                window.plantRecommendations.selectedFilters.add(filterIndex);
+            });
+
+            // Update filter UI to reflect restored state
+            if (typeof window.plantRecommendations.updateFilterUIFromSelectedFilters === 'function') {
+                window.plantRecommendations.updateFilterUIFromSelectedFilters();
+            }
+
+            // Apply the filters to show filtered plants
+            if (typeof window.plantRecommendations.applyCurrentFilters === 'function') {
+                window.plantRecommendations.applyCurrentFilters();
+            }
+        }
+    }
+
+
+    positionPanelCorrectly() {
+        // Calculate correct position based on control panel location
+        // Control panel is at right: 10px, layer controls width is 290px
+        // Panel should end 40px to the left of layer controls
+        const controlPanelRightMargin = 10; // from CSS: right: 10px
+        const layerControlsWidth = 290; // from CSS: width: 290px
+        const connectionGap = 40; // connection line length
+        const panelWidth = 1160;
+
+        // Calculate panel left position
+        // Panel right edge should be: window.innerWidth - controlPanelRightMargin - layerControlsWidth - connectionGap
+        const panelRightEdge = window.innerWidth - controlPanelRightMargin - layerControlsWidth - connectionGap;
+        const panelLeft = panelRightEdge - panelWidth;
+
+        this.panel.style.left = `${panelLeft}px`;
+        this.panel.style.right = 'auto';
     }
 }
 

@@ -1671,6 +1671,22 @@ function createVerticalEdge(callback) {
 }
 
 /**
+ * Calculate correct panel position using simplified method
+ * This eliminates positioning inconsistencies and visual blips
+ */
+function calculateCorrectPanelPosition() {
+    // Same calculation as in focus panel - control panel positioning
+    const controlPanelRightMargin = 10; // from CSS: right: 10px
+    const layerControlsWidth = 290; // from CSS: width: 290px
+    const connectionGap = 40; // connection line length
+    const panelWidth = 1160;
+
+    // Calculate panel left position
+    const panelRightEdge = window.innerWidth - controlPanelRightMargin - layerControlsWidth - connectionGap;
+    return panelRightEdge - panelWidth;
+}
+
+/**
  * Expands vertical edge into full focus panel
  */
 function expandToFocusPanel(paName, paFeature, callback) {
@@ -1716,7 +1732,8 @@ function expandToFocusPanel(paName, paFeature, callback) {
         panel.style.setProperty('width', '1160px', 'important');
     }
 
-    const panelLeft = currentAnimationState.lineEndX - panelWidth;
+    // Use simplified positioning calculation to avoid visual glitches
+    const panelLeft = calculateCorrectPanelPosition();
 
 
     // Hide panel initially to prevent position jump
@@ -1837,7 +1854,8 @@ function collapseFocusPanel(callback) {
             console.warn(`Panel collapse: computed width (${computedWidth}px) doesn't match expected (1160px)`);
         }
 
-        const panelLeft = currentAnimationState.lineEndX - panelWidth;
+        // Use simplified positioning calculation to eliminate blip
+        const panelLeft = calculateCorrectPanelPosition();
         panel.style.left = `${panelLeft}px`;
         panel.style.right = 'auto';
     }
@@ -1930,31 +1948,15 @@ function retractConnectionLine(callback) {
 
 // Clean up connection when closing dropdown or deselecting
 function clearPAConnection() {
-    // Use the animation system if there's an active connection
-    if (currentAnimationState.selectedLabel) {
-        reverseCurrentAnimation();
-    } else {
-        // Direct cleanup for when no animation is tracked
-        // First handle focus panel without triggering circular calls
-        const panel = window.focusPanel?.panel;
-        if (panel && window.focusPanel) {
-            // Mark as animating-out to prevent focusPanel.hide() from calling clearPAConnection again
-            panel.classList.add('animating-out');
-            window.focusPanel.hide();
-        }
-
-        // Clean up connection line
-        const line = document.querySelector('.connection-line');
-        if (line) {
-            line.classList.remove('visible');
-            setTimeout(() => line.remove(), 500);
-        }
-
-        // Remove selected class
-        document.querySelectorAll('.pa-category.selected').forEach(el => {
-            el.classList.remove('selected');
-        });
+    // Always use instant cleanup - no animations
+    if (window.focusPanel && window.focusPanel.isVisible) {
+        window.focusPanel.hide();
     }
+
+    // Remove selected class
+    document.querySelectorAll('.pa-category.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
 }
 
 /**
