@@ -1086,8 +1086,9 @@ class PlantRecommendationsPage {
      * Create and show purchase widget below the selected plant
      */
     showPurchaseWidget(plantItem, plantName, speciesKey) {
-        // Get all nursery inventory data
-        const inventoryItems = this.getNurseryInventoryData(plantName);
+        // Get all nursery inventory data and sort it
+        const rawInventoryItems = this.getNurseryInventoryData(plantName);
+        const inventoryItems = this.sortInventoryItems(rawInventoryItems);
 
         const hasInventory = inventoryItems && inventoryItems.length > 0;
         const widgetClass = hasInventory ? 'plant-purchase-widget' : 'plant-purchase-widget no-inventory';
@@ -1144,8 +1145,11 @@ class PlantRecommendationsPage {
             `;
         }
 
+        // Sort inventory items before processing: in-stock items first, then by price (ascending)
+        const sortedInventoryItems = this.sortInventoryItems(inventoryItems);
+
         // Convert to ProductNurseryPlant instances for consistent handling
-        const products = ProductNurseryPlant.fromInventoryArray(plantName, speciesKey, inventoryItems);
+        const products = ProductNurseryPlant.fromInventoryArray(plantName, speciesKey, sortedInventoryItems);
 
         // Generate cards for each product
         return products.map((product, index) => {
@@ -1211,6 +1215,34 @@ class PlantRecommendationsPage {
                 </div>
             `;
         }).join('');
+    }
+
+    /**
+     * Sort inventory items by availability (in stock first) and then by price (ascending)
+     */
+    sortInventoryItems(inventoryItems) {
+        if (!inventoryItems || !Array.isArray(inventoryItems)) {
+            return [];
+        }
+
+        return [...inventoryItems].sort((a, b) => {
+            // First sort by availability: items with quantity > 0 come before items with quantity = 0
+            const aQuantity = parseInt(a?.quantity_available) || 0;
+            const bQuantity = parseInt(b?.quantity_available) || 0;
+
+            const aInStock = aQuantity > 0;
+            const bInStock = bQuantity > 0;
+
+            if (aInStock !== bInStock) {
+                return bInStock - aInStock; // true (1) - false (0) = 1, false (0) - true (1) = -1
+            }
+
+            // If both have same stock status, sort by price (ascending)
+            const aPrice = parseFloat(a?.wholesale_price) || 0;
+            const bPrice = parseFloat(b?.wholesale_price) || 0;
+
+            return aPrice - bPrice;
+        });
     }
 
     /**
@@ -1287,7 +1319,9 @@ class PlantRecommendationsPage {
         // Store reference to inventory data for event handlers
         const plantName = this.activePurchaseWidget.dataset.plant;
         const speciesKey = this.activePurchaseWidget.dataset.speciesKey;
-        const inventoryItems = this.getNurseryInventoryData(plantName);
+        // CRITICAL: Use the same sorted array that generated the visuals
+        const rawInventoryItems = this.getNurseryInventoryData(plantName);
+        const inventoryItems = this.sortInventoryItems(rawInventoryItems);
 
         // Close button
         const closeBtn = this.activePurchaseWidget.querySelector('.purchase-widget-close');
@@ -1357,7 +1391,8 @@ class PlantRecommendationsPage {
                 const currentQuantity = parseInt(quantityDisplay.textContent) || 10;
                 const plantName = this.activePurchaseWidget?.dataset.plant;
                 const speciesKey = this.activePurchaseWidget?.dataset.speciesKey;
-                const inventoryItems = this.getNurseryInventoryData(plantName);
+                const rawInventoryItems = this.getNurseryInventoryData(plantName);
+                const inventoryItems = this.sortInventoryItems(rawInventoryItems);
                 const inventoryItem = inventoryItems[itemIndex];
 
                 if (inventoryItem) {
@@ -1510,7 +1545,8 @@ class PlantRecommendationsPage {
 
         const plantName = this.activePurchaseWidget.dataset.plant;
         const speciesKey = this.activePurchaseWidget.dataset.speciesKey;
-        const inventoryItems = this.getNurseryInventoryData(plantName);
+        const rawInventoryItems = this.getNurseryInventoryData(plantName);
+        const inventoryItems = this.sortInventoryItems(rawInventoryItems);
 
         inventoryItems.forEach((item, index) => {
             const card = this.activePurchaseWidget.querySelector(`[data-item-index="${index}"]`);

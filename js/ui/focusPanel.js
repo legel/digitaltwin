@@ -18,8 +18,10 @@ class FocusPanel {
         this.buttonState = { // State to restore when re-opening via button
             currentPage: 'plantRecommendations',
             selectedPlantData: null,
-            filters: [] // Array of filter indices to restore
+            filters: [], // Array of filter indices to restore
+            scrollPosition: undefined // Saved scroll position for plant recommendations
         };
+        this.savedScrollPosition = undefined; // Store scroll position for back navigation
         this.pages = {
             plantRecommendations: {
                 title: 'Plant Recommendations',
@@ -300,6 +302,9 @@ class FocusPanel {
     }
     
     hide() {
+        // Save current scroll position before hiding
+        this.saveScrollPosition();
+
         // Clean up any active purchase widgets when focus panel closes
         if (window.plantRecommendations && typeof window.plantRecommendations.onFocusPanelClose === 'function') {
             window.plantRecommendations.onFocusPanelClose();
@@ -794,7 +799,8 @@ class FocusPanel {
             // Full reload with new ecological data (first time or reopening focus panel)
             window.plantRecommendations.displayContent(paData);
         } else {
-            // Just switch to plant recommendations page without resetting filters (page switching)
+            // Optimized path: reuse cached data and preserved filters (back navigation, page switching)
+            // Skips expensive data loading and filter recomputation
             window.plantRecommendations.displayContentWithoutReset(paData);
         }
     }
@@ -954,6 +960,9 @@ class FocusPanel {
      * Navigate to plant details subpage
      */
     showPlantDetails(plantName, speciesKey) {
+        // Save current scroll position before navigating away
+        this.saveScrollPosition();
+
         // Store plant data for the subpage
         this.selectedPlantData = {
             name: plantName,
@@ -982,6 +991,9 @@ class FocusPanel {
 
         // Update display without changing opening state tracking
         this.updatePanelForCurrentPage();
+
+        // Restore scroll position after content loads
+        this.restoreScrollPosition();
     }
 
     /**
@@ -1061,7 +1073,14 @@ class FocusPanel {
         // Add visible class instead of setting inline styles - this triggers CSS transform
         this.panel.classList.add('visible');
         this.isVisible = true;
+
+        // Only restore scroll position when preserving previous button state
+        // (not when opening fresh from PA or first time)
+        if (previousOpenedBy === 'button') {
+            this.restoreScrollPosition();
+        }
     }
+
 
     /**
      * Display plant recommendations in standalone mode (all plants, no PA filtering)
@@ -1098,9 +1117,11 @@ class FocusPanel {
         const plantName = this.selectedPlantData.name;
         const speciesKey = this.selectedPlantData.speciesKey;
 
-        // Get nursery inventory data for this plant
-        const inventoryItems = window.plantRecommendations ?
+        // Get nursery inventory data for this plant and sort it
+        const rawInventoryItems = window.plantRecommendations ?
             window.plantRecommendations.getNurseryInventoryData(plantName) : [];
+        const inventoryItems = window.plantRecommendations ?
+            window.plantRecommendations.sortInventoryItems(rawInventoryItems) : [];
 
         content.innerHTML = `
             <div class="plant-details-content">
@@ -1208,8 +1229,10 @@ class FocusPanel {
                 const currentQuantity = parseInt(quantityDisplay.textContent) || 10;
                 const plantName = this.selectedPlantData?.name;
                 const speciesKey = this.selectedPlantData?.speciesKey;
-                const inventoryItems = window.plantRecommendations ?
+                const rawInventoryItems = window.plantRecommendations ?
                     window.plantRecommendations.getNurseryInventoryData(plantName) : [];
+                const inventoryItems = window.plantRecommendations ?
+                    window.plantRecommendations.sortInventoryItems(rawInventoryItems) : [];
                 const inventoryItem = inventoryItems[itemIndex];
 
                 if (inventoryItem) {
@@ -1452,10 +1475,11 @@ class FocusPanel {
             if (this.isStandaloneMode) {
                 this.displayStandalonePlantRecommendations();
             } else {
-                this.displayCurrentPage(this.currentPAData);
+                // Don't reset filters when navigating within the same session (e.g., back from plant details)
+                this.displayCurrentPage(this.currentPAData, false);
             }
         } else if (this.currentPage === 'ecologicalMetrics') {
-            this.displayCurrentPage(this.currentPAData);
+            this.displayCurrentPage(this.currentPAData, false);
         }
     }
 
@@ -1472,6 +1496,10 @@ class FocusPanel {
         } else {
             this.buttonState.filters = [];
         }
+
+        // Save current scroll position if on plant recommendations page
+        this.saveScrollPosition();
+        this.buttonState.scrollPosition = this.savedScrollPosition;
     }
 
     /**
@@ -1480,6 +1508,35 @@ class FocusPanel {
     restoreButtonState() {
         this.currentPage = this.buttonState.currentPage;
         this.selectedPlantData = this.buttonState.selectedPlantData ? { ...this.buttonState.selectedPlantData } : null;
+
+        // Restore saved scroll position
+        this.savedScrollPosition = this.buttonState.scrollPosition;
+    }
+
+    /**
+     * Save current scroll position for plant recommendations page
+     */
+    saveScrollPosition() {
+        const contentElement = this.panel.querySelector('.focus-panel-content');
+        if (contentElement && this.currentPage === 'plantRecommendations') {
+            this.savedScrollPosition = contentElement.scrollTop;
+        }
+    }
+
+    /**
+     * Restore saved scroll position for plant recommendations page
+     */
+    restoreScrollPosition() {
+        if (this.savedScrollPosition !== undefined) {
+            // Use setTimeout to ensure content is fully loaded before scrolling
+            setTimeout(() => {
+                const contentElement = this.panel.querySelector('.focus-panel-content');
+                if (contentElement) {
+                    contentElement.scrollTop = this.savedScrollPosition;
+                    this.savedScrollPosition = undefined; // Clear after use
+                }
+            }, 50); // Small delay to ensure DOM is updated
+        }
     }
 
     /**
