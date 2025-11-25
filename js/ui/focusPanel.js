@@ -22,6 +22,7 @@ class FocusPanel {
             scrollPosition: undefined // Saved scroll position for plant recommendations
         };
         this.savedScrollPosition = undefined; // Store scroll position for back navigation
+        this.plantRecommendationsScrollPosition = undefined; // Store plant recommendations scroll when on subpage
         this.pages = {
             plantRecommendations: {
                 title: 'Plant Recommendations',
@@ -963,6 +964,11 @@ class FocusPanel {
         // Save current scroll position before navigating away
         this.saveScrollPosition();
 
+        // Also save scroll position specifically for plant recommendations page preservation
+        if (this.currentPage === 'plantRecommendations') {
+            this.plantRecommendationsScrollPosition = this.savedScrollPosition;
+        }
+
         // Store plant data for the subpage
         this.selectedPlantData = {
             name: plantName,
@@ -989,10 +995,21 @@ class FocusPanel {
         // Return to previous page (usually plant recommendations)
         this.currentPage = this.previousPage || 'plantRecommendations';
 
+        // Set flag to indicate this is back navigation (for scroll preservation)
+        this.isNavigatingBack = true;
+
         // Update display without changing opening state tracking
         this.updatePanelForCurrentPage();
 
+        // Clear the flag after content is updated
+        this.isNavigatingBack = false;
+
         // Restore scroll position after content loads
+        // Use dedicated plant recommendations scroll position if available
+        if (this.plantRecommendationsScrollPosition !== undefined) {
+            this.savedScrollPosition = this.plantRecommendationsScrollPosition;
+            this.plantRecommendationsScrollPosition = undefined; // Clear after use
+        }
         this.restoreScrollPosition();
     }
 
@@ -1064,7 +1081,8 @@ class FocusPanel {
             this.updatePanelForCurrentPage();
         } else {
             // For plant recommendations page, use standalone method
-            this.displayStandalonePlantRecommendations();
+            // Pass context about previous opening method for proper filter handling
+            this.displayStandalonePlantRecommendations(previousOpenedBy);
         }
 
         // Show panel with direct positioning (no connection line animation)
@@ -1081,22 +1099,38 @@ class FocusPanel {
         }
     }
 
-
     /**
      * Display plant recommendations in standalone mode (all plants, no PA filtering)
      */
-    displayStandalonePlantRecommendations() {
+    displayStandalonePlantRecommendations(previousOpenedBy = null) {
         const content = this.panel.querySelector('.focus-panel-content');
         if (!content) return;
 
         if (window.plantRecommendations) {
-            // Use clean standalone method that bypasses PA filtering
-            window.plantRecommendations.displayStandaloneContent();
+            // Determine if this is a back navigation from plant details (preserve scroll)
+            // vs a fresh opening from PA mode or button reopening (reset content)
+            if (this.isNavigatingBack) {
+                // Back from plant details - preserve scroll position and filters
+                // Pass preserve flag to indicate we want to maintain current filter state
+                window.plantRecommendations.displayContentWithoutReset(null, true);
+            } else if (previousOpenedBy === 'button') {
+                // Button->Button reopening - preserve content and filters
+                window.plantRecommendations.displayContentWithoutReset(null, true);
+            } else {
+                // Fresh opening from PA or first time - reset content and clear filters
+                window.plantRecommendations.displayStandaloneContent();
 
-            // Apply saved filters immediately if we're restoring button state
-            if (this.buttonState.filters.length > 0) {
-                // Apply filters immediately after a minimal delay for content to load
-                setTimeout(() => this.applySavedFilters(), 50);
+                // Clear filters when transitioning from PA mode
+                if (previousOpenedBy === 'pa' && window.plantRecommendations.clearFilters) {
+                    // Small delay to ensure content is loaded before clearing filters
+                    setTimeout(() => window.plantRecommendations.clearFilters(), 5);
+                }
+            }
+
+            // Apply saved filters for state preservation scenarios
+            if (this.buttonState.filters.length > 0 && (this.isNavigatingBack || previousOpenedBy === 'button')) {
+                // Apply filters with minimal delay for content to load
+                setTimeout(() => this.applySavedFilters(), 5);
             }
         } else {
             content.innerHTML = `
@@ -1499,7 +1533,13 @@ class FocusPanel {
 
         // Save current scroll position if on plant recommendations page
         this.saveScrollPosition();
-        this.buttonState.scrollPosition = this.savedScrollPosition;
+
+        // Use dedicated plant recommendations scroll position if available (for when closing from subpage)
+        if (this.plantRecommendationsScrollPosition !== undefined) {
+            this.buttonState.scrollPosition = this.plantRecommendationsScrollPosition;
+        } else {
+            this.buttonState.scrollPosition = this.savedScrollPosition;
+        }
     }
 
     /**
@@ -1528,15 +1568,39 @@ class FocusPanel {
      */
     restoreScrollPosition() {
         if (this.savedScrollPosition !== undefined) {
-            // Use setTimeout to ensure content is fully loaded before scrolling
-            setTimeout(() => {
-                const contentElement = this.panel.querySelector('.focus-panel-content');
-                if (contentElement) {
-                    contentElement.scrollTop = this.savedScrollPosition;
-                    this.savedScrollPosition = undefined; // Clear after use
-                }
-            }, 50); // Small delay to ensure DOM is updated
+            this.applyScrollPositionWhenReady();
         }
+    }
+
+    /**
+     * Apply scroll position immediately when content is ready, with fallback timing
+     */
+    applyScrollPositionWhenReady() {
+        const applyScroll = () => {
+            const contentElement = this.panel.querySelector('.focus-panel-content');
+            if (contentElement && this.savedScrollPosition !== undefined) {
+                contentElement.scrollTop = this.savedScrollPosition;
+                this.savedScrollPosition = undefined; // Clear after use
+            }
+        };
+
+        // Try immediate application first
+        const contentElement = this.panel.querySelector('.focus-panel-content');
+        if (contentElement) {
+            // Check if content appears to be loaded
+            const hasContent = contentElement.querySelector('.plant-grid .plant-item') ||
+                             contentElement.querySelector('.loading-plants') ||
+                             contentElement.querySelector('.plant-details-content');
+
+            if (hasContent) {
+                // Content appears ready, but use requestAnimationFrame to apply after DOM paint
+                requestAnimationFrame(applyScroll);
+                return;
+            }
+        }
+
+        // Content not ready, use minimal fallback delay
+        setTimeout(applyScroll, 5); // Very short delay as fallback
     }
 
     /**

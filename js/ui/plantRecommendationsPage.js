@@ -56,7 +56,7 @@ class PlantRecommendationsPage {
      * Display the plant recommendations content without resetting filters
      * Used when switching back to plant recommendations page
      */
-    displayContentWithoutReset(paData) {
+    displayContentWithoutReset(paData, preserveCurrentFilters = false) {
         const content = document.querySelector('.focus-panel-content');
         if (!content) return;
 
@@ -84,6 +84,9 @@ class PlantRecommendationsPage {
             if (this.selectedFilters && this.selectedFilters.size > 0 && this.dataProcessor) {
                 // Apply current manual filters
                 this.filteredPlants = this.dataProcessor.filterPlants(this.selectedFilters, this.currentPlants);
+            } else if (preserveCurrentFilters) {
+                // Preserve current state - show all plants without applying defaults
+                this.filteredPlants = [...this.currentPlants];
             } else {
                 // No manual filters - apply ecological default
                 this.filteredPlants = this.applyDefaultFilter(this.currentPlants);
