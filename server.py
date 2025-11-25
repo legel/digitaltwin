@@ -5,6 +5,31 @@ import json
 import stripe
 from pathlib import Path
 
+def load_envrc():
+    """Load environment variables from .envrc file (Windows compatible)"""
+    envrc_path = '.envrc'
+    if os.path.exists(envrc_path):
+        try:
+            with open(envrc_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('export ') and '=' in line:
+                        # Remove 'export ' prefix and parse key=value
+                        line = line[7:]  # Remove 'export '
+                        if '=' in line:
+                            key, value = line.split('=', 1)
+                            # Remove quotes if present
+                            value = value.strip('"\'')
+                            os.environ[key] = value
+                            print(f"Loaded environment variable: {key}")
+        except Exception as e:
+            print(f"Warning: Could not load .envrc: {e}")
+    else:
+        print("No .envrc file found")
+
+# Load environment variables before Flask app initialization
+load_envrc()
+
 app = Flask(__name__, static_folder='.')
 CORS(app)  # Enable CORS for all routes
 
