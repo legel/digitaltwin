@@ -61,24 +61,39 @@ class NurseryDataManager {
     }
 
     /**
-     * Parse a single CSV line, handling quoted values
+     * Parse a single CSV line, handling quoted values while preserving unit indicators
      */
     parseCSVLine(line) {
         const values = [];
         let current = '';
         let inQuotes = false;
+        let i = 0;
 
-        for (let i = 0; i < line.length; i++) {
+        while (i < line.length) {
             const char = line[i];
 
             if (char === '"') {
-                inQuotes = !inQuotes;
+                if (!inQuotes) {
+                    // Starting a quoted field
+                    inQuotes = true;
+                } else {
+                    // Check if this is an escaped quote or end of field
+                    if (i + 1 < line.length && line[i + 1] === '"') {
+                        // This is an escaped quote - add a single quote to the content
+                        current += '"';
+                        i++; // Skip the next quote
+                    } else {
+                        // End of quoted field
+                        inQuotes = false;
+                    }
+                }
             } else if (char === ',' && !inQuotes) {
                 values.push(current);
                 current = '';
             } else {
                 current += char;
             }
+            i++;
         }
         values.push(current);
 

@@ -1107,6 +1107,8 @@ class FocusPanel {
         if (!content) return;
 
         if (window.plantRecommendations) {
+            // Initialize the plant recommendations system (creates filter panel and event listeners)
+            window.plantRecommendations.initialize();
             // Determine if this is a back navigation from plant details (preserve scroll)
             // vs a fresh opening from PA mode or button reopening (reset content)
             if (this.isNavigatingBack) {

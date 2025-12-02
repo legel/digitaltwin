@@ -1058,6 +1058,9 @@ class PlantRecommendationsPage {
         // Close any existing purchase widget before navigation
         this.closePurchaseWidget();
 
+        // Hide refine filters panel if it's open
+        this.hideFilters();
+
         // Navigate using the focus panel's new subpage system
         if (window.focusPanel && typeof window.focusPanel.showPlantDetails === 'function') {
             window.focusPanel.showPlantDetails(plantName, speciesKey);
@@ -1170,10 +1173,25 @@ class PlantRecommendationsPage {
             // Map nursery names to display format
             const nurseryDisplayName = this.getNurseryDisplayName(item.nursery || 'NURSERY');
 
-            // Extract dimensions with proper formatting
-            const height = item.published_height || '';
-            const spread = item.published_spread || '';
+            // Extract dimensions with proper formatting and unit detection
+            const rawHeight = item.published_height || '';
+            const rawSpread = item.published_spread || '';
             const containerInfo = `${item.container_size || ''} ${item.container_type || 'GALLON'}`;
+
+            // Detect units from the data (inches use ", feet use ')
+            let dimensionUnit = 'ft'; // Default to feet
+            const heightStr = String(rawHeight);
+            const spreadStr = String(rawSpread);
+
+            if (heightStr.includes('"') || spreadStr.includes('"')) {
+                dimensionUnit = 'in';
+            } else if (heightStr.includes("'") || spreadStr.includes("'")) {
+                dimensionUnit = 'ft';
+            }
+
+            // Clean the dimensions by removing unit symbols since we show unit in text
+            const height = rawHeight.replace(/['"]/g, '');
+            const spread = rawSpread.replace(/['"]/g, '');
 
             return `
                 <div class="inventory-card" data-item-index="${index}" data-max-quantity="${maxQuantity}" data-product-id="${product.uniqueId}">
@@ -1195,7 +1213,7 @@ class PlantRecommendationsPage {
                         <div class="card-info-bottom">
                             <div class="card-size">
                                 <div class="container-size">${containerInfo}</div>
-                                <div class="plant-dimensions"><span class="dimension-numbers">${height} x ${spread}</span> ft</div>
+                                <div class="plant-dimensions"><span class="dimension-numbers">${height} x ${spread}</span> ${dimensionUnit}</div>
                             </div>
                             <div class="card-actions">
                                 <button class="card-buy-btn ${isOutOfStock ? 'disabled' : ''}"
@@ -1734,13 +1752,17 @@ class PlantRecommendationsPage {
 
                 this.currentPlants = plants;
 
-                // Initialize PlantDataProcessor if needed
-                if (!this.dataProcessor && window.PlantDataProcessor) {
-                    await this.initializeDataProcessor(speciesData);
-                }
-
                 // Initialize nursery data matching
                 await this.initializeNurseryData();
+            }
+
+            // Initialize PlantDataProcessor AFTER ontology data is guaranteed to be loaded
+            if (!this.dataProcessor && window.PlantDataProcessor && this.ontologyData) {
+                const response = await fetch('data/plant-recommendations/integrated_species_data.json');
+                if (response.ok) {
+                    const speciesData = await response.json();
+                    await this.initializeDataProcessor(speciesData);
+                }
             }
 
             // Show all plants initially (no filtering)
