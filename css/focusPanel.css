@@ -693,7 +693,16 @@
     display: inline-block;
 }
 
-/* Refine plant section */
+/* Plant controls section - container for search and refine button */
+.plant-controls-section {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: center;
+}
+
+/* Refine plant section - legacy compatibility */
 .refine-plant-section {
     margin-top: 12px;
     text-align: center;
@@ -731,6 +740,148 @@
 
 .action-button span {
     font-weight: 400;
+}
+
+/* Plant search container */
+.plant-search-container {
+    position: relative;
+    flex: 1;
+    max-width: 300px;
+}
+
+/* Search input wrapper */
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    padding: 0 15px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    height: 50px;
+}
+
+.search-input-wrapper:focus-within {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+/* Search icon */
+.search-icon {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    margin-right: 10px;
+    pointer-events: none;
+}
+
+/* Search input */
+.plant-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    padding: 0;
+    min-width: 0; /* Allow input to shrink */
+}
+
+.plant-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.plant-search-input::-webkit-search-cancel-button {
+    display: none;
+}
+
+/* Clear search button */
+.clear-search-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    margin-left: 5px;
+    border-radius: 50%;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.clear-search-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Search autocomplete dropdown */
+.search-autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2) brightness(1.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: none;
+    border-radius: 0 0 15px 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1004; /* Above focus panel */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Autocomplete item */
+.autocomplete-item {
+    padding: 12px 15px;
+    color: white;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.2s ease;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Plant names in autocomplete */
+.autocomplete-scientific {
+    font-style: italic;
+    font-size: 14px;
+}
+
+.autocomplete-common {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 2px;
+}
+
+/* Custom scrollbar for autocomplete */
+.search-autocomplete::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-autocomplete::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.search-autocomplete::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.search-autocomplete::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
 }
 
 /* Plant grid container - no scrolling, parent handles it */

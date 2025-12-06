@@ -10,12 +10,22 @@ class PlantRecommendationsPage {
         this.currentPlants = [];
         this.filteredPlants = [];
         this.selectedFilters = new Set();
+        this.savedSearchTerm = ''; // Persistent search term that survives clearSearch()
         this.dataProcessor = null;
         this.ontologyData = null;
         this.imageCache = new Map(); // Cache for image validation results
         this.navigationHandlers = null; // Store navigation event handlers
         this.activePurchaseWidget = null; // Track current purchase widget
         this.currentQuantity = 1; // Current quantity selection
+
+        // Search functionality
+        this.searchTerm = '';
+        this.searchResults = [];
+        this.isSearchActive = false;
+        this.autocompleteVisible = false;
+        this.highlightedIndex = -1;
+        this.searchEventHandlers = null;
+        this.isRestoringState = false; // Flag to prevent clearing search during state restoration
     }
 
     /**
@@ -75,10 +85,30 @@ class PlantRecommendationsPage {
                 </div>
             `;
         }
-
         // If plants are already loaded, just redisplay the current filtered list
         if (this.filteredPlants && this.filteredPlants.length > 0) {
-            this.displayPlantGrid(this.filteredPlants);
+            // Restore search state if we have saved search
+            if (this.savedSearchTerm) {
+                this.searchTerm = this.savedSearchTerm;
+                this.isSearchActive = false;
+
+                // Update search UI to show restored search
+                const searchInput = document.getElementById('plant-search-input');
+                const clearButton = document.getElementById('clear-search-btn');
+                if (searchInput) {
+                    searchInput.value = this.searchTerm;
+                }
+                if (clearButton) {
+                    clearButton.style.display = 'block';
+                }
+
+                // Perform search on filtered plants and display results
+                this.performSearch();
+                this.isSearchActive = true;
+                this.displayPlantGrid(this.searchResults);
+            } else {
+                this.displayPlantGrid(this.filteredPlants);
+            }
         } else if (this.currentPlants && this.currentPlants.length > 0) {
             // Plants are loaded but no filtered list - apply current filter state
             if (this.selectedFilters && this.selectedFilters.size > 0 && this.dataProcessor) {
@@ -87,6 +117,11 @@ class PlantRecommendationsPage {
             } else if (preserveCurrentFilters) {
                 // Preserve current state - show all plants without applying defaults
                 this.filteredPlants = [...this.currentPlants];
+                // Restore search if we have one saved
+                if (this.savedSearchTerm) {
+                    this.searchTerm = this.savedSearchTerm;
+                    this.applySearch();
+                }
             } else {
                 // No manual filters - apply ecological default
                 this.filteredPlants = this.applyDefaultFilter(this.currentPlants);
@@ -422,6 +457,9 @@ class PlantRecommendationsPage {
             const filterIndices = this.mapEcologicalDataToFilters(paEcologicalData);
 
             if (filterIndices.length > 0) {
+                // Clear search when applying ecological default filters
+                this.clearSearch();
+
                 // Update selectedFilters to sync with UI
                 this.selectedFilters.clear();
                 filterIndices.forEach(index => this.selectedFilters.add(index));
@@ -436,7 +474,8 @@ class PlantRecommendationsPage {
             }
         }
 
-        // Clear any previous ecological filter selections when falling back
+        // Clear any previous ecological filter selections and search when falling back
+        this.clearSearch();
         this.selectedFilters.clear();
         this.updateFilterUIFromSelectedFilters();
 
@@ -988,6 +1027,11 @@ class PlantRecommendationsPage {
      * Apply current filters to plant list using PlantDataProcessor
      */
     applyFilters() {
+        // Clear search when filters change (unless it's being restored)
+        if (!this.isRestoringState) {
+            this.clearSearch();
+        }
+
         if (this.selectedFilters.size === 0) {
             // No filters selected - show all plants (matches clearFilters behavior)
             this.filteredPlants = [...this.currentPlants];
@@ -1004,9 +1048,12 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Clear all filters and show all plants
+     * Clear all filters and search term, show all plants
      */
     clearFilters() {
+        // Clear search when filters are cleared
+        this.clearSearch();
+
         this.selectedFilters.clear();
         const checkboxes = document.querySelectorAll('.filter-checkbox');
         checkboxes.forEach(checkbox => {
@@ -1779,10 +1826,13 @@ class PlantRecommendationsPage {
     }
 
     /**
-     * Get current filter state
+     * Get current filter state including search term
      */
     getCurrentFilters() {
-        return Array.from(this.selectedFilters);
+        return {
+            filters: Array.from(this.selectedFilters),
+            searchTerm: this.savedSearchTerm || this.searchTerm || ''
+        };
     }
 
     /**
@@ -1791,6 +1841,7 @@ class PlantRecommendationsPage {
     getFilteredCount() {
         return this.filteredPlants.length;
     }
+
 
     /**
      * Get total plant count
@@ -1806,6 +1857,352 @@ class PlantRecommendationsPage {
         this.closePurchaseWidget();
         // Also hide the filter panel if it's open
         this.hideFilters();
+        // Note: Don't clear search here - we want to preserve search state across panel close/reopen
+    }
+
+    /**
+     * Attach search event listeners
+     */
+    attachSearchEventListeners() {
+        // Remove existing event listeners if they exist
+        if (this.searchEventHandlers) {
+            this.detachSearchEventListeners();
+        }
+
+        const searchInput = document.getElementById('plant-search-input');
+        const clearButton = document.getElementById('clear-search-btn');
+        const autocompleteContainer = document.getElementById('search-autocomplete');
+
+        if (!searchInput) return;
+
+        // Input event for real-time search and autocomplete
+        const inputHandler = (e) => {
+            this.handleSearchInput(e.target.value);
+        };
+
+        // Keydown event for navigation and selection
+        const keydownHandler = (e) => {
+            this.handleSearchKeydown(e);
+        };
+
+        // Clear button click
+        const clearHandler = () => {
+            this.clearSearch();
+        };
+
+        // Click outside to hide autocomplete
+        const documentClickHandler = (e) => {
+            if (!e.target.closest('.plant-search-container')) {
+                this.hideAutocomplete();
+            }
+        };
+
+        // Attach event listeners
+        searchInput.addEventListener('input', inputHandler);
+        searchInput.addEventListener('keydown', keydownHandler);
+        if (clearButton) {
+            clearButton.addEventListener('click', clearHandler);
+        }
+        document.addEventListener('click', documentClickHandler);
+
+        // Store handlers for cleanup
+        this.searchEventHandlers = {
+            input: { element: searchInput, event: 'input', handler: inputHandler },
+            keydown: { element: searchInput, event: 'keydown', handler: keydownHandler },
+            clear: { element: clearButton, event: 'click', handler: clearHandler },
+            document: { element: document, event: 'click', handler: documentClickHandler }
+        };
+
+        // Update UI to show current search state (if any)
+        if (this.searchTerm) {
+            const searchInput = document.getElementById('plant-search-input');
+            const clearButton = document.getElementById('clear-search-btn');
+            if (searchInput) {
+                searchInput.value = this.searchTerm;
+            }
+            if (clearButton) {
+                clearButton.style.display = 'block';
+            }
+        }
+    }
+
+    /**
+     * Detach search event listeners
+     */
+    detachSearchEventListeners() {
+        if (!this.searchEventHandlers) return;
+
+        Object.values(this.searchEventHandlers).forEach(({ element, event, handler }) => {
+            if (element && handler) {
+                element.removeEventListener(event, handler);
+            }
+        });
+
+        this.searchEventHandlers = null;
+    }
+
+    /**
+     * Handle search input changes
+     */
+    handleSearchInput(value) {
+        this.searchTerm = value.trim();
+        this.savedSearchTerm = this.searchTerm;
+
+        // Show/hide clear button
+        const clearButton = document.getElementById('clear-search-btn');
+        if (clearButton) {
+            clearButton.style.display = this.searchTerm ? 'block' : 'none';
+        }
+
+        if (this.searchTerm.length === 0) {
+            this.clearSearchResults();
+            return;
+        }
+
+        if (this.searchTerm.length >= 2) {
+            this.showAutocomplete();
+        } else {
+            this.hideAutocomplete();
+        }
+    }
+
+    /**
+     * Handle search input keydown events
+     */
+    handleSearchKeydown(e) {
+        const autocompleteItems = document.querySelectorAll('.autocomplete-item');
+
+        switch (e.key) {
+            case 'ArrowDown':
+                if (!this.autocompleteVisible) return;
+                e.preventDefault();
+                this.highlightedIndex = Math.min(this.highlightedIndex + 1, autocompleteItems.length - 1);
+                this.updateAutocompleteHighlight();
+                break;
+
+            case 'ArrowUp':
+                if (!this.autocompleteVisible) return;
+                e.preventDefault();
+                this.highlightedIndex = Math.max(this.highlightedIndex - 1, -1);
+                this.updateAutocompleteHighlight();
+                break;
+
+            case 'Enter':
+                e.preventDefault();
+                if (this.autocompleteVisible && this.highlightedIndex >= 0 && autocompleteItems[this.highlightedIndex]) {
+                    this.selectAutocompleteItem(this.highlightedIndex);
+                } else if (this.searchTerm && this.searchTerm.trim().length > 0) {
+                    this.applySearch();
+                    this.hideAutocomplete();
+                }
+                break;
+
+            case 'Escape':
+                this.hideAutocomplete();
+                break;
+        }
+    }
+
+    /**
+     * Perform search on filtered plants
+     */
+    performSearch() {
+        if (!this.searchTerm) {
+            this.searchResults = [];
+            return;
+        }
+
+        const searchLower = this.searchTerm.toLowerCase();
+        const plantsToSearch = this.filteredPlants || this.currentPlants;
+
+        this.searchResults = plantsToSearch.filter(plant => {
+            // Search scientific name
+            const scientificMatch = plant.name.toLowerCase().includes(searchLower);
+
+            // Search common name if available from nursery data
+            let commonMatch = false;
+            if (window.nurseryDataManager) {
+                const nurseryData = window.nurseryDataManager.getInventoryForSpecies(plant.name);
+                if (nurseryData.length > 0) {
+                    commonMatch = nurseryData.some(item =>
+                        item.common_name && item.common_name.toLowerCase().includes(searchLower)
+                    );
+                }
+            }
+
+            return scientificMatch || commonMatch;
+        });
+    }
+
+    /**
+     * Get autocomplete suggestions
+     */
+    getAutocompleteSuggestions() {
+        if (!this.searchTerm || this.searchTerm.length < 2) return [];
+
+        const suggestions = [];
+        const searchLower = this.searchTerm.toLowerCase();
+        const plantsToSearch = this.filteredPlants || this.currentPlants;
+
+        // Limit to first 8 suggestions for performance
+        let count = 0;
+        for (const plant of plantsToSearch) {
+            if (count >= 8) break;
+
+            const scientificMatch = plant.name.toLowerCase().includes(searchLower);
+            let commonName = '';
+
+            // Get common name from nursery data
+            if (window.nurseryDataManager) {
+                const nurseryData = window.nurseryDataManager.getInventoryForSpecies(plant.name);
+                if (nurseryData.length > 0 && nurseryData[0].common_name) {
+                    commonName = nurseryData[0].common_name;
+                }
+            }
+
+            const commonMatch = commonName.toLowerCase().includes(searchLower);
+
+            if (scientificMatch || commonMatch) {
+                suggestions.push({
+                    plant: plant,
+                    scientificName: plant.name,
+                    commonName: commonName,
+                    matchType: scientificMatch ? 'scientific' : 'common'
+                });
+                count++;
+            }
+        }
+
+        return suggestions;
+    }
+
+    /**
+     * Show autocomplete dropdown
+     */
+    showAutocomplete() {
+        const suggestions = this.getAutocompleteSuggestions();
+        if (suggestions.length === 0) {
+            this.hideAutocomplete();
+            return;
+        }
+
+        const autocompleteContainer = document.getElementById('search-autocomplete');
+        if (!autocompleteContainer) return;
+
+        const suggestionHTML = suggestions.map((suggestion, index) => `
+            <div class="autocomplete-item" data-index="${index}" data-plant-name="${suggestion.scientificName}">
+                <div class="autocomplete-scientific">${suggestion.scientificName}</div>
+                ${suggestion.commonName ? `<div class="autocomplete-common">${suggestion.commonName}</div>` : ''}
+            </div>
+        `).join('');
+
+        autocompleteContainer.innerHTML = suggestionHTML;
+        autocompleteContainer.style.display = 'block';
+        this.autocompleteVisible = true;
+        this.highlightedIndex = -1;
+
+        // Attach click events
+        const autocompleteItems = autocompleteContainer.querySelectorAll('.autocomplete-item');
+        autocompleteItems.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                this.selectAutocompleteItem(index);
+            });
+        });
+    }
+
+    /**
+     * Hide autocomplete dropdown
+     */
+    hideAutocomplete() {
+        const autocompleteContainer = document.getElementById('search-autocomplete');
+        if (autocompleteContainer) {
+            autocompleteContainer.style.display = 'none';
+            autocompleteContainer.innerHTML = '';
+        }
+        this.autocompleteVisible = false;
+        this.highlightedIndex = -1;
+    }
+
+    /**
+     * Update autocomplete highlight
+     */
+    updateAutocompleteHighlight() {
+        const autocompleteItems = document.querySelectorAll('.autocomplete-item');
+        autocompleteItems.forEach((item, index) => {
+            item.classList.toggle('highlighted', index === this.highlightedIndex);
+        });
+    }
+
+    /**
+     * Select autocomplete item
+     */
+    selectAutocompleteItem(index) {
+        const autocompleteItems = document.querySelectorAll('.autocomplete-item');
+        const selectedItem = autocompleteItems[index];
+
+        if (selectedItem) {
+            const plantName = selectedItem.dataset.plantName;
+            const searchInput = document.getElementById('plant-search-input');
+
+            if (searchInput) {
+                searchInput.value = plantName;
+                this.searchTerm = plantName;
+                this.savedSearchTerm = plantName;
+            }
+
+            this.hideAutocomplete();
+            this.applySearch();
+        }
+    }
+
+    /**
+     * Apply search results to plant grid
+     */
+    applySearch() {
+        if (!this.searchTerm) {
+            this.clearSearchResults();
+            return;
+        }
+
+        this.performSearch();
+        this.isSearchActive = true;
+        this.displayPlantGrid(this.searchResults);
+    }
+
+    /**
+     * Clear search and restore filtered results
+     */
+    clearSearch() {
+        this.searchTerm = '';
+        this.savedSearchTerm = '';
+        this.isSearchActive = false;
+        this.searchResults = [];
+        this.hideAutocomplete();
+
+        const searchInput = document.getElementById('plant-search-input');
+        const clearButton = document.getElementById('clear-search-btn');
+
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        if (clearButton) {
+            clearButton.style.display = 'none';
+        }
+
+        // Restore filtered plants display
+        this.displayPlantGrid(this.filteredPlants);
+    }
+
+    /**
+     * Clear search results without affecting input
+     */
+    clearSearchResults() {
+        if (this.isSearchActive) {
+            this.isSearchActive = false;
+            this.searchResults = [];
+            this.displayPlantGrid(this.filteredPlants);
+        }
+        this.hideAutocomplete();
     }
 }
 

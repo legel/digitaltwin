@@ -259,12 +259,22 @@ class FocusPanel {
                 <h3 class="pa-name">${displayTitle}</h3>
                 <p class="pa-subtitle">${currentPageData.subtitle}</p>
                 ${this.currentPage === 'plantRecommendations' ? `
-                <div class="refine-plant-section">
+                <div class="plant-controls-section">
                     <button id="refine-plants-btn" class="action-button">
                         <i class="fas fa-leaf"></i>
                         <i class="fas fa-sliders-h"></i>
                         <span>Refine Plant List</span>
                     </button>
+                    <div class="plant-search-container">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="plant-search-input" class="plant-search-input" placeholder="Search plants..." autocomplete="off">
+                            <button id="clear-search-btn" class="clear-search-btn" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="search-autocomplete" class="search-autocomplete" style="display: none;"></div>
+                    </div>
                 </div>
                 ` : ''}
                 ${isPlantDetailsPage ? `
@@ -305,6 +315,11 @@ class FocusPanel {
     hide() {
         // Save current scroll position before hiding
         this.saveScrollPosition();
+
+        // Save button state if we're in standalone mode (for button reopening)
+        if (this.isStandaloneMode) {
+            this.saveButtonState();
+        }
 
         // Clean up any active purchase widgets when focus panel closes
         if (window.plantRecommendations && typeof window.plantRecommendations.onFocusPanelClose === 'function') {
@@ -689,6 +704,11 @@ class FocusPanel {
             });
         }
 
+        // Plant search functionality
+        if (window.plantRecommendations && typeof window.plantRecommendations.attachSearchEventListeners === 'function') {
+            window.plantRecommendations.attachSearchEventListeners();
+        }
+
         // Back to plants button
         const backToPlantsBtn = this.panel.querySelector('#back-to-plants-btn');
         if (backToPlantsBtn) {
@@ -699,43 +719,29 @@ class FocusPanel {
     }
 
     /**
-     * Update Refine Plant List button visibility based on current page
+     * Update plant controls visibility based on current page
      */
     updateRefinePlantButtonVisibility() {
-        // Find existing refine plant section
+        // Find existing plant controls section (new structure)
+        let plantControlsSection = this.panel.querySelector('.plant-controls-section');
+        // Also check for old refine plant section for cleanup
         let refinePlantSection = this.panel.querySelector('.refine-plant-section');
 
         if (this.currentPage === 'plantRecommendations') {
-            // Show button on plant recommendations page
-            if (!refinePlantSection) {
-                // Create the section if it doesn't exist
-                const titleSection = this.panel.querySelector('.panel-title-section');
-                if (titleSection) {
-                    const refinePlantHTML = `
-                        <div class="refine-plant-section">
-                            <button id="refine-plants-btn" class="refine-plants-button">
-                                <i class="fas fa-filter"></i> Refine Plant List
-                            </button>
-                        </div>
-                    `;
-                    titleSection.insertAdjacentHTML('beforeend', refinePlantHTML);
+            // Show controls on plant recommendations page
+            if (plantControlsSection) {
+                plantControlsSection.style.display = 'flex';
+            }
 
-                    // Attach event listener to the new button
-                    const refinePlantsBtn = this.panel.querySelector('#refine-plants-btn');
-                    if (refinePlantsBtn) {
-                        refinePlantsBtn.addEventListener('click', () => {
-                            if (window.plantRecommendations) {
-                                window.plantRecommendations.toggleFilters();
-                            }
-                        });
-                    }
-                }
-            } else {
-                // Show existing section
-                refinePlantSection.style.display = 'block';
+            // Hide and remove any old refine plant sections to prevent duplicates
+            if (refinePlantSection) {
+                refinePlantSection.remove();
             }
         } else {
-            // Hide button on other pages
+            // Hide controls on other pages
+            if (plantControlsSection) {
+                plantControlsSection.style.display = 'none';
+            }
             if (refinePlantSection) {
                 refinePlantSection.style.display = 'none';
             }
@@ -746,6 +752,16 @@ class FocusPanel {
         if (this.pages[pageName] && pageName !== this.currentPage) {
             const previousPage = this.currentPage;
             this.currentPage = pageName;
+
+            // Clear search and hide autocomplete when leaving plant recommendations page
+            if (previousPage === 'plantRecommendations' && window.plantRecommendations) {
+                if (typeof window.plantRecommendations.hideAutocomplete === 'function') {
+                    window.plantRecommendations.hideAutocomplete();
+                }
+                if (typeof window.plantRecommendations.hideFilters === 'function') {
+                    window.plantRecommendations.hideFilters();
+                }
+            }
 
             // Update header to reflect new page
             const currentPageData = this.pages[this.currentPage];
@@ -1058,12 +1074,22 @@ class FocusPanel {
             <div class="panel-title-section">
                 <h3 class="pa-name">PLANT CATALOG</h3>
                 <p class="pa-subtitle">${currentPageData.subtitle}</p>
-                <div class="refine-plant-section">
+                <div class="plant-controls-section">
                     <button id="refine-plants-btn" class="action-button">
                         <i class="fas fa-leaf"></i>
                         <i class="fas fa-sliders-h"></i>
                         <span>Refine Plant List</span>
                     </button>
+                    <div class="plant-search-container">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="plant-search-input" class="plant-search-input" placeholder="Search plants..." autocomplete="off">
+                            <button id="clear-search-btn" class="clear-search-btn" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="search-autocomplete" class="search-autocomplete" style="display: none;"></div>
+                    </div>
                 </div>
             </div>
             <div class="page-controls">
@@ -1129,11 +1155,8 @@ class FocusPanel {
                 }
             }
 
-            // Apply saved filters for state preservation scenarios
-            if (this.buttonState.filters.length > 0 && (this.isNavigatingBack || previousOpenedBy === 'button')) {
-                // Apply filters with minimal delay for content to load
-                setTimeout(() => this.applySavedFilters(), 5);
-            }
+            // Note: Filter and search restoration now happens automatically via persistent state
+            // selectedFilters Set and savedSearchTerm survive page navigation without manual restoration
         } else {
             content.innerHTML = `
                 <div class="standalone-loading">
@@ -1468,12 +1491,22 @@ class FocusPanel {
                 <h3 class="pa-name">${displayTitle}</h3>
                 <p class="pa-subtitle">${currentPageData.subtitle}</p>
                 ${this.currentPage === 'plantRecommendations' ? `
-                <div class="refine-plant-section">
+                <div class="plant-controls-section">
                     <button id="refine-plants-btn" class="action-button">
                         <i class="fas fa-leaf"></i>
                         <i class="fas fa-sliders-h"></i>
                         <span>Refine Plant List</span>
                     </button>
+                    <div class="plant-search-container">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="plant-search-input" class="plant-search-input" placeholder="Search plants..." autocomplete="off">
+                            <button id="clear-search-btn" class="clear-search-btn" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="search-autocomplete" class="search-autocomplete" style="display: none;"></div>
+                    </div>
                 </div>
                 ` : ''}
                 ${isPlantDetailsPage ? `
@@ -1526,12 +1559,8 @@ class FocusPanel {
         this.buttonState.currentPage = this.currentPage;
         this.buttonState.selectedPlantData = this.selectedPlantData ? { ...this.selectedPlantData } : null;
 
-        // Save current filter state from plantRecommendations module
-        if (window.plantRecommendations && typeof window.plantRecommendations.getCurrentFilters === 'function') {
-            this.buttonState.filters = window.plantRecommendations.getCurrentFilters();
-        } else {
-            this.buttonState.filters = [];
-        }
+        // Note: Filter and search state now persists automatically via selectedFilters Set and savedSearchTerm
+        // No manual saving needed since they survive page navigation naturally
 
         // Save current scroll position if on plant recommendations page
         this.saveScrollPosition();
@@ -1605,28 +1634,6 @@ class FocusPanel {
         setTimeout(applyScroll, 5); // Very short delay as fallback
     }
 
-    /**
-     * Apply saved filters after plant recommendations content is loaded
-     */
-    applySavedFilters() {
-        if (this.buttonState.filters && this.buttonState.filters.length > 0 && window.plantRecommendations) {
-            // Restore filters to plantRecommendations module
-            window.plantRecommendations.selectedFilters.clear();
-            this.buttonState.filters.forEach(filterIndex => {
-                window.plantRecommendations.selectedFilters.add(filterIndex);
-            });
-
-            // Update filter UI to reflect restored state
-            if (typeof window.plantRecommendations.updateFilterUIFromSelectedFilters === 'function') {
-                window.plantRecommendations.updateFilterUIFromSelectedFilters();
-            }
-
-            // Apply the filters to show filtered plants
-            if (typeof window.plantRecommendations.applyCurrentFilters === 'function') {
-                window.plantRecommendations.applyCurrentFilters();
-            }
-        }
-    }
 
 
     positionPanelCorrectly() {
