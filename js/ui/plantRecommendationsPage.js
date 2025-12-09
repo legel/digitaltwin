@@ -2210,7 +2210,27 @@ class PlantRecommendationsPage {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.plantRecommendations = new PlantRecommendationsPage();
+
+        // Listen for standalone plant recommendations request from cart button
+        window.addEventListener('cart:openPlantRecommendations', (event) => {
+            if (event.detail && event.detail.standalone) {
+                // Open focus panel with plant recommendations in standalone mode
+                if (window.focusPanel) {
+                    window.focusPanel.showStandalone();
+                }
+            }
+        });
     });
 } else {
     window.plantRecommendations = new PlantRecommendationsPage();
+
+    // Listen for standalone plant recommendations request from cart button
+    window.addEventListener('cart:openPlantRecommendations', (event) => {
+        if (event.detail && event.detail.standalone) {
+            // Open focus panel with plant recommendations in standalone mode
+            if (window.focusPanel) {
+                window.focusPanel.showStandalone();
+            }
+        }
+    });
 }
