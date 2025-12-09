@@ -17,6 +17,7 @@ class ProductNurseryPlant {
     /**
      * Generate a unique identifier for this specific nursery plant item
      * Uses ALL available fields to ensure perfect uniqueness
+     * Creates HTML-safe ID using Base64 encoding to avoid special character issues
      */
     generateUniqueId() {
         const components = [
@@ -34,13 +35,40 @@ class ProductNurseryPlant {
             this.nurseryData.picture_1_url || ''
         ];
 
-        // Filter out empty components and join with delimiters
-        // Use a delimiter that's unlikely to appear in the data
+        // Filter out empty components and join
         const cleanComponents = components
             .map(comp => String(comp).trim())
             .filter(comp => comp.length > 0);
 
-        return cleanComponents.join('::');
+        const rawId = cleanComponents.join('::');
+
+        // Use Unicode-safe Base64 encoding to create HTML-safe ID that preserves uniqueness
+        try {
+            // Convert Unicode string to UTF-8 bytes, then to Base64
+            const utf8Bytes = new TextEncoder().encode(rawId);
+            const binaryString = String.fromCharCode(...utf8Bytes);
+            const encodedId = btoa(binaryString).replace(/[+/=]/g, function(match) {
+                return {'+': '-', '/': '_', '=': ''}[match];
+            });
+            return encodedId;
+        } catch (error) {
+            // Fallback to simple hash if encoding fails
+            console.warn(`[ProductNurseryPlant] Failed to encode product ID for ${this.plantName}, using hash fallback:`, error);
+            return this.generateSimpleHash(rawId);
+        }
+    }
+
+    /**
+     * Generate a simple hash from a string as fallback
+     */
+    generateSimpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return Math.abs(hash).toString(36);
     }
 
     /**

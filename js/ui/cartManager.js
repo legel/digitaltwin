@@ -513,13 +513,14 @@ class CartManager {
 
         const itemId = product ? product.uniqueId : `${plantName}-${speciesKey}`;
 
+
         // Check if this specific item already exists in cart
         const existingItem = this.cart.find(item => item.itemId === itemId);
 
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
-            this.cart.push({
+            const newItem = {
                 itemId,
                 plantName,
                 speciesKey,
@@ -528,7 +529,9 @@ class CartManager {
                 inventoryData: inventoryItem ? { ...inventoryItem } : null,
                 // Also store the product instance for consistent access to methods
                 product: product
-            });
+            };
+
+            this.cart.push(newItem);
         }
 
         this.updateCartDisplay();
@@ -538,20 +541,23 @@ class CartManager {
      * Remove item from cart by item ID
      */
     removeFromCartById(itemId) {
-        const item = this.cart.find(item => item.itemId === itemId);
+        if (!itemId) {
+            console.error('Cannot remove item: itemId is null or undefined');
+            return;
+        }
+
+
+        const initialLength = this.cart.length;
         this.cart = this.cart.filter(item => item.itemId !== itemId);
+
+        if (this.cart.length === initialLength) {
+            console.warn(`[CartManager] Item with ID "${itemId}" not found in cart`);
+            return;
+        }
+
         this.updateCartDisplay();
     }
 
-    /**
-     * Remove item from cart (legacy method)
-     */
-    removeFromCart(plantName, speciesKey) {
-        this.cart = this.cart.filter(item =>
-            !(item.plantName === plantName && item.speciesKey === speciesKey)
-        );
-        this.updateCartDisplay();
-    }
 
     /**
      * Get total quantity in cart
@@ -694,9 +700,6 @@ class CartManager {
                     const nursery = item.inventoryData.nursery || '';
 
                     inventoryInfo = `<div class="cart-item-details">${containerInfo}${dimensions ? ' - ' + dimensions : ''} - ${nursery}</div>`;
-                } else if (item.inventoryDetails) {
-                    // Legacy fallback
-                    inventoryInfo = `<div class="cart-item-details">${item.inventoryDetails.containerSize} ${item.inventoryDetails.containerType} - ${item.inventoryDetails.nursery}</div>`;
                 }
 
                 const unitPrice = this.getItemUnitPrice(item);
@@ -731,7 +734,15 @@ class CartManager {
             // Attach remove event listeners
             cartItems.querySelectorAll('.cart-item-remove').forEach(btn => {
                 btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     const itemId = e.target.dataset.itemId;
+                    if (!itemId) {
+                        console.error('No itemId found for cart item removal');
+                        return;
+                    }
+
                     this.removeFromCartById(itemId);
                 });
             });
@@ -823,10 +834,6 @@ class CartManager {
 
             this.cardElement.mount(cardElementContainer);
 
-            // Force a reflow to ensure rendering
-            cardElementContainer.style.display = 'none';
-            cardElementContainer.offsetHeight;
-            cardElementContainer.style.display = 'block';
 
         } catch (error) {
             console.error('Failed to mount Stripe Element:', error);
@@ -1179,8 +1186,6 @@ class CartManager {
         if (!date) errors.push({ field: 'checkout-date', message: 'Delivery date is required' });
         if (!time) errors.push({ field: 'checkout-time', message: 'Delivery time is required' });
 
-        // Payment validation - Stripe Elements handles card validation automatically
-        // We'll validate the card element completeness during payment processing
 
         // Billing address validation (if different from delivery address)
         const useDifferentBilling = document.getElementById('checkout-billing-same').value === 'false';
@@ -1254,48 +1259,6 @@ class CartManager {
         return emailPattern.test(email);
     }
 
-    /**
-     * Validate credit card number format
-     */
-    validateCardNumber(cardNumber) {
-        const cleanNumber = cardNumber.replace(/\s/g, '');
-        // Basic length and digit validation
-        return cleanNumber.length >= 13 && cleanNumber.length <= 19 && /^\d+$/.test(cleanNumber);
-    }
-
-    /**
-     * Validate expiry date format (MM/YY)
-     */
-    validateExpiryDate(expiry) {
-        const expiryPattern = /^(0[1-9]|1[0-2])\/\d{2}$/;
-        if (!expiryPattern.test(expiry)) {
-            return false;
-        }
-
-        // Check if date is not in the past
-        const [month, year] = expiry.split('/');
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear() % 100;
-        const currentMonth = currentDate.getMonth() + 1;
-
-        const expYear = parseInt(year);
-        const expMonth = parseInt(month);
-
-        if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Validate CVV format
-     */
-    validateCvv(cvv) {
-        // CVV should be 3 or 4 digits
-        const cvvPattern = /^\d{3,4}$/;
-        return cvvPattern.test(cvv);
-    }
 
     /**
      * Process Stripe payment
@@ -1708,21 +1671,14 @@ class CartManager {
     }
 
     /**
-     * Open standalone plant recommendations panel without PA selection
+     * Open standalone plant recommendations panel
      */
     openStandalonePlantRecommendations() {
-        // Check if focus panel is already open for a PA
-        if (window.focusPanel && window.focusPanel.isVisible && window.focusPanel.currentPA) {
-            // PA-specific panel is open, close it first
-            window.focusPanel.hide();
-        }
-
-        // Open focus panel in standalone mode
-        if (window.focusPanel) {
-            window.focusPanel.showStandalone();
-        } else {
-            console.error('Focus panel not available');
-        }
+        // Emit custom event for plant recommendations request
+        const event = new CustomEvent('cart:openPlantRecommendations', {
+            detail: { standalone: true }
+        });
+        window.dispatchEvent(event);
     }
 }
 

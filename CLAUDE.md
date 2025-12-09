@@ -279,3 +279,56 @@ Camera control is handled natively by SuperSplat with the platform providing min
 - Nursery inventory and availability
 - Regional ecotype tracking
 - Pollinator value and bloom timing data
+
+## E-Commerce Component Architecture
+
+### Component Separation Philosophy
+The application maintains strict architectural separation between e-commerce functionality and 3D digital twin visualization. This enables independent development and deployment of a standalone e-commerce site that reuses shopping and nursery components without 3D visualization dependencies.
+
+### E-Commerce Component Boundaries
+
+#### Core E-Commerce Components (Independent)
+- **PlantRecommendationsPage** (`js/ui/plantRecommendationsPage.js`) - Plant grid, search bar, filter controls, nursery offers
+- **CartManager** (`js/ui/cartManager.js`) - Shopping cart, checkout screen, Stripe payment integration
+- **NurseryDataManager** (`js/data/nurseryDataManager.js`) - Inventory loading, species matching, price management
+- **ProductNurseryPlant** (`js/data/ProductNurseryPlant.js`) - Plant product models and nursery integration
+- **Stripe Backend** (`server.py` routes: `/api/stripe-config`, `/api/create-payment-intent`) - Payment processing
+
+#### Shared Utilities (Digital Twin Independent)
+- **PricingConfig** (`js/utils/pricingConfig.js`) - Pricing logic and configuration
+- **Nursery Data Files** (`/data/nursery-inventories/`) - CSV inventory data
+- **External Dependencies** - Stripe.js, TensorFlow.js for matrix-based filtering
+
+### Development Guidelines for Decoupling
+
+#### Component Design Principles
+- **No Global State Dependencies**: E-commerce components must not access `window.superSplatBridge`, `window.focusPanel`, or other 3D visualization globals
+- **Event-Based Communication**: Use custom events instead of direct function calls between e-commerce and digital twin systems
+- **Dependency Injection**: Components should accept external dependencies rather than accessing global state directly
+- **Feature Flag Driven**: Use configuration flags to enable/disable digital twin integration features
+
+#### State Management Rules
+- **Independent Initialization**: E-commerce components must initialize and function without SuperSplat or focus panel systems
+- **Isolated State Trees**: Cart state, plant filtering state, and checkout state should not depend on 3D visualization state
+- **Standalone Navigation**: Search, filtering, and purchase flows should work without coordinate transformation or polygon selection
+
+#### UI Rendering Guidelines
+- **Container Agnostic**: Plant recommendations should render in any container, not just focus panels
+- **Independent Styling**: E-commerce CSS should not depend on SuperSplat z-index hierarchy or 3D positioning
+- **Responsive Design**: E-commerce components should work in both embedded (digital twin) and standalone layouts
+
+#### Data Flow Separation
+- **Direct API Access**: E-commerce components should load data independently without ecological metrics or coordinate system dependencies
+- **Minimal Shared Interfaces**: When integration is needed, use minimal, well-defined interfaces rather than shared state objects
+- **Independent Error Handling**: E-commerce error states should not depend on 3D visualization error handling
+
+### Integration Points (When Digital Twin Present)
+When both systems are active, integration should occur through:
+- **Custom Events**: Digital twin can trigger e-commerce displays via events
+- **Configuration Objects**: Pass minimal context (plant species, location data) rather than complex state
+- **Feature Detection**: E-commerce components should detect digital twin presence and enhance functionality accordingly
+
+### Code Organization Standards
+- **Clear Module Boundaries**: E-commerce files should not import or reference digital twin modules
+- **Separate Initialization Paths**: Maintain distinct entry points for standalone vs integrated modes
+- **Independent Testing**: E-commerce functionality should be testable without 3D visualization dependencies
